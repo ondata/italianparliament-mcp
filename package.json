@@ -1,0 +1,58 @@
+{
+  "name": "@aborruso/italianparliament-mcp",
+  "version": "0.0.1",
+  "description": "CLI and MCP server for querying Italian Parliament SPARQL endpoints (Camera dei Deputati and Senato della Repubblica)",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "italianparliament": "dist/cli.js",
+    "italianparliament-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "esbuild src/index.ts src/cli.ts --bundle --platform=node --format=esm --outdir=dist --external:@modelcontextprotocol/sdk --external:axios --external:citty --external:zod --banner:js='#!/usr/bin/env node'",
+    "build:tsc": "tsc",
+    "build:worker": "esbuild src/worker.ts --bundle --platform=browser --format=esm --outfile=dist/worker.js --target=es2022 --minify",
+    "build:dxt": "esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=dxt-staging/server/index.js",
+    "pack:dxt": "rm -rf dxt-staging && mkdir -p dxt-staging/server && npm run build:dxt && echo '{\"type\":\"commonjs\"}' > dxt-staging/server/package.json && cp manifest.json dxt-staging/ && dxt pack dxt-staging italianparliament-mcp.dxt && rm -rf dxt-staging",
+    "pack:skill": "mkdir -p tmp && cd skills && zip -r ../tmp/italianparliament-mcp.skill italianparliament-mcp/ && cd ..",
+    "start": "node dist/index.js",
+    "dev": "npm run build && node dist/index.js",
+    "deploy": "npm run build:worker && wrangler deploy",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "mcp",
+    "cli",
+    "italy",
+    "parliament",
+    "sparql",
+    "open-data",
+    "camera-dei-deputati",
+    "senato"
+  ],
+  "author": "Andrea Borruso <aborruso@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "axios": "^1.7.9",
+    "citty": "^0.1.6",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "esbuild": "^0.24.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8",
+    "wrangler": "^3.100.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

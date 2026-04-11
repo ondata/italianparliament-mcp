@@ -1,0 +1,14 @@
+node_modules/
+dist/
+dxt-staging/
+tmp/
+*.dxt
+*.skill
+.env
+.env.local
+.DS_Store
+*.log
+coverage/
+.wrangler/
+.vscode/
+.idea/
