@@ -14,7 +14,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "esbuild src/index.ts src/cli.ts --bundle --platform=node --format=esm --outdir=dist --external:@modelcontextprotocol/sdk --external:axios --external:citty --external:zod --banner:js='#!/usr/bin/env node'",
+    "build": "esbuild src/index.ts src/cli.ts --bundle --platform=node --format=esm --outdir=dist --external:@modelcontextprotocol/sdk --external:citty --external:zod --banner:js='#!/usr/bin/env node'",
     "build:tsc": "tsc",
     "build:worker": "esbuild src/worker.ts --bundle --platform=browser --format=esm --outfile=dist/worker.js --target=es2022 --minify",
     "build:dxt": "esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=dxt-staging/server/index.js",

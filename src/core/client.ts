@@ -1,4 +1,3 @@
-import axios, { AxiosError } from "axios";
 import {
   CAMERA_ENDPOINT,
   SENATO_ENDPOINT,
@@ -28,28 +27,40 @@ async function sparqlRequest(
   let lastErr: unknown;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const res = await axios.get<SparqlResults>(endpoint, {
-        params: { query, format: "application/json" },
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "italianparliament-mcp/0.0.1",
-        },
-        timeout: timeoutMs,
-        responseType: "json",
+      const params = new URLSearchParams({
+        query,
+        format: "application/json",
       });
-      return res.data;
-    } catch (err) {
-      lastErr = err;
-      const ax = err as AxiosError;
-      const status = ax.response?.status;
-      if (status && status >= 400 && status < 500 && status !== 429) {
-        throw new SparqlError(
-          `SPARQL request failed with status ${status}`,
-          endpoint,
-          status,
-          err,
-        );
+      const url = `${endpoint}?${params.toString()}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      let res: Response;
+      try {
+        res = await fetch(url, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            "User-Agent": "italianparliament-mcp/0.0.1",
+          },
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
       }
+      if (!res.ok) {
+        if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+          throw new SparqlError(
+            `SPARQL request failed with status ${res.status}`,
+            endpoint,
+            res.status,
+          );
+        }
+        throw new Error(`HTTP ${res.status}`);
+      }
+      return (await res.json()) as SparqlResults;
+    } catch (err) {
+      if (err instanceof SparqlError) throw err;
+      lastErr = err;
       if (attempt === maxRetries) break;
       await new Promise((r) => setTimeout(r, 500 * attempt));
     }
