@@ -15,6 +15,7 @@ import { speechesTool } from "./speeches.js";
 import { aicTool } from "./aic.js";
 import { voteDetailTool } from "./vote-detail.js";
 import { groupMembersTool } from "./group-members.js";
+import { senatorGroupMembersTool } from "./senator-group-members.js";
 import { govMembersTool } from "./gov-members.js";
 import { committeesTool } from "./committees.js";
 import { billProgressTool } from "./bill-progress.js";
@@ -42,6 +43,7 @@ export const tools: Tool[] = [
   aicTool,
   voteDetailTool,
   groupMembersTool,
+  senatorGroupMembersTool,
   govMembersTool,
   committeesTool,
   billProgressTool,
@@ -73,6 +75,7 @@ export {
   aicTool,
   voteDetailTool,
   groupMembersTool,
+  senatorGroupMembersTool,
   govMembersTool,
   committeesTool,
   billProgressTool,

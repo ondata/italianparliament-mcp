@@ -16,6 +16,7 @@ import { speechesTool } from "./tools/speeches.js";
 import { aicTool } from "./tools/aic.js";
 import { voteDetailTool } from "./tools/vote-detail.js";
 import { groupMembersTool } from "./tools/group-members.js";
+import { senatorGroupMembersTool } from "./tools/senator-group-members.js";
 import { govMembersTool } from "./tools/gov-members.js";
 import { committeesTool } from "./tools/committees.js";
 import { billProgressTool } from "./tools/bill-progress.js";
@@ -87,6 +88,7 @@ export function registerAll(server: McpServer): void {
     aicTool,
     voteDetailTool,
     groupMembersTool,
+    senatorGroupMembersTool,
     govMembersTool,
     committeesTool,
     billProgressTool,

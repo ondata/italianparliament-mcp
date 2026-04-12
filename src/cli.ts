@@ -16,6 +16,7 @@ import { speechesTool } from "./tools/speeches.js";
 import { aicTool } from "./tools/aic.js";
 import { voteDetailTool } from "./tools/vote-detail.js";
 import { groupMembersTool } from "./tools/group-members.js";
+import { senatorGroupMembersTool } from "./tools/senator-group-members.js";
 import { govMembersTool } from "./tools/gov-members.js";
 import { committeesTool } from "./tools/committees.js";
 import { billProgressTool } from "./tools/bill-progress.js";
@@ -530,6 +531,34 @@ const groupMembersList = defineCommand({
   },
 });
 
+const senatorGroupMembersList = defineCommand({
+  meta: {
+    name: "list",
+    description: withExamples(
+      "List members of Senato parliamentary groups.",
+      senatorGroupMembersTool.examples,
+    ),
+  },
+  args: {
+    "group-uri": { type: "string", description: "Full URI of a Senato parliamentary group" },
+    legislature: { type: "string", description: "Legislature number" },
+    "as-of": { type: "string", description: "Date YYYY-MM-DD (default: today)" },
+    limit: { type: "string", default: "200" },
+    offset: { type: "string", default: "0" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await senatorGroupMembersTool.execute({
+      groupUri: (args["group-uri"] as string) || undefined,
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
+      asOf: (args["as-of"] as string) || undefined,
+      limit: parseIntFlag(args.limit as string, "limit") ?? 200,
+      offset: Number(args.offset ?? 0),
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
 const govMembersList = defineCommand({
   meta: {
     name: "list",
@@ -781,6 +810,10 @@ const main = defineCommand({
     "group-members": defineCommand({
       meta: { name: "group-members", description: "Members of Camera parliamentary groups" },
       subCommands: { list: groupMembersList },
+    }),
+    "senator-group-members": defineCommand({
+      meta: { name: "senator-group-members", description: "Members of Senato parliamentary groups" },
+      subCommands: { list: senatorGroupMembersList },
     }),
     "gov-members": defineCommand({
       meta: { name: "gov-members", description: "Members of Italian governments" },

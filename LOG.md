@@ -1,5 +1,11 @@
 # LOG
 
+## 2026-04-12 (aggiornamento)
+
+- Nuovo tool `senator-group-members` [SENATO]: membri attivi di un gruppo parlamentare del Senato.
+- Default `asOf = oggi`; opzionale `--as-of YYYY-MM-DD`, `--legislature`, `--group-uri`.
+- Schema Senato differisce dalla Camera: `ocd:aderisce` (direzione inversa), label gruppo via blank node `osr:Denominazione` con storico nomi filtrato per data.
+
 ## 2026-04-12
 
 - Fase 6 batch 3: +4 tool Camera (`speeches`, `aic`, `vote-detail`, `group-members`). Totale tool: 17/24.
