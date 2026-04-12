@@ -4,6 +4,24 @@ import { senatorsTool } from "./tools/senators.js";
 import { billsTool } from "./tools/bills.js";
 import { votesTool } from "./tools/votes.js";
 import { searchTool } from "./tools/search.js";
+import { legislaturesTool } from "./tools/legislatures.js";
+import { groupsTool } from "./tools/groups.js";
+import { sessionsTool } from "./tools/sessions.js";
+import { governmentsTool } from "./tools/governments.js";
+import { deputyTool } from "./tools/deputy.js";
+import { senatorTool } from "./tools/senator.js";
+import { billTool } from "./tools/bill.js";
+import { rolesTool } from "./tools/roles.js";
+import { speechesTool } from "./tools/speeches.js";
+import { aicTool } from "./tools/aic.js";
+import { voteDetailTool } from "./tools/vote-detail.js";
+import { groupMembersTool } from "./tools/group-members.js";
+import { govMembersTool } from "./tools/gov-members.js";
+import { committeesTool } from "./tools/committees.js";
+import { billProgressTool } from "./tools/bill-progress.js";
+import { billSignatoriesTool } from "./tools/bill-signatories.js";
+import { amendmentsTool } from "./tools/amendments.js";
+import { documentsTool } from "./tools/documents.js";
 import { formatRows, type Format } from "./core/format.js";
 import { SparqlError } from "./core/client.js";
 import type { ToolResult } from "./tools/types.js";
@@ -234,6 +252,431 @@ const searchFind = defineCommand({
   },
 });
 
+const legislaturesList = defineCommand({
+  meta: {
+    name: "list",
+    description: withExamples(
+      "List all legislatures of the Camera dei Deputati.",
+      legislaturesTool.examples,
+    ),
+  },
+  args: {
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await legislaturesTool.execute({});
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const groupsList = defineCommand({
+  meta: {
+    name: "list",
+    description: withExamples(
+      "List parliamentary groups of the Camera dei Deputati.",
+      groupsTool.examples,
+    ),
+  },
+  args: {
+    legislature: { type: "string", description: "Legislature number" },
+    limit: { type: "string", default: "100" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await groupsTool.execute({
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
+      limit: parseIntFlag(args.limit as string, "limit") ?? 100,
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const sessionsList = defineCommand({
+  meta: {
+    name: "list",
+    description: withExamples(
+      "List parliamentary sessions (sedute) of the Camera dei Deputati.",
+      sessionsTool.examples,
+    ),
+  },
+  args: {
+    legislature: { type: "string", description: "Legislature number" },
+    limit: { type: "string", default: "100" },
+    offset: { type: "string", default: "0" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await sessionsTool.execute({
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
+      limit: parseIntFlag(args.limit as string, "limit") ?? 100,
+      offset: Number(args.offset ?? 0),
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const governmentsList = defineCommand({
+  meta: {
+    name: "list",
+    description: withExamples(
+      "List Italian governments referenced in Camera membroGoverno records.",
+      governmentsTool.examples,
+    ),
+  },
+  args: {
+    legislature: { type: "string", description: "Legislature number" },
+    limit: { type: "string", default: "100" },
+    offset: { type: "string", default: "0" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await governmentsTool.execute({
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
+      limit: parseIntFlag(args.limit as string, "limit") ?? 100,
+      offset: Number(args.offset ?? 0),
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const deputyShow = defineCommand({
+  meta: {
+    name: "show",
+    description: withExamples(
+      "Show all RDF properties of a single deputy.",
+      deputyTool.examples,
+    ),
+  },
+  args: {
+    uri: { type: "string", description: "Full URI of the deputy" },
+    id: { type: "string", description: "Numeric deputy ID (use with --legislature)" },
+    legislature: { type: "string", description: "Legislature number (use with --id)" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await deputyTool.execute({
+      uri: (args.uri as string) || undefined,
+      id: parseIntFlag(args.id as string, "id"),
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const senatorShow = defineCommand({
+  meta: {
+    name: "show",
+    description: withExamples(
+      "Show all RDF properties of a single senator.",
+      senatorTool.examples,
+    ),
+  },
+  args: {
+    uri: { type: "string", description: "Full URI of the senator", required: true },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await senatorTool.execute({ uri: args.uri as string });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const billShow = defineCommand({
+  meta: {
+    name: "show",
+    description: withExamples(
+      "Show all RDF properties of a single Camera bill.",
+      billTool.examples,
+    ),
+  },
+  args: {
+    uri: { type: "string", description: "Full URI of the bill", required: true },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await billTool.execute({ uri: args.uri as string });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const rolesList = defineCommand({
+  meta: {
+    name: "list",
+    description: withExamples(
+      "List parliamentary roles (incarichi) of Camera deputies.",
+      rolesTool.examples,
+    ),
+  },
+  args: {
+    "deputy-uri": { type: "string", description: "Full URI of a deputy" },
+    "group-uri": { type: "string", description: "Full URI of a parliamentary group" },
+    legislature: { type: "string", description: "Legislature number" },
+    limit: { type: "string", default: "100" },
+    offset: { type: "string", default: "0" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await rolesTool.execute({
+      deputyUri: (args["deputy-uri"] as string) || undefined,
+      groupUri: (args["group-uri"] as string) || undefined,
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
+      limit: parseIntFlag(args.limit as string, "limit") ?? 100,
+      offset: Number(args.offset ?? 0),
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const speechesList = defineCommand({
+  meta: {
+    name: "list",
+    description: withExamples(
+      "List speeches (interventi) in Camera dei Deputati.",
+      speechesTool.examples,
+    ),
+  },
+  args: {
+    legislature: { type: "string", description: "Legislature number" },
+    "deputy-uri": { type: "string", description: "Full URI of a deputy" },
+    limit: { type: "string", default: "100" },
+    offset: { type: "string", default: "0" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await speechesTool.execute({
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
+      deputyUri: (args["deputy-uri"] as string) || undefined,
+      limit: parseIntFlag(args.limit as string, "limit") ?? 100,
+      offset: Number(args.offset ?? 0),
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const aicList = defineCommand({
+  meta: {
+    name: "list",
+    description: withExamples(
+      "List atti di indirizzo e controllo of Camera dei Deputati.",
+      aicTool.examples,
+    ),
+  },
+  args: {
+    legislature: { type: "string", description: "Legislature number" },
+    "deputy-uri": { type: "string", description: "Full URI of a deputy (signatory)" },
+    "primary-only": { type: "boolean", description: "Only primary signatory matches" },
+    limit: { type: "string", default: "100" },
+    offset: { type: "string", default: "0" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await aicTool.execute({
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
+      deputyUri: (args["deputy-uri"] as string) || undefined,
+      primaryOnly: args["primary-only"] === true,
+      limit: parseIntFlag(args.limit as string, "limit") ?? 100,
+      offset: Number(args.offset ?? 0),
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const voteDetailShow = defineCommand({
+  meta: {
+    name: "show",
+    description: withExamples(
+      "Show individual deputy votes for a single Camera votazione.",
+      voteDetailTool.examples,
+    ),
+  },
+  args: {
+    "vote-uri": { type: "string", description: "Full URI of the votazione", required: true },
+    limit: { type: "string", default: "700" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await voteDetailTool.execute({
+      voteUri: args["vote-uri"] as string,
+      limit: parseIntFlag(args.limit as string, "limit") ?? 700,
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const groupMembersList = defineCommand({
+  meta: {
+    name: "list",
+    description: withExamples(
+      "List members of Camera parliamentary groups.",
+      groupMembersTool.examples,
+    ),
+  },
+  args: {
+    "group-uri": { type: "string", description: "Full URI of a parliamentary group" },
+    legislature: { type: "string", description: "Legislature number" },
+    limit: { type: "string", default: "200" },
+    offset: { type: "string", default: "0" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await groupMembersTool.execute({
+      groupUri: (args["group-uri"] as string) || undefined,
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
+      limit: parseIntFlag(args.limit as string, "limit") ?? 200,
+      offset: Number(args.offset ?? 0),
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const govMembersList = defineCommand({
+  meta: {
+    name: "list",
+    description: withExamples(
+      "List members of Italian governments.",
+      govMembersTool.examples,
+    ),
+  },
+  args: {
+    "government-uri": { type: "string", description: "Full URI of a government" },
+    legislature: { type: "string", description: "Legislature number" },
+    name: { type: "string", description: "Search by name (case-insensitive)" },
+    limit: { type: "string", default: "100" },
+    offset: { type: "string", default: "0" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await govMembersTool.execute({
+      governmentUri: (args["government-uri"] as string) || undefined,
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
+      name: (args.name as string) || undefined,
+      limit: parseIntFlag(args.limit as string, "limit") ?? 100,
+      offset: Number(args.offset ?? 0),
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const committeesList = defineCommand({
+  meta: {
+    name: "list",
+    description: withExamples(
+      "List Senato committees.",
+      committeesTool.examples,
+    ),
+  },
+  args: {
+    legislature: { type: "string", description: "Legislature number (shows only active committees)" },
+    limit: { type: "string", default: "300" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await committeesTool.execute({
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
+      limit: parseIntFlag(args.limit as string, "limit") ?? 300,
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const billProgressList = defineCommand({
+  meta: {
+    name: "list",
+    description: withExamples(
+      "List Senato DDL progress (iter legislativo).",
+      billProgressTool.examples,
+    ),
+  },
+  args: {
+    "ddl-uri": { type: "string", description: "Full URI of a Senato DDL" },
+    legislature: { type: "string", description: "Legislature number" },
+    limit: { type: "string", default: "100" },
+    offset: { type: "string", default: "0" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await billProgressTool.execute({
+      ddlUri: (args["ddl-uri"] as string) || undefined,
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
+      limit: parseIntFlag(args.limit as string, "limit") ?? 100,
+      offset: Number(args.offset ?? 0),
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const billSignatoriesShow = defineCommand({
+  meta: {
+    name: "show",
+    description: withExamples(
+      "Show signatories of a Senato DDL.",
+      billSignatoriesTool.examples,
+    ),
+  },
+  args: {
+    "ddl-uri": { type: "string", description: "Full URI of a Senato DDL", required: true },
+    limit: { type: "string", default: "100" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await billSignatoriesTool.execute({
+      ddlUri: args["ddl-uri"] as string,
+      limit: parseIntFlag(args.limit as string, "limit") ?? 100,
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const amendmentsList = defineCommand({
+  meta: {
+    name: "list",
+    description: withExamples(
+      "List Senato amendments.",
+      amendmentsTool.examples,
+    ),
+  },
+  args: {
+    legislature: { type: "string", description: "Legislature number" },
+    limit: { type: "string", default: "100" },
+    offset: { type: "string", default: "0" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await amendmentsTool.execute({
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
+      limit: parseIntFlag(args.limit as string, "limit") ?? 100,
+      offset: Number(args.offset ?? 0),
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const documentsList = defineCommand({
+  meta: {
+    name: "list",
+    description: withExamples(
+      "List Senato parliamentary documents.",
+      documentsTool.examples,
+    ),
+  },
+  args: {
+    legislature: { type: "string", description: "Legislature number" },
+    type: { type: "string", description: "Filter by document type (case-insensitive)" },
+    limit: { type: "string", default: "100" },
+    offset: { type: "string", default: "0" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await documentsTool.execute({
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
+      type: (args.type as string) || undefined,
+      limit: parseIntFlag(args.limit as string, "limit") ?? 100,
+      offset: Number(args.offset ?? 0),
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
 const main = defineCommand({
   meta: {
     name: "italianparliament",
@@ -261,6 +704,78 @@ const main = defineCommand({
     search: defineCommand({
       meta: { name: "search", description: "Search parliamentarians by name" },
       subCommands: { find: searchFind },
+    }),
+    legislatures: defineCommand({
+      meta: { name: "legislatures", description: "Legislatures of Camera" },
+      subCommands: { list: legislaturesList },
+    }),
+    groups: defineCommand({
+      meta: { name: "groups", description: "Parliamentary groups of Camera" },
+      subCommands: { list: groupsList },
+    }),
+    sessions: defineCommand({
+      meta: { name: "sessions", description: "Parliamentary sessions of Camera" },
+      subCommands: { list: sessionsList },
+    }),
+    governments: defineCommand({
+      meta: { name: "governments", description: "Italian governments" },
+      subCommands: { list: governmentsList },
+    }),
+    deputy: defineCommand({
+      meta: { name: "deputy", description: "Single deputy detail" },
+      subCommands: { show: deputyShow },
+    }),
+    senator: defineCommand({
+      meta: { name: "senator", description: "Single senator detail" },
+      subCommands: { show: senatorShow },
+    }),
+    bill: defineCommand({
+      meta: { name: "bill", description: "Single Camera bill detail" },
+      subCommands: { show: billShow },
+    }),
+    roles: defineCommand({
+      meta: { name: "roles", description: "Parliamentary roles (incarichi) of Camera" },
+      subCommands: { list: rolesList },
+    }),
+    speeches: defineCommand({
+      meta: { name: "speeches", description: "Speeches (interventi) in Camera" },
+      subCommands: { list: speechesList },
+    }),
+    aic: defineCommand({
+      meta: { name: "aic", description: "Atti di indirizzo e controllo of Camera" },
+      subCommands: { list: aicList },
+    }),
+    "vote-detail": defineCommand({
+      meta: { name: "vote-detail", description: "Individual deputy votes in a votazione" },
+      subCommands: { show: voteDetailShow },
+    }),
+    "group-members": defineCommand({
+      meta: { name: "group-members", description: "Members of Camera parliamentary groups" },
+      subCommands: { list: groupMembersList },
+    }),
+    "gov-members": defineCommand({
+      meta: { name: "gov-members", description: "Members of Italian governments" },
+      subCommands: { list: govMembersList },
+    }),
+    committees: defineCommand({
+      meta: { name: "committees", description: "Senato committees" },
+      subCommands: { list: committeesList },
+    }),
+    "bill-progress": defineCommand({
+      meta: { name: "bill-progress", description: "Senato DDL progress (iter)" },
+      subCommands: { list: billProgressList },
+    }),
+    "bill-signatories": defineCommand({
+      meta: { name: "bill-signatories", description: "Signatories of a Senato DDL" },
+      subCommands: { show: billSignatoriesShow },
+    }),
+    amendments: defineCommand({
+      meta: { name: "amendments", description: "Senato amendments" },
+      subCommands: { list: amendmentsList },
+    }),
+    documents: defineCommand({
+      meta: { name: "documents", description: "Senato parliamentary documents" },
+      subCommands: { list: documentsList },
     }),
   },
 });
