@@ -156,6 +156,8 @@ const billsList = defineCommand({
       type: "string",
       description: 'Filter by bill type (case-insensitive substring match)',
     },
+    "date-from": { type: "string", description: "Start date YYYY-MM-DD" },
+    "date-to": { type: "string", description: "End date YYYY-MM-DD" },
     limit: { type: "string", default: "100" },
     offset: { type: "string", default: "0" },
     format: { type: "string", default: "csv" },
@@ -164,6 +166,8 @@ const billsList = defineCommand({
     const result = await billsTool.execute({
       legislature: parseIntFlag(args.legislature as string, "legislature"),
       type: (args.type as string) || undefined,
+      dateFrom: (args["date-from"] as string) || undefined,
+      dateTo: (args["date-to"] as string) || undefined,
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,
       offset: Number(args.offset ?? 0),
     });
@@ -185,6 +189,8 @@ const votesList = defineCommand({
       type: "string",
       description: "Filter by approval: true or false",
     },
+    "date-from": { type: "string", description: "Start date YYYY-MM-DD" },
+    "date-to": { type: "string", description: "End date YYYY-MM-DD" },
     limit: { type: "string", default: "100" },
     offset: { type: "string", default: "0" },
     format: { type: "string", default: "csv" },
@@ -202,6 +208,8 @@ const votesList = defineCommand({
     const result = await votesTool.execute({
       legislature: parseIntFlag(args.legislature as string, "legislature"),
       approved,
+      dateFrom: (args["date-from"] as string) || undefined,
+      dateTo: (args["date-to"] as string) || undefined,
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,
       offset: Number(args.offset ?? 0),
     });
@@ -469,6 +477,8 @@ const aicList = defineCommand({
     legislature: { type: "string", description: "Legislature number" },
     "deputy-uri": { type: "string", description: "Full URI of a deputy (signatory)" },
     "primary-only": { type: "boolean", description: "Only primary signatory matches" },
+    "date-from": { type: "string", description: "Start date YYYY-MM-DD" },
+    "date-to": { type: "string", description: "End date YYYY-MM-DD" },
     limit: { type: "string", default: "100" },
     offset: { type: "string", default: "0" },
     format: { type: "string", default: "csv" },
@@ -478,6 +488,8 @@ const aicList = defineCommand({
       legislature: parseIntFlag(args.legislature as string, "legislature"),
       deputyUri: (args["deputy-uri"] as string) || undefined,
       primaryOnly: args["primary-only"] === true,
+      dateFrom: (args["date-from"] as string) || undefined,
+      dateTo: (args["date-to"] as string) || undefined,
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,
       offset: Number(args.offset ?? 0),
     });
@@ -737,6 +749,8 @@ const sindacatoIspettivoList = defineCommand({
     legislature: { type: "string", description: "Legislature number" },
     "senator-uri": { type: "string", description: "Full URI of a senator" },
     tipo: { type: "string", description: "Filter by act type (case-insensitive)" },
+    "date-from": { type: "string", description: "Start date YYYY-MM-DD" },
+    "date-to": { type: "string", description: "End date YYYY-MM-DD" },
     limit: { type: "string", default: "100" },
     offset: { type: "string", default: "0" },
     format: { type: "string", default: "csv" },
@@ -746,6 +760,8 @@ const sindacatoIspettivoList = defineCommand({
       legislature: parseIntFlag(args.legislature as string, "legislature"),
       senatorUri: (args["senator-uri"] as string) || undefined,
       tipo: (args.tipo as string) || undefined,
+      dateFrom: (args["date-from"] as string) || undefined,
+      dateTo: (args["date-to"] as string) || undefined,
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,
       offset: Number(args.offset ?? 0),
     });

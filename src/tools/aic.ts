@@ -20,6 +20,16 @@ const inputSchema = z.object({
     .boolean()
     .default(false)
     .describe("Se true, solo atti di cui il deputato è primo firmatario"),
+  dateFrom: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe("Data inizio (YYYY-MM-DD)"),
+  dateTo: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe("Data fine (YYYY-MM-DD)"),
   limit: z.number().int().min(1).max(1000).default(100),
   offset: z.number().int().min(0).default(0),
 });
@@ -45,7 +55,8 @@ export const aicTool: Tool<typeof inputSchema> = {
   examples: [
     "italianparliament aic list --legislature 19 --limit 10",
     "italianparliament aic list --deputy-uri http://dati.camera.it/ocd/deputato.rdf/d306921_17 --primary-only",
-    "italianparliament aic list --legislature 18 --format jsonl",
+    "italianparliament aic list --legislature 19 --date-from 2026-01-01 --limit 50",
+    "italianparliament aic list --legislature 19 --date-from 2026-01-01 --date-to 2026-03-31 --format jsonl",
   ],
   async execute(input) {
     let signatoryPattern: string;
@@ -68,6 +79,12 @@ export const aicTool: Tool<typeof inputSchema> = {
     const legFilter = input.legislature
       ? `?s ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_${input.legislature}> .`
       : "";
+    const dateFromFilter = input.dateFrom
+      ? `FILTER(?date >= "${input.dateFrom.replace(/-/g, "")}")`
+      : "";
+    const dateToFilter = input.dateTo
+      ? `FILTER(?date <= "${input.dateTo.replace(/-/g, "")}")`
+      : "";
 
     const query = `${OCD_PREFIXES}
 SELECT DISTINCT ?s ?label ?title ?type ?date ?identifier ?sponsor_uri ?rif_leg ?url
@@ -82,7 +99,10 @@ WHERE {
   OPTIONAL { ?s ocd:rif_leg ?rif_leg }
   OPTIONAL { ?s dcterms:isReferencedBy ?url }
   ${legFilter}
+  ${dateFromFilter}
+  ${dateToFilter}
 }
+ORDER BY DESC(?date)
 LIMIT ${input.limit}
 OFFSET ${input.offset}`;
 

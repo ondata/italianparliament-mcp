@@ -12,7 +12,13 @@ const inputSchema = z.object({
   limit: z.number().int().min(1).max(1000).default(700),
 });
 
-const columns = ["deputy_uri", "vote", "group_uri", "group_acronym"];
+const RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
+
+function stripLegLabel(label: string): string {
+  return label.replace(/,\s*.* Legislatura della Repubblica\s*$/, "").trim();
+}
+
+const columns = ["deputy_uri", "deputy_name", "vote", "group_uri", "group_acronym"];
 
 export const voteDetailTool: Tool<typeof inputSchema> = {
   name: "vote-detail",
@@ -26,12 +32,13 @@ export const voteDetailTool: Tool<typeof inputSchema> = {
   ],
   async execute(input) {
     const query = `${OCD_PREFIXES}
-SELECT DISTINCT ?deputy_uri ?type ?rif_gruppoParlamentare ?siglaGruppo
+SELECT DISTINCT ?deputy_uri ?deputy_label ?type ?rif_gruppoParlamentare ?siglaGruppo
 WHERE {
   ?v a ocd:voto .
   ?v ocd:rif_votazione <${input.voteUri}> .
   ?v ocd:rif_deputato ?deputy_uri .
   ?v dc:type ?type .
+  OPTIONAL { ?deputy_uri <${RDFS_LABEL}> ?deputy_label }
   OPTIONAL { ?v ocd:rif_gruppoParlamentare ?rif_gruppoParlamentare }
   OPTIONAL { ?v ocd:siglaGruppo ?siglaGruppo }
 }
@@ -41,6 +48,7 @@ LIMIT ${input.limit}`;
     const raw = flattenBindings(results);
     const rows = raw.map((r) => ({
       deputy_uri: r.deputy_uri ?? "",
+      deputy_name: stripLegLabel(r.deputy_label ?? ""),
       vote: r.type ?? "",
       group_uri: r.rif_gruppoParlamentare ?? "",
       group_acronym: r.siglaGruppo ?? "",

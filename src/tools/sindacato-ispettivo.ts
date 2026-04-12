@@ -23,6 +23,16 @@ const inputSchema = z.object({
       "Filtro sul tipo di atto (match case-insensitive). Valori: 'Interrogazione', " +
         "'Interrogazione con richiesta di risposta scritta', 'Interpellanza', 'Mozione', 'Risoluzione in Assemblea'",
     ),
+  dateFrom: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe("Data inizio (YYYY-MM-DD)"),
+  dateTo: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe("Data fine (YYYY-MM-DD)"),
   limit: z.number().int().min(1).max(1000).default(100),
   offset: z.number().int().min(0).default(0),
 });
@@ -63,15 +73,18 @@ export const sindacatoIspettivoTool: Tool<typeof inputSchema> = {
     if (input.tipo) {
       filters.push(`FILTER(CONTAINS(LCASE(?tipo), LCASE("${input.tipo}")))`);
     }
+    if (input.dateFrom) {
+      filters.push(`FILTER(?data >= "${input.dateFrom}"^^xsd:date)`);
+    }
+    if (input.dateTo) {
+      filters.push(`FILTER(?data <= "${input.dateTo}"^^xsd:date)`);
+    }
 
     const senatorPattern = input.senatorUri
       ? `?s osr:iniziativa ?iniz .
   ?iniz osr:senatore ?senatore_uri ; osr:presentatore ?presentatore .
   FILTER(?senatore_uri = <${input.senatorUri}>)`
-      : `OPTIONAL {
-    ?s osr:iniziativa ?iniz .
-    ?iniz osr:senatore ?senatore_uri ; osr:presentatore ?presentatore .
-  }`;
+      : ``;
 
     const query = `${OSR_PREFIXES}
 SELECT DISTINCT ?s ?label ?tipo ?numero ?data ?legislatura ?senatore_uri ?presentatore ?esito ?url
@@ -88,6 +101,7 @@ WHERE {
   ${senatorPattern}
   ${filters.join("\n  ")}
 }
+ORDER BY DESC(?data)
 LIMIT ${input.limit}
 OFFSET ${input.offset}`;
 

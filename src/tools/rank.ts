@@ -44,7 +44,7 @@ function stripLegLabel(label: string): string {
 
 function buildQuery(rankBy: RankBy, legislature: number | undefined, limit: number, offset: number): string {
   const legFilter = legislature
-    ? `?person ocd:rif_leg <${LEG_BASE}${legislature}> .`
+    ? `?person a ocd:deputato .\n  ?person ocd:rif_leg <${LEG_BASE}${legislature}> .`
     : `?person a ocd:deputato .`;
 
   let pattern: string;

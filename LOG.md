@@ -1,5 +1,35 @@
 # LOG
 
+## 2026-04-12 (aggiornamento 8)
+
+- Nuovo helper `src/core/decode-html.ts`: rimuove `^^xsd:type`, decodifica entità HTML (`&quot;`, `&rsquo;`, `&agrave;`, ecc.), rimuove tag HTML (`<em>` ecc.).
+- Applicato a `bills` su campi `label` e `title`. Titoli ora leggibili.
+- Deploy worker aggiornato.
+
+## 2026-04-12 (aggiornamento 7)
+
+- Fix `vote-detail`: aggiunto campo `deputy_name` (nome leggibile) alla query. Usato `rdfs:label` con URI completo (Camera rifiuta prefisso `rdfs:`). Suffisso legislatura rimosso con `stripLegLabel`.
+- Deploy worker aggiornato.
+
+## 2026-04-12 (aggiornamento 6)
+
+- Fix dedup `bills`: blank node multipli su `primo_firmatario` governativi → aggiunto `FILTER(!isBlank(?sponsor_uri))`. DDL governativi ora hanno `sponsor_uri` vuoto (corretto).
+- Fix dedup `sindacato-ispettivo`: join su `osr:iniziativa` produceva N righe per N firmatari → rimosso join quando nessun filtro senatore. `senatore_uri`/`presentatore` vuoti nella lista generale, presenti solo quando si filtra per senatore.
+- Deploy worker aggiornato.
+
+## 2026-04-12 (aggiornamento 5)
+
+- Fix bug `rank`: senatori comparivano nella classifica Camera perché `legFilter` non vincolava `?person a ocd:deputato`. Aggiunto il tipo esplicito in entrambi i rami (con e senza legislatura).
+- Deploy worker aggiornato.
+
+## 2026-04-12 (aggiornamento 4)
+
+- Aggiunto filtro `dateFrom`/`dateTo` (YYYY-MM-DD) a 4 tool: `votes`, `aic`, `bills`, `sindacato-ispettivo`.
+- Aggiunto `ORDER BY DESC(?date)` su tutti e 4 i tool — le più recenti escono per prime.
+- Fix: Senato usa `xsd:date` tipizzato → FILTER con `"data"^^xsd:date` (non plain string).
+- CLI: aggiunto `--date-from`/`--date-to` nei 4 subcommand corrispondenti.
+- Testato: votes leg19 dal 1 apr 2026 → seduta 641 del 9 apr; sindacato-ispettivo dal 1 apr → interrogazione 3-02528 del 10 apr.
+
 ## 2026-04-12 (aggiornamento 3)
 
 - Nuovo tool `sindacato-ispettivo` [SENATO]: equivalente Senato degli AIC Camera (interrogazioni, interpellanze, mozioni, risoluzioni).

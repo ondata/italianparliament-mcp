@@ -15,6 +15,16 @@ const inputSchema = z.object({
     .boolean()
     .optional()
     .describe("Filtra per votazioni approvate (true) o non approvate (false)"),
+  dateFrom: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe("Data inizio (YYYY-MM-DD)"),
+  dateTo: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe("Data fine (YYYY-MM-DD)"),
   limit: z.number().int().positive().max(1000).default(100),
   offset: z.number().int().nonnegative().default(0),
 });
@@ -73,7 +83,8 @@ export const votesTool: Tool<typeof inputSchema> = {
   examples: [
     "italianparliament votes list --legislature 19 --limit 50",
     "italianparliament votes list --approved true",
-    "italianparliament votes list --legislature 19 --approved false --format jsonl",
+    "italianparliament votes list --legislature 19 --date-from 2026-01-01 --limit 50",
+    "italianparliament votes list --legislature 19 --date-from 2026-01-01 --date-to 2026-03-31 --format jsonl",
   ],
   async execute(input) {
     const legFilter =
@@ -84,6 +95,12 @@ export const votesTool: Tool<typeof inputSchema> = {
       input.approved !== undefined
         ? `FILTER(?approvato = "${input.approved ? 1 : 0}"^^xsd:integer)`
         : "";
+    const dateFromFilter = input.dateFrom
+      ? `FILTER(?date >= "${input.dateFrom.replace(/-/g, "")}")`
+      : "";
+    const dateToFilter = input.dateTo
+      ? `FILTER(?date <= "${input.dateTo.replace(/-/g, "")}")`
+      : "";
 
     const query = `${OCD_PREFIXES}
 SELECT DISTINCT ?s ?label ?title ?type ?date
@@ -113,7 +130,10 @@ WHERE {
   OPTIONAL { ?s dc:relation ?url }
   ${legFilter}
   ${approvedFilter}
+  ${dateFromFilter}
+  ${dateToFilter}
 }
+ORDER BY DESC(?date)
 LIMIT ${input.limit}
 OFFSET ${input.offset}`;
 
