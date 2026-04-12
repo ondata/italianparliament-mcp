@@ -31,7 +31,7 @@ const columns = [
 export const speechesTool: Tool<typeof inputSchema> = {
   name: "speeches",
   description:
-    "Interventi in aula della Camera dei Deputati. Filtrabile per legislatura e deputato. La legislatura si ricava dall'URI (es. in19_ = leg 19).",
+    "[CAMERA] Interventi in aula della Camera dei Deputati con link al documento ufficiale (stenografico/bollettino). Filtrabile per legislatura e deputato.",
   inputSchema,
   examples: [
     "italianparliament speeches list --legislature 19 --limit 10",

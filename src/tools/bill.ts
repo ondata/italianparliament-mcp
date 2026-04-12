@@ -25,7 +25,7 @@ const columns = [
 export const billTool: Tool<typeof inputSchema> = {
   name: "bill",
   description:
-    "Dettaglio di un singolo atto della Camera dei Deputati.",
+    "[CAMERA] Scheda di un singolo atto della Camera: titolo, tipo, data, iniziativa, firmatario, stato.",
   inputSchema,
   examples: [
     "italianparliament bill show --uri http://dati.camera.it/ocd/attocamera.rdf/ac19_1234",

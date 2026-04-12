@@ -33,7 +33,7 @@ const columns = [
 export const documentsTool: Tool<typeof inputSchema> = {
   name: "documents",
   description:
-    "Documenti parlamentari del Senato: atti del governo, atti UE, relazioni Corte dei Conti, risoluzioni commissioni. Filtrabile per legislatura e tipo.",
+    "[SENATO] Documenti parlamentari del Senato: atti del governo sottoposti a parere, atti dell'Unione Europea, relazioni della Corte dei Conti, risoluzioni delle commissioni. Filtrabile per legislatura e tipo documento.",
   inputSchema,
   examples: [
     "italianparliament documents list --legislature 19 --limit 20",

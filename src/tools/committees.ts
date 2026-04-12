@@ -25,7 +25,7 @@ const columns = [
 export const committeesTool: Tool<typeof inputSchema> = {
   name: "committees",
   description:
-    "Commissioni del Senato della Repubblica. Con filtro legislatura mostra solo le commissioni attive (con sedute) e il numero di sedute.",
+    "[SENATO] Commissioni del Senato della Repubblica (permanenti, speciali, d'inchiesta). Con filtro legislatura mostra solo le commissioni attive e il numero di sedute tenute.",
   inputSchema,
   examples: [
     "italianparliament committees list --legislature 19",

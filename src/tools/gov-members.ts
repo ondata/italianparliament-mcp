@@ -40,7 +40,7 @@ const columns = [
 export const govMembersTool: Tool<typeof inputSchema> = {
   name: "gov-members",
   description:
-    "Membri del governo italiano (ministri, sottosegretari, ecc.). Filtrabile per governo, legislatura o nome.",
+    "[CAMERA] Membri del governo italiano: presidente del consiglio, ministri, sottosegretari, viceministri. Con nome, ruolo, date inizio/fine, motivo cessazione. Filtrabile per governo, legislatura o nome persona.",
   inputSchema,
   examples: [
     "italianparliament gov-members list --legislature 19",

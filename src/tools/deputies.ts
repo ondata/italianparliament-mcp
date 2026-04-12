@@ -37,7 +37,7 @@ const columns = [
 export const deputiesTool: Tool<typeof inputSchema> = {
   name: "deputies",
   description:
-    "Lista deputati della Camera dei Deputati, opzionalmente filtrati per legislatura.",
+    "[CAMERA] Lista deputati della Camera dei Deputati. Filtrabile per legislatura. Restituisce nome, cognome, genere, foto, profilo, mandato, elezione.",
   inputSchema,
   examples: [
     "italianparliament deputies list --legislature 19 --limit 50",

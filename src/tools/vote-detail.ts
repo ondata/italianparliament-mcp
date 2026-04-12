@@ -17,7 +17,7 @@ const columns = ["deputy_uri", "vote", "group_uri", "group_acronym"];
 export const voteDetailTool: Tool<typeof inputSchema> = {
   name: "vote-detail",
   description:
-    "Voto individuale di ogni deputato in una singola votazione della Camera. Richiede l'URI della votazione.",
+    "[CAMERA] Voto individuale di ogni deputato in una singola votazione: come ha votato (Favorevole, Contrario, Astenuto, Non ha votato) con gruppo parlamentare. Richiede l'URI della votazione (ottenibile da votes list).",
   inputSchema,
   examples: [
     "italianparliament vote-detail show --vote-uri http://dati.camera.it/ocd/votazione.rdf/vs19_047_005",

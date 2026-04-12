@@ -26,7 +26,7 @@ const columns = [
 export const rolesTool: Tool<typeof inputSchema> = {
   name: "roles",
   description:
-    "Incarichi parlamentari (ocd:incarico) della Camera, filtrabili per deputato, gruppo o legislatura.",
+    "[CAMERA] Incarichi parlamentari della Camera: presidente, vicepresidente, segretario, tesoriere, delegato d'aula di ciascun gruppo. Filtrabile per deputato, gruppo o legislatura.",
   inputSchema,
   examples: [
     "italianparliament roles list --legislature 19",

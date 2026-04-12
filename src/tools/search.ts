@@ -109,7 +109,7 @@ LIMIT ${limit}`;
 export const searchTool: Tool<typeof inputSchema> = {
   name: "search",
   description:
-    "Cerca parlamentari per nome/cognome in Camera, Senato o entrambi.",
+    "[CAMERA+SENATO] Cerca parlamentari per nome/cognome in Camera, Senato o entrambi. Utile come primo passo per trovare l'URI di un parlamentare.",
   inputSchema,
   examples: [
     'italianparliament search find --name "rossi"',

@@ -24,7 +24,7 @@ const columns = [
 export const billSignatoriesTool: Tool<typeof inputSchema> = {
   name: "bill-signatories",
   description:
-    "Firmatari di un DDL al Senato. Mostra primo firmatario e cofirmatari con link al senatore.",
+    "[SENATO] Firmatari di un DDL al Senato: primo firmatario e cofirmatari con nome e link al profilo senatore. Richiede l'URI del DDL (ottenibile da bill-progress).",
   inputSchema,
   examples: [
     "italianparliament bill-signatories show --ddl-uri http://dati.senato.it/ddl/25597",

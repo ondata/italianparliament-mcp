@@ -19,7 +19,7 @@ const columns = ["uri", "label", "title", "acronym", "legislature_uri"];
 export const groupsTool: Tool<typeof inputSchema> = {
   name: "groups",
   description:
-    "Gruppi parlamentari della Camera dei Deputati, opzionalmente filtrati per legislatura.",
+    "[CAMERA] Gruppi parlamentari della Camera dei Deputati con acronimo (es. FDI, PD-IDP, M5S). Filtrabile per legislatura.",
   inputSchema,
   examples: [
     "italianparliament groups list --legislature 19",

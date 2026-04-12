@@ -40,7 +40,7 @@ function sparqlEscape(s: string): string {
 export const billsTool: Tool<typeof inputSchema> = {
   name: "bills",
   description:
-    "Lista disegni di legge (atti) della Camera dei Deputati, filtrabili per legislatura e tipo.",
+    "[CAMERA] Lista disegni di legge (atti) della Camera dei Deputati. Filtrabile per legislatura e tipo. Per i DDL del Senato usare bill-progress.",
   inputSchema,
   examples: [
     "italianparliament bills list --legislature 19 --limit 50",

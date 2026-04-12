@@ -27,7 +27,7 @@ const columns = [
 export const amendmentsTool: Tool<typeof inputSchema> = {
   name: "amendments",
   description:
-    "Emendamenti al Senato. Filtrabile per legislatura.",
+    "[SENATO] Emendamenti presentati al Senato con numero, tipo e link al testo ufficiale. Filtrabile per legislatura.",
   inputSchema,
   examples: [
     "italianparliament amendments list --legislature 19 --limit 20",

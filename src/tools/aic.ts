@@ -39,7 +39,7 @@ const columns = [
 export const aicTool: Tool<typeof inputSchema> = {
   name: "aic",
   description:
-    "Atti di indirizzo e controllo della Camera dei Deputati. Filtrabile per legislatura, deputato (primo firmatario o cofirmatario).",
+    "[CAMERA] Atti di indirizzo e controllo: interrogazioni (orali, scritte, in commissione), interpellanze, mozioni. Filtrabile per legislatura, deputato (primo firmatario o cofirmatario).",
   inputSchema,
   examples: [
     "italianparliament aic list --legislature 19 --limit 10",

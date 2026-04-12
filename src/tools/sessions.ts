@@ -20,7 +20,7 @@ const columns = ["uri", "label", "date", "number", "legislature_uri"];
 export const sessionsTool: Tool<typeof inputSchema> = {
   name: "sessions",
   description:
-    "Sedute della Camera dei Deputati, ordinate per data decrescente, opzionalmente filtrate per legislatura.",
+    "[CAMERA] Sedute della Camera dei Deputati con numero progressivo e data, ordinate dalla piu recente. Filtrabile per legislatura.",
   inputSchema,
   examples: [
     "italianparliament sessions list --legislature 19 --limit 50",

@@ -36,7 +36,7 @@ const columns = [
 export const billProgressTool: Tool<typeof inputSchema> = {
   name: "bill-progress",
   description:
-    "Iter legislativo dei DDL al Senato. Mostra stato, date, iniziativa e fase. Filtrabile per DDL o legislatura.",
+    "[SENATO] Disegni di legge (DDL) al Senato con stato dell'iter (assegnato, esame in commissione, approvato, ecc.), date, iniziativa, natura. Filtrabile per legislatura. Usare questo tool per cercare DDL al Senato.",
   inputSchema,
   examples: [
     "italianparliament bill-progress list --legislature 19 --limit 20",

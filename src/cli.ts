@@ -22,6 +22,7 @@ import { billProgressTool } from "./tools/bill-progress.js";
 import { billSignatoriesTool } from "./tools/bill-signatories.js";
 import { amendmentsTool } from "./tools/amendments.js";
 import { documentsTool } from "./tools/documents.js";
+import { sparqlTool } from "./tools/sparql.js";
 import { formatRows, type Format } from "./core/format.js";
 import { SparqlError } from "./core/client.js";
 import type { ToolResult } from "./tools/types.js";
@@ -651,6 +652,34 @@ const amendmentsList = defineCommand({
   },
 });
 
+const sparqlQuery = defineCommand({
+  meta: {
+    name: "query",
+    description: withExamples(
+      "Execute a free SPARQL SELECT query on Camera or Senato.",
+      sparqlTool.examples,
+    ),
+  },
+  args: {
+    endpoint: { type: "string", description: "camera or senato", required: true },
+    query: { type: "string", description: "SPARQL SELECT query", required: true },
+    limit: { type: "string", default: "25" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const endpoint = args.endpoint as string;
+    if (endpoint !== "camera" && endpoint !== "senato") {
+      throw new Error('Invalid --endpoint. Allowed: camera, senato.');
+    }
+    const result = await sparqlTool.execute({
+      query: args.query as string,
+      endpoint,
+      limit: parseIntFlag(args.limit as string, "limit") ?? 25,
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
 const documentsList = defineCommand({
   meta: {
     name: "list",
@@ -776,6 +805,10 @@ const main = defineCommand({
     documents: defineCommand({
       meta: { name: "documents", description: "Senato parliamentary documents" },
       subCommands: { list: documentsList },
+    }),
+    sparql: defineCommand({
+      meta: { name: "sparql", description: "Free SPARQL SELECT query on Camera or Senato" },
+      subCommands: { query: sparqlQuery },
     }),
   },
 });

@@ -11,7 +11,7 @@ const columns = ["uri", "label", "title", "date"];
 export const legislaturesTool: Tool<typeof inputSchema> = {
   name: "legislatures",
   description:
-    "Elenco di tutte le legislature della Camera dei Deputati, dalla Consulta Nazionale (1945) a oggi.",
+    "[CAMERA] Elenco di tutte le legislature della Camera dei Deputati, dal Regno d'Italia (1848) alla Repubblica (XIX legislatura in corso). Include date inizio/fine.",
   inputSchema,
   examples: [
     "italianparliament legislatures list",

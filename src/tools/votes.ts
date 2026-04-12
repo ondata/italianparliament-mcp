@@ -68,7 +68,7 @@ const BOOL_COLS = new Set([
 export const votesTool: Tool<typeof inputSchema> = {
   name: "votes",
   description:
-    "Lista votazioni della Camera dei Deputati con contatori e metadati.",
+    "[CAMERA] Lista votazioni della Camera dei Deputati con contatori (favorevoli, contrari, astenuti), esito, tipo, seduta, atto collegato.",
   inputSchema,
   examples: [
     "italianparliament votes list --legislature 19 --limit 50",

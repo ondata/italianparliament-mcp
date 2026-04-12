@@ -20,7 +20,7 @@ const columns = ["uri", "label", "start_date", "legislature_uri"];
 export const governmentsTool: Tool<typeof inputSchema> = {
   name: "governments",
   description:
-    "Governi italiani, ordinati dal più recente. Filtrabile per legislatura.",
+    "[CAMERA] Governi italiani dal piu recente (Meloni, Draghi, Conte...) con data inizio. Filtrabile per legislatura. Per i membri del governo usare gov-members.",
   inputSchema,
   examples: [
     "italianparliament governments list",
