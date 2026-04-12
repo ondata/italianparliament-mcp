@@ -813,6 +813,17 @@ const main = defineCommand({
   },
 });
 
+// Suppress citty's stack-trace output (agents don't need it).
+// citty writes the error+stack to stderr before re-throwing.
+// We intercept stderr writes that contain stack traces.
+const _origWrite = process.stderr.write.bind(process.stderr);
+process.stderr.write = ((chunk: unknown, ...rest: unknown[]) => {
+  const s = String(chunk);
+  // citty prints "\n ERROR  msg\n\n    at ...\n" — suppress both the header and stack
+  if (s.includes("\n    at ") || /\x1b\[.*ERROR/.test(s)) return true;
+  return (_origWrite as Function)(chunk, ...rest);
+}) as typeof process.stderr.write;
+
 runMain(main).catch((err: unknown) => {
   if (err instanceof SparqlError) {
     process.stderr.write(
