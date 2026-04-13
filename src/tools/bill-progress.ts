@@ -14,6 +14,16 @@ const inputSchema = z.object({
     .string()
     .optional()
     .describe("Cerca nel titolo del DDL (match case-insensitive, es. 'autonomia', 'lavoro')"),
+  dateFrom: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe("Data inizio presentazione (YYYY-MM-DD)"),
+  dateTo: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe("Data fine presentazione (YYYY-MM-DD)"),
   legislature: z
     .number()
     .int()
@@ -41,12 +51,13 @@ const columns = [
 export const billProgressTool: Tool<typeof inputSchema> = {
   name: "bill-progress",
   description:
-    "[SENATO] Disegni di legge (DDL) al Senato con stato dell'iter (assegnato, esame in commissione, approvato, ecc.), date, iniziativa, natura. Filtrabile per legislatura e parola chiave nel titolo. Usare questo tool per cercare DDL al Senato.",
+    "[SENATO] Disegni di legge (DDL) al Senato con stato dell'iter (assegnato, esame in commissione, approvato, ecc.), date, iniziativa, natura. Filtrabile per legislatura, parola chiave nel titolo e intervallo date di presentazione. Usare questo tool per cercare DDL al Senato.",
   inputSchema,
   examples: [
     "italianparliament bill-progress list --legislature 19 --limit 20",
     "italianparliament bill-progress list --ddl-uri http://dati.senato.it/ddl/25597",
     "italianparliament bill-progress list --legislature 19 --keyword autonomia --limit 20",
+    "italianparliament bill-progress list --legislature 19 --date-from 2026-04-01 --date-to 2026-04-13",
     "italianparliament bill-progress list --legislature 19 --format jsonl",
   ],
   async execute(input) {
@@ -60,6 +71,12 @@ export const billProgressTool: Tool<typeof inputSchema> = {
     }
     if (input.legislature) {
       filters.push(`?s osr:legislatura ${input.legislature} .`);
+    }
+    if (input.dateFrom) {
+      filters.push(`FILTER(STR(?dataPresentazione) >= "${input.dateFrom}")`);
+    }
+    if (input.dateTo) {
+      filters.push(`FILTER(STR(?dataPresentazione) <= "${input.dateTo}")`);
     }
 
     const query = `${OSR_PREFIXES}

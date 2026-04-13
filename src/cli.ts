@@ -482,21 +482,36 @@ const speechesList = defineCommand({
   meta: {
     name: "list",
     description: withExamples(
-      "List speeches (interventi) in Camera dei Deputati.",
+      "List speeches (interventi) in Camera or Senato.",
       speechesTool.examples,
     ),
   },
   args: {
+    chamber: {
+      type: "string",
+      default: "camera",
+      description: "camera or senato",
+    },
     legislature: { type: "string", description: "Legislature number" },
-    "deputy-uri": { type: "string", description: "Full URI of a deputy" },
+    "deputy-uri": {
+      type: "string",
+      description: "Full URI of a deputy/senator",
+    },
+    "count-only": {
+      type: "boolean",
+      description: "Return only the total count",
+    },
     limit: { type: "string", default: "100" },
     offset: { type: "string", default: "0" },
     format: { type: "string", default: "csv" },
   },
   async run({ args }) {
+    const chamber = (args.chamber as string) === "senato" ? "senato" : "camera";
     const result = await speechesTool.execute({
+      chamber,
       legislature: parseIntFlag(args.legislature as string, "legislature"),
       deputyUri: (args["deputy-uri"] as string) || undefined,
+      countOnly: Boolean(args["count-only"]),
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,
       offset: Number(args.offset ?? 0),
     });
@@ -678,6 +693,14 @@ const billProgressList = defineCommand({
       type: "string",
       description: "Search in DDL title (case-insensitive)",
     },
+    "date-from": {
+      type: "string",
+      description: "Presentation start date (YYYY-MM-DD)",
+    },
+    "date-to": {
+      type: "string",
+      description: "Presentation end date (YYYY-MM-DD)",
+    },
     legislature: { type: "string", description: "Legislature number" },
     limit: { type: "string", default: "100" },
     offset: { type: "string", default: "0" },
@@ -687,6 +710,8 @@ const billProgressList = defineCommand({
     const result = await billProgressTool.execute({
       ddlUri: (args["ddl-uri"] as string) || undefined,
       keyword: (args.keyword as string) || undefined,
+      dateFrom: (args["date-from"] as string) || undefined,
+      dateTo: (args["date-to"] as string) || undefined,
       legislature: parseIntFlag(args.legislature as string, "legislature"),
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,
       offset: Number(args.offset ?? 0),
