@@ -21,7 +21,6 @@ const ENTITIES: Record<string, string> = {
   "&igrave;": "\u00ec",
   "&ograve;": "\u00f2",
   "&ugrave;": "\u00f9",
-  "&agrave;": "\u00e0",
 };
 
 const ENTITY_RE = new RegExp(Object.keys(ENTITIES).join("|"), "g");
