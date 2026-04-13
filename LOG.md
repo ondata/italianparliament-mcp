@@ -3,6 +3,7 @@
 ## 2026-04-13
 
 - Gap analysis giornalista vs MCP: 33 user stories testate con tool reali. 13 OK, 14 PARZIALI, 6 KO. Documenti in `docs/gap-analysis-2026-04-13/`.
+- Tool `rank` esteso al Senato: 2 nuove dimensioni `sindacato-ispettivo` e `ddl-senato`. Aggiunto campo `chamber` nell'output. Top Senato atti ispettivi: Camusso 786, Rojc 753. Con `--order asc`: Casellati, Bernini, Durigon con 1 atto. Totale dimensioni rank: 7 (5 Camera + 2 Senato).
 - Nuovo tool `committee-members` [CAMERA+SENATO]: composizione commissioni con ruoli. Camera: `ocd:ufficioParlamentare` con `carica` (PRESIDENTE, VICEPRESIDENTE, SEGRETARIO, CAPOGRUPPO, COMPONENTE). Senato: `osr:Afferenza` + `osr:afferisce` con `carica` (Presidente, Membro, ecc.). Parametro `chamber: camera|senato|both`, filtrabile per commissione, parlamentare, legislatura, activeOnly. Totale tool: 25.
 - Fix `sindacato-ispettivo`: campo `presentatore` e `senatore_uri` ora sempre popolati (anche senza filtro senatore). Riscrittura query con `GROUP BY` + `MIN()` per evitare duplicati da join multi-firmatario. Subquery non supportata da Virtuoso Senato, usato MIN su tutti i campi.
 - Sprint 1 (6 quick wins):

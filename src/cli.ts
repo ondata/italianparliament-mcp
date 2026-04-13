@@ -740,7 +740,7 @@ const rankList = defineCommand({
   meta: {
     name: "list",
     description: withExamples(
-      "Rank Camera deputies by parliamentary activity.",
+      "Rank parliamentarians by activity (Camera + Senato).",
       rankTool.examples,
     ),
   },
@@ -748,7 +748,7 @@ const rankList = defineCommand({
     "rank-by": {
       type: "string",
       description:
-        "aic-primo-firmatario | aic-cofirmatario | bills-primo-firmatario | bills-cofirmatario | speeches",
+        "Camera: aic-primo-firmatario | aic-cofirmatario | bills-primo-firmatario | bills-cofirmatario | speeches. Senato: sindacato-ispettivo | ddl-senato",
       required: true,
     },
     legislature: { type: "string", description: "Legislature number" },
@@ -765,6 +765,8 @@ const rankList = defineCommand({
       "bills-primo-firmatario",
       "bills-cofirmatario",
       "speeches",
+      "sindacato-ispettivo",
+      "ddl-senato",
     ];
     if (!validRankBy.includes(rankBy)) {
       throw new Error(`Invalid --rank-by. Allowed: ${validRankBy.join(", ")}`);
