@@ -10,6 +10,10 @@ const inputSchema = z.object({
     .url()
     .optional()
     .describe("URI del DDL Senato (es. http://dati.senato.it/ddl/25597)"),
+  keyword: z
+    .string()
+    .optional()
+    .describe("Cerca nel titolo del DDL (match case-insensitive, es. 'autonomia', 'lavoro')"),
   legislature: z
     .number()
     .int()
@@ -37,17 +41,22 @@ const columns = [
 export const billProgressTool: Tool<typeof inputSchema> = {
   name: "bill-progress",
   description:
-    "[SENATO] Disegni di legge (DDL) al Senato con stato dell'iter (assegnato, esame in commissione, approvato, ecc.), date, iniziativa, natura. Filtrabile per legislatura. Usare questo tool per cercare DDL al Senato.",
+    "[SENATO] Disegni di legge (DDL) al Senato con stato dell'iter (assegnato, esame in commissione, approvato, ecc.), date, iniziativa, natura. Filtrabile per legislatura e parola chiave nel titolo. Usare questo tool per cercare DDL al Senato.",
   inputSchema,
   examples: [
     "italianparliament bill-progress list --legislature 19 --limit 20",
     "italianparliament bill-progress list --ddl-uri http://dati.senato.it/ddl/25597",
+    "italianparliament bill-progress list --legislature 19 --keyword autonomia --limit 20",
     "italianparliament bill-progress list --legislature 19 --format jsonl",
   ],
   async execute(input) {
     const filters: string[] = [];
     if (input.ddlUri) {
       filters.push(`FILTER(?s = <${input.ddlUri}>)`);
+    }
+    if (input.keyword) {
+      const escaped = input.keyword.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+      filters.push(`FILTER(CONTAINS(LCASE(STR(?titolo)), LCASE("${escaped}")))`);
     }
     if (input.legislature) {
       filters.push(`?s osr:legislatura ${input.legislature} .`);

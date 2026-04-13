@@ -29,6 +29,10 @@ const inputSchema = z.object({
     .positive()
     .optional()
     .describe("Numero legislatura (es. 19). Se omesso, conta su tutte le legislature."),
+  order: z
+    .enum(["desc", "asc"])
+    .default("desc")
+    .describe("Ordinamento: desc (i piu attivi) o asc (i meno attivi)"),
   limit: z.number().int().min(1).max(100).default(20),
   offset: z.number().int().min(0).default(0),
 });
@@ -42,7 +46,7 @@ function stripLegLabel(label: string): string {
   return label.replace(/,\s*.* Legislatura della Repubblica\s*$/, "").trim();
 }
 
-function buildQuery(rankBy: RankBy, legislature: number | undefined, limit: number, offset: number): string {
+function buildQuery(rankBy: RankBy, legislature: number | undefined, order: "desc" | "asc", limit: number, offset: number): string {
   const legFilter = legislature
     ? `?person a ocd:deputato .\n  ?person ocd:rif_leg <${LEG_BASE}${legislature}> .`
     : `?person a ocd:deputato .`;
@@ -75,7 +79,7 @@ WHERE {
   ?person <${RDFS_LABEL}> ?label .
 }
 GROUP BY ?person ?label
-ORDER BY DESC(?n)
+ORDER BY ${order === "asc" ? "ASC" : "DESC"}(?n)
 LIMIT ${limit}
 OFFSET ${offset}`;
   }
@@ -89,7 +93,7 @@ WHERE {
   ?person <${RDFS_LABEL}> ?label .
 }
 GROUP BY ?person ?label
-ORDER BY DESC(?n)
+ORDER BY ${order === "asc" ? "ASC" : "DESC"}(?n)
 LIMIT ${limit}
 OFFSET ${offset}`;
 }
@@ -105,11 +109,12 @@ export const rankTool: Tool<typeof inputSchema> = {
   examples: [
     "italianparliament rank list --rank-by aic-primo-firmatario --legislature 19",
     "italianparliament rank list --rank-by speeches --legislature 19 --limit 10",
+    "italianparliament rank list --rank-by speeches --legislature 19 --order asc --limit 10",
     "italianparliament rank list --rank-by bills-primo-firmatario --legislature 18 --limit 20",
     "italianparliament rank list --rank-by aic-cofirmatario --legislature 19",
   ],
   async execute(input) {
-    const query = buildQuery(input.rankBy, input.legislature, input.limit, input.offset);
+    const query = buildQuery(input.rankBy, input.legislature, input.order, input.limit, input.offset);
     const results = await cdQuery(query);
     const raw = flattenBindings(results);
     const rows = raw.map((r, i) => ({

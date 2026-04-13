@@ -1,5 +1,16 @@
 # LOG
 
+## 2026-04-13
+
+- Gap analysis giornalista vs MCP: 33 user stories testate con tool reali. 13 OK, 14 PARZIALI, 6 KO. Documenti in `docs/gap-analysis-2026-04-13/`.
+- Sprint 1 (6 quick wins):
+  - `keyword` su `bills`, `bill-progress`, `votes`: ricerca full-text nei titoli DDL e votazioni. Cerca in title+label (OR).
+  - `confidenceVote` su `votes`: filtra votazioni di fiducia. 10 fiducie leg19 testate.
+  - `dateFrom`/`dateTo` su `sessions`: filtra sedute per data.
+  - `deputyUri` su `group-members`: storia cambi gruppo di un singolo deputato. Testato con Enrico Costa (Azione→FI).
+  - `order: asc|desc` su `rank`: ordinamento inverso per trovare i meno attivi. asc mostra ministri con 4 speeches.
+  - `initiative` su `bills`: filtra per iniziativa (Popolare/Governo/Parlamentare/Regioni). Tutti e 4 testati.
+
 ## 2026-04-12 (aggiornamento 8)
 
 - Nuovo helper `src/core/decode-html.ts`: rimuove `^^xsd:type`, decodifica entità HTML (`&quot;`, `&rsquo;`, `&agrave;`, ecc.), rimuove tag HTML (`<em>` ecc.).

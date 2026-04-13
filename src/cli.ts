@@ -156,6 +156,14 @@ const billsList = defineCommand({
       type: "string",
       description: 'Filter by bill type (case-insensitive substring match)',
     },
+    initiative: {
+      type: "string",
+      description: "Filter by initiative: Popolare, Governo, Parlamentare, Regioni",
+    },
+    keyword: {
+      type: "string",
+      description: "Search in bill title (case-insensitive)",
+    },
     "date-from": { type: "string", description: "Start date YYYY-MM-DD" },
     "date-to": { type: "string", description: "End date YYYY-MM-DD" },
     limit: { type: "string", default: "100" },
@@ -166,6 +174,8 @@ const billsList = defineCommand({
     const result = await billsTool.execute({
       legislature: parseIntFlag(args.legislature as string, "legislature"),
       type: (args.type as string) || undefined,
+      initiative: (args.initiative as string) || undefined,
+      keyword: (args.keyword as string) || undefined,
       dateFrom: (args["date-from"] as string) || undefined,
       dateTo: (args["date-to"] as string) || undefined,
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,
@@ -189,6 +199,14 @@ const votesList = defineCommand({
       type: "string",
       description: "Filter by approval: true or false",
     },
+    "confidence-vote": {
+      type: "string",
+      description: "Filter confidence votes: true or false",
+    },
+    keyword: {
+      type: "string",
+      description: "Search in vote title (case-insensitive)",
+    },
     "date-from": { type: "string", description: "Start date YYYY-MM-DD" },
     "date-to": { type: "string", description: "End date YYYY-MM-DD" },
     limit: { type: "string", default: "100" },
@@ -205,9 +223,20 @@ const votesList = defineCommand({
           `Invalid --approved value "${args.approved}". Expected: true or false.`,
         );
     }
+    let confidenceVote: boolean | undefined;
+    if (args["confidence-vote"] !== undefined && args["confidence-vote"] !== "") {
+      if (args["confidence-vote"] === "true") confidenceVote = true;
+      else if (args["confidence-vote"] === "false") confidenceVote = false;
+      else
+        throw new Error(
+          `Invalid --confidence-vote value "${args["confidence-vote"]}". Expected: true or false.`,
+        );
+    }
     const result = await votesTool.execute({
       legislature: parseIntFlag(args.legislature as string, "legislature"),
       approved,
+      confidenceVote,
+      keyword: (args.keyword as string) || undefined,
       dateFrom: (args["date-from"] as string) || undefined,
       dateTo: (args["date-to"] as string) || undefined,
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,
@@ -313,6 +342,8 @@ const sessionsList = defineCommand({
   },
   args: {
     legislature: { type: "string", description: "Legislature number" },
+    "date-from": { type: "string", description: "Start date YYYY-MM-DD" },
+    "date-to": { type: "string", description: "End date YYYY-MM-DD" },
     limit: { type: "string", default: "100" },
     offset: { type: "string", default: "0" },
     format: { type: "string", default: "csv" },
@@ -320,6 +351,8 @@ const sessionsList = defineCommand({
   async run({ args }) {
     const result = await sessionsTool.execute({
       legislature: parseIntFlag(args.legislature as string, "legislature"),
+      dateFrom: (args["date-from"] as string) || undefined,
+      dateTo: (args["date-to"] as string) || undefined,
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,
       offset: Number(args.offset ?? 0),
     });
@@ -529,6 +562,7 @@ const groupMembersList = defineCommand({
   },
   args: {
     "group-uri": { type: "string", description: "Full URI of a parliamentary group" },
+    "deputy-uri": { type: "string", description: "Full URI of a deputy (returns all groups)" },
     legislature: { type: "string", description: "Legislature number" },
     limit: { type: "string", default: "200" },
     offset: { type: "string", default: "0" },
@@ -537,6 +571,7 @@ const groupMembersList = defineCommand({
   async run({ args }) {
     const result = await groupMembersTool.execute({
       groupUri: (args["group-uri"] as string) || undefined,
+      deputyUri: (args["deputy-uri"] as string) || undefined,
       legislature: parseIntFlag(args.legislature as string, "legislature"),
       limit: parseIntFlag(args.limit as string, "limit") ?? 200,
       offset: Number(args.offset ?? 0),
@@ -633,6 +668,10 @@ const billProgressList = defineCommand({
   },
   args: {
     "ddl-uri": { type: "string", description: "Full URI of a Senato DDL" },
+    keyword: {
+      type: "string",
+      description: "Search in DDL title (case-insensitive)",
+    },
     legislature: { type: "string", description: "Legislature number" },
     limit: { type: "string", default: "100" },
     offset: { type: "string", default: "0" },
@@ -641,6 +680,7 @@ const billProgressList = defineCommand({
   async run({ args }) {
     const result = await billProgressTool.execute({
       ddlUri: (args["ddl-uri"] as string) || undefined,
+      keyword: (args.keyword as string) || undefined,
       legislature: parseIntFlag(args.legislature as string, "legislature"),
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,
       offset: Number(args.offset ?? 0),
@@ -711,6 +751,7 @@ const rankList = defineCommand({
       required: true,
     },
     legislature: { type: "string", description: "Legislature number" },
+    order: { type: "string", default: "desc", description: "desc (most active) or asc (least active)" },
     limit: { type: "string", default: "20" },
     offset: { type: "string", default: "0" },
     format: { type: "string", default: "csv" },
@@ -727,9 +768,14 @@ const rankList = defineCommand({
     if (!validRankBy.includes(rankBy)) {
       throw new Error(`Invalid --rank-by. Allowed: ${validRankBy.join(", ")}`);
     }
+    const orderArg = (args.order as string) || "desc";
+    if (orderArg !== "desc" && orderArg !== "asc") {
+      throw new Error(`Invalid --order "${orderArg}". Expected: desc or asc.`);
+    }
     const result = await rankTool.execute({
       rankBy: rankBy as Parameters<typeof rankTool.execute>[0]["rankBy"],
       legislature: parseIntFlag(args.legislature as string, "legislature"),
+      order: orderArg as "desc" | "asc",
       limit: parseIntFlag(args.limit as string, "limit") ?? 20,
       offset: Number(args.offset ?? 0),
     });

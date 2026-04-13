@@ -15,6 +15,14 @@ const inputSchema = z.object({
     .boolean()
     .optional()
     .describe("Filtra per votazioni approvate (true) o non approvate (false)"),
+  confidenceVote: z
+    .boolean()
+    .optional()
+    .describe("Filtra per votazioni di fiducia (true) o ordinarie (false)"),
+  keyword: z
+    .string()
+    .optional()
+    .describe("Cerca nel titolo della votazione (match case-insensitive, es. 'fiducia', 'bilancio')"),
   dateFrom: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -78,11 +86,12 @@ const BOOL_COLS = new Set([
 export const votesTool: Tool<typeof inputSchema> = {
   name: "votes",
   description:
-    "[CAMERA] Lista votazioni della Camera dei Deputati con contatori (favorevoli, contrari, astenuti), esito, tipo, seduta, atto collegato.",
+    "[CAMERA] Lista votazioni della Camera dei Deputati con contatori (favorevoli, contrari, astenuti), esito, tipo, seduta, atto collegato. Filtrabile per parola chiave nel titolo.",
   inputSchema,
   examples: [
     "italianparliament votes list --legislature 19 --limit 50",
     "italianparliament votes list --approved true",
+    "italianparliament votes list --legislature 19 --keyword bilancio --limit 50",
     "italianparliament votes list --legislature 19 --date-from 2026-01-01 --limit 50",
     "italianparliament votes list --legislature 19 --date-from 2026-01-01 --date-to 2026-03-31 --format jsonl",
   ],
@@ -94,6 +103,17 @@ export const votesTool: Tool<typeof inputSchema> = {
     const approvedFilter =
       input.approved !== undefined
         ? `FILTER(?approvato = "${input.approved ? 1 : 0}"^^xsd:integer)`
+        : "";
+    const confidenceFilter =
+      input.confidenceVote !== undefined
+        ? `FILTER(?richiestaFiducia = "${input.confidenceVote ? 1 : 0}"^^xsd:integer)`
+        : "";
+    const keywordEsc = input.keyword !== undefined
+      ? input.keyword.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
+      : "";
+    const keywordFilter =
+      input.keyword !== undefined
+        ? `FILTER(CONTAINS(LCASE(STR(?label)), LCASE("${keywordEsc}")) || CONTAINS(LCASE(STR(?title)), LCASE("${keywordEsc}")))`
         : "";
     const dateFromFilter = input.dateFrom
       ? `FILTER(?date >= "${input.dateFrom.replace(/-/g, "")}")`
@@ -130,6 +150,8 @@ WHERE {
   OPTIONAL { ?s dc:relation ?url }
   ${legFilter}
   ${approvedFilter}
+  ${confidenceFilter}
+  ${keywordFilter}
   ${dateFromFilter}
   ${dateToFilter}
 }

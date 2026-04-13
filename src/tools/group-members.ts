@@ -10,6 +10,11 @@ const inputSchema = z.object({
     .url()
     .optional()
     .describe("URI completo del gruppo parlamentare"),
+  deputyUri: z
+    .string()
+    .url()
+    .optional()
+    .describe("URI completo del deputato — restituisce tutti i gruppi in cui e stato iscritto"),
   legislature: z
     .number()
     .int()
@@ -32,17 +37,21 @@ const columns = [
 export const groupMembersTool: Tool<typeof inputSchema> = {
   name: "group-members",
   description:
-    "[CAMERA] Membri di un gruppo parlamentare della Camera: chi ne fa parte, data inizio/fine. Filtrabile per gruppo e legislatura. Combinare con groups per avere acronimi e URI.",
+    "[CAMERA] Membri di un gruppo parlamentare della Camera: chi ne fa parte, data inizio/fine. Filtrabile per gruppo, deputato e legislatura. Con deputato URI restituisce la storia dei cambi di gruppo.",
   inputSchema,
   examples: [
     "italianparliament group-members list --legislature 19 --limit 50",
     "italianparliament group-members list --group-uri http://dati.camera.it/ocd/gruppoParlamentare.rdf/gp19_1 --format jsonl",
+    "italianparliament group-members list --deputy-uri http://dati.camera.it/ocd/deputato.rdf/d308001_19",
     "italianparliament group-members list --legislature 18",
   ],
   async execute(input) {
     const filters: string[] = [];
     if (input.groupUri) {
       filters.push(`FILTER(?group = <${input.groupUri}>)`);
+    }
+    if (input.deputyUri) {
+      filters.push(`FILTER(?deputy_uri = <${input.deputyUri}>)`);
     }
     if (input.legislature) {
       filters.push(

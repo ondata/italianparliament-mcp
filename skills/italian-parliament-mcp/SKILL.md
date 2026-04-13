@@ -1,0 +1,80 @@
+---
+name: italian-parliament-mcp
+description: Query Italian Parliament open data (Camera dei Deputati and Senato della Repubblica) via MCP tools. Use when a user asks about Italian MPs, bills, votes, speeches, parliamentary groups, government members, or oversight acts. Designed for conversational use in Claude Desktop or Claude Code with the italianparliament-mcp server configured.
+compatibility: Requires italianparliament-mcp MCP server configured in Claude Desktop or Claude Code
+metadata:
+  author: aborruso
+  version: "1.0"
+---
+
+# Italian Parliament MCP Skill
+
+Query Italian Parliament open data through the `italianparliament-mcp` MCP server.
+
+## When to use
+
+Activate this skill when the user asks questions like:
+- "Quanti deputati ha il gruppo FDI?"
+- "Chi ha fatto più interrogazioni in questa legislatura?"
+- "Come ha votato X nella seduta Y?"
+- "Quali leggi ha proposto il governo Meloni?"
+
+## Available tools
+
+See [tool reference](references/tools.md) for the full list with parameters and examples.
+
+## Workflow
+
+### 1. Identify the right tool
+
+| User intent | Tool |
+|---|---|
+| Cerca un parlamentare per nome | `search` |
+| Scheda deputato | `deputy` |
+| Scheda senatore | `senator` |
+| Lista deputati/senatori | `deputies` / `senators` |
+| Gruppi parlamentari Camera | `groups` / `group-members` |
+| Gruppi parlamentari Senato | `senator-group-members` |
+| Disegni di legge Camera | `bills` / `bill` |
+| Iter DDL Senato | `bill-progress` / `bill-signatories` |
+| Interrogazioni, interpellanze, mozioni | `aic` (Camera) / `sindacato-ispettivo` (Senato) |
+| Votazioni Camera | `votes` / `vote-detail` |
+| Interventi in aula | `speeches` |
+| Emendamenti Senato | `amendments` |
+| Documenti parlamentari Senato | `documents` |
+| Governi e ministri | `governments` / `gov-members` |
+| Legislature | `legislatures` |
+| Commissioni Senato | `committees` |
+| Incarichi parlamentari Camera | `roles` |
+| Sedute Camera | `sessions` |
+| Query SPARQL libera | `sparql` |
+| Ranking attività parlamentare | `rank` |
+
+### 2. Default legislature
+
+The current legislature is **19** (XIX). Use it as default when the user does not specify.
+
+### 3. Handle ambiguous names
+
+Use `search` first to resolve a name to a URI before calling `deputy` or `senator`.
+
+### 4. Output format
+
+Tools return CSV or JSONL. For display, format results as markdown tables. For analysis, summarize key figures.
+
+## Common patterns
+
+**Find and profile an MP**
+1. `search` with the name → get URI
+2. `deputy` or `senator` with the URI
+
+**Ranking by activity**
+Use `rank` with `rankBy`: `aic-primo-firmatario`, `aic-co-firmatario`, `bills-primo-firmatario`, `bills-co-firmatario`, `speeches`.
+
+**Group composition**
+1. `groups` → get group URI
+2. `group-members` with the URI and legislature
+
+**Who voted how**
+1. `votes` → get vote URI
+2. `vote-detail` with the URI

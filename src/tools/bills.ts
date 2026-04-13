@@ -16,6 +16,14 @@ const inputSchema = z.object({
     .string()
     .optional()
     .describe("Filtro sul tipo di atto (match case-insensitive)"),
+  initiative: z
+    .string()
+    .optional()
+    .describe("Filtro sull'iniziativa (match case-insensitive, es. 'Popolare', 'Governo', 'Parlamentare', 'Regioni')"),
+  keyword: z
+    .string()
+    .optional()
+    .describe("Cerca nel titolo del DDL (match case-insensitive, es. 'autonomia', 'lavoro')"),
   dateFrom: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -52,11 +60,14 @@ function sparqlEscape(s: string): string {
 export const billsTool: Tool<typeof inputSchema> = {
   name: "bills",
   description:
-    "[CAMERA] Lista disegni di legge (atti) della Camera dei Deputati. Filtrabile per legislatura e tipo. Per i DDL del Senato usare bill-progress.",
+    "[CAMERA] Lista disegni di legge (atti) della Camera dei Deputati. Filtrabile per legislatura, tipo, iniziativa (Popolare, Governo, Parlamentare, Regioni) e parola chiave nel titolo. Per i DDL del Senato usare bill-progress.",
   inputSchema,
   examples: [
     "italianparliament bills list --legislature 19 --limit 50",
     'italianparliament bills list --type "disegno di legge"',
+    "italianparliament bills list --legislature 19 --initiative Popolare",
+    "italianparliament bills list --legislature 19 --initiative Governo --limit 50",
+    "italianparliament bills list --legislature 19 --keyword autonomia --limit 50",
     "italianparliament bills list --legislature 19 --date-from 2026-01-01 --limit 50",
     "italianparliament bills list --legislature 19 --date-from 2026-01-01 --date-to 2026-03-31 --format jsonl",
   ],
@@ -65,9 +76,17 @@ export const billsTool: Tool<typeof inputSchema> = {
       input.legislature !== undefined
         ? `FILTER(?rif_leg = <http://dati.camera.it/ocd/legislatura.rdf/repubblica_${input.legislature}>)`
         : "";
+    const keywordFilter =
+      input.keyword !== undefined
+        ? `FILTER(CONTAINS(LCASE(STR(?label)), LCASE("${sparqlEscape(input.keyword)}")) || CONTAINS(LCASE(STR(?title)), LCASE("${sparqlEscape(input.keyword)}")))`
+        : "";
     const typeFilter =
       input.type !== undefined
         ? `FILTER(CONTAINS(LCASE(STR(?type)), LCASE("${sparqlEscape(input.type)}")))`
+        : "";
+    const initiativeFilter =
+      input.initiative !== undefined
+        ? `FILTER(CONTAINS(LCASE(STR(?initiative)), LCASE("${sparqlEscape(input.initiative)}")))`
         : "";
     const dateFromFilter = input.dateFrom
       ? `FILTER(?date >= "${input.dateFrom.replace(/-/g, "")}")`
@@ -92,7 +111,9 @@ WHERE {
   OPTIONAL { ?s <http://dati.camera.it/ocd/primo_firmatario> ?sponsor_uri . FILTER(!isBlank(?sponsor_uri)) }
   OPTIONAL { ?s dcterms:isReferencedBy ?url }
   ${legFilter}
+  ${keywordFilter}
   ${typeFilter}
+  ${initiativeFilter}
   ${dateFromFilter}
   ${dateToFilter}
 }
