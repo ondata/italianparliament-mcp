@@ -65,7 +65,7 @@ Redatte dal punto di vista di un giornalista con 15 anni di esperienza nella cro
 ### US-07 — Storia dei cambi di gruppo
 **Come giornalista parlamentare, voglio** ricostruire i cambi di gruppo parlamentare di un singolo onorevole **per** raccontare i "voltagabbana" o le scissioni interne ai partiti.
 
-**Domanda concreta:** "Quante volte ha cambiato gruppo Cateno De Luca dal suo ingresso in Parlamento? Con quali gruppi è stato iscritto?"
+**Domanda concreta:** "Quante volte ha cambiato gruppo Michela Vittoria Brambilla dal suo ingresso in Parlamento? Con quali gruppi è stato iscritto?"
 
 **Priorità:** MEDIA
 

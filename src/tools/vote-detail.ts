@@ -9,6 +9,14 @@ const inputSchema = z.object({
     .string()
     .url()
     .describe("URI completo della votazione (es. http://dati.camera.it/ocd/votazione.rdf/vs19_001_001)"),
+  groupAcronym: z
+    .string()
+    .optional()
+    .describe("Filtra per sigla gruppo (es. 'FDI', 'PD-IDP', 'M5S'). Case-sensitive."),
+  voteType: z
+    .enum(["Favorevole", "Contrario", "Astenuto", "Non ha votato"])
+    .optional()
+    .describe("Filtra per tipo di voto"),
   limit: z.number().int().min(1).max(1000).default(700),
 });
 
@@ -29,8 +37,13 @@ export const voteDetailTool: Tool<typeof inputSchema> = {
     "italianparliament vote-detail show --vote-uri http://dati.camera.it/ocd/votazione.rdf/vs19_047_005",
     "italianparliament vote-detail show --vote-uri http://dati.camera.it/ocd/votazione.rdf/vs18_100_005 --format jsonl",
     "italianparliament vote-detail show --vote-uri http://dati.camera.it/ocd/votazione.rdf/vs19_010_003 --limit 50",
+    "italianparliament vote-detail show --vote-uri http://dati.camera.it/ocd/votazione.rdf/vs19_641_046 --group-acronym FDI --vote-type Contrario",
   ],
   async execute(input) {
+    const filters: string[] = [];
+    if (input.groupAcronym) filters.push(`?v ocd:siglaGruppo ?_sg . FILTER(STR(?_sg) = "${input.groupAcronym}")`);
+    if (input.voteType) filters.push(`FILTER(?type = "${input.voteType}")`);
+
     const query = `${OCD_PREFIXES}
 SELECT DISTINCT ?deputy_uri ?deputy_label ?type ?rif_gruppoParlamentare ?siglaGruppo
 WHERE {
@@ -38,6 +51,7 @@ WHERE {
   ?v ocd:rif_votazione <${input.voteUri}> .
   ?v ocd:rif_deputato ?deputy_uri .
   ?v dc:type ?type .
+  ${filters.join("\n  ")}
   OPTIONAL { ?deputy_uri <${RDFS_LABEL}> ?deputy_label }
   OPTIONAL { ?v ocd:rif_gruppoParlamentare ?rif_gruppoParlamentare }
   OPTIONAL { ?v ocd:siglaGruppo ?siglaGruppo }

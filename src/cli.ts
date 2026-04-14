@@ -561,12 +561,16 @@ const voteDetailShow = defineCommand({
   },
   args: {
     "vote-uri": { type: "string", description: "Full URI of the votazione", required: true },
+    "group-acronym": { type: "string", description: "Filter by group acronym (es. FDI, PD-IDP, M5S)" },
+    "vote-type": { type: "string", description: "Filter by vote type: Favorevole|Contrario|Astenuto|Non ha votato" },
     limit: { type: "string", default: "700" },
     format: { type: "string", default: "csv" },
   },
   async run({ args }) {
     const result = await voteDetailTool.execute({
       voteUri: args["vote-uri"] as string,
+      groupAcronym: args["group-acronym"] as string | undefined,
+      voteType: args["vote-type"] as "Favorevole" | "Contrario" | "Astenuto" | "Non ha votato" | undefined,
       limit: parseIntFlag(args.limit as string, "limit") ?? 700,
     });
     emit(result, parseFormat(args.format as string));
