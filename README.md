@@ -187,7 +187,7 @@ I dati provengono dagli endpoint SPARQL ufficiali di Camera e Senato. Alcune lim
 
 ## Riferimento
 
-Questo progetto e un porting in TypeScript ispirato a [italyParlR](https://github.com/paride92/italyParlR), un pacchetto R per interrogare i dati aperti del Parlamento italiano via SPARQL. Le query SPARQL e la conoscenza degli endpoint derivano da quel pacchetto.
+Questo progetto e un porting in TypeScript ispirato a [italyParlR](https://github.com/paride92/italyParlR), un pacchetto R per interrogare i dati aperti del Parlamento italiano via SPARQL. Le query SPARQL di quel pacchetto hanno fornito un punto di partenza; molte altre sono state sviluppate autonomamente per coprire nuove risorse e casi d'uso.
 
 ## Stato
 
