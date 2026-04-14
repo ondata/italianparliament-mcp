@@ -21,6 +21,7 @@ import { govMembersTool } from "./tools/gov-members.js";
 import { committeesTool } from "./tools/committees.js";
 import { billProgressTool } from "./tools/bill-progress.js";
 import { billSignatoriesTool } from "./tools/bill-signatories.js";
+import { billRapporteursTool } from "./tools/bill-rapporteurs.js";
 import { amendmentsTool } from "./tools/amendments.js";
 import { documentsTool } from "./tools/documents.js";
 import { sparqlTool } from "./tools/sparql.js";
@@ -96,6 +97,7 @@ export function registerAll(server: McpServer): void {
     committeesTool,
     billProgressTool,
     billSignatoriesTool,
+    billRapporteursTool,
     amendmentsTool,
     documentsTool,
     sparqlTool,

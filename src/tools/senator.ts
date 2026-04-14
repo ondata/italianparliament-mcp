@@ -22,6 +22,10 @@ const columns = [
   "gender",
   "birth_date",
   "birth_city",
+  "election_region",
+  "election_type",
+  "mandate_start",
+  "mandate_end",
   "photo",
   "html_url",
 ];
@@ -36,10 +40,12 @@ export const senatorTool: Tool<typeof inputSchema> = {
     "italianparliament senator show --uri http://dati.senato.it/senatore/29110 --format jsonl",
   ],
   async execute(input) {
+    const leg = input.legislature ?? 19;
     const query = `${OSR_PREFIXES}
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX dc: <http://purl.org/dc/elements/1.1/>
 SELECT ?label ?firstName ?lastName ?gender ?birthDate ?birthCity ?photo
+       ?electionRegion ?electionType ?mandateStart ?mandateEnd
 WHERE {
   <${input.uri}> rdfs:label ?label .
   OPTIONAL { <${input.uri}> foaf:firstName ?firstName }
@@ -48,6 +54,15 @@ WHERE {
   OPTIONAL { <${input.uri}> osr:dataNascita ?birthDate }
   OPTIONAL { <${input.uri}> osr:luogoNascita ?birthCity }
   OPTIONAL { <${input.uri}> foaf:depiction ?photo }
+  OPTIONAL {
+    <${input.uri}> osr:mandato ?m .
+    ?m osr:legislatura ${leg} .
+    ?m a <http://dati.camera.it/ocd/mandatoSenato> .
+    OPTIONAL { ?m osr:regioneElezione ?electionRegion }
+    OPTIONAL { ?m osr:tipoElezione ?electionType }
+    OPTIONAL { ?m osr:inizio ?mandateStart }
+    OPTIONAL { ?m osr:fine ?mandateEnd }
+  }
 }
 LIMIT 1`;
 
@@ -59,7 +74,6 @@ LIMIT 1`;
     const r = raw[0];
     const idMatch = input.uri.match(/\/senatore\/(\d+)$/);
     const senId = idMatch ? idMatch[1] : "";
-    const leg = input.legislature ?? 19;
     const html_url = senId
       ? leg === 19
         ? `https://www.senato.it/composizione/senatori/elenco-alfabetico/scheda-attivita?did=${senId.padStart(8, "0")}`
@@ -74,6 +88,10 @@ LIMIT 1`;
         gender: r.gender ?? "",
         birth_date: r.birthDate ?? "",
         birth_city: r.birthCity ?? "",
+        election_region: r.electionRegion ?? "",
+        election_type: r.electionType ?? "",
+        mandate_start: r.mandateStart ?? "",
+        mandate_end: r.mandateEnd ?? "",
         photo: r.photo ?? "",
         html_url,
       },

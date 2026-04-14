@@ -1,5 +1,12 @@
 # LOG
 
+## 2026-04-14
+
+- Nuovo tool `bill-rapporteurs` [CAMERA]: relatori di un DDL per commissione con nome, tipo (Relatore/Relatore f.f.), commissione, data inizio esame e URI deputato. Path SPARQL: atto→rif_dibattito→dibattito→rif_discussione→discussione→rif_relatore. Totale tool: 26.
+- Aggiunto campi mandato/elezione a `deputy` (Camera) e `senator` (Senato): `election_region`, `election_district` (solo Camera), `election_type`, `mandate_start`, `mandate_end`. Camera via `ocd:rif_mandatoCamera → ocd:rif_elezione`; Senato via `osr:mandato` filtrato per legislatura.
+- Aggiunto campo `description` al tool `votes` (Camera): `dc:description` contiene il testo reale della votazione (es. "Votazione Fiducia A.C. 2807-A"), mentre `label` e `title` sono spesso vuoti. Utile soprattutto con `--confidence-vote true`.
+- Aggiunto parametro `--bill-code` al tool `votes` (Camera): filtra votazioni collegate a un DDL per numero atto (es. `--bill-code 2807`). Restituisce fiducia, voto finale e ordini del giorno. Combina con `--legislature` per evitare falsi positivi tra legislature.
+
 ## 2026-04-13
 
 - Gap analysis giornalista vs MCP: 33 user stories testate con tool reali. 13 OK, 14 PARZIALI, 6 KO. Documenti in `docs/gap-analysis-2026-04-13/`.

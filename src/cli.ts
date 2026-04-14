@@ -21,6 +21,7 @@ import { govMembersTool } from "./tools/gov-members.js";
 import { committeesTool } from "./tools/committees.js";
 import { billProgressTool } from "./tools/bill-progress.js";
 import { billSignatoriesTool } from "./tools/bill-signatories.js";
+import { billRapporteursTool } from "./tools/bill-rapporteurs.js";
 import { amendmentsTool } from "./tools/amendments.js";
 import { documentsTool } from "./tools/documents.js";
 import { sparqlTool } from "./tools/sparql.js";
@@ -215,6 +216,7 @@ const votesList = defineCommand({
     },
     "date-from": { type: "string", description: "Start date YYYY-MM-DD" },
     "date-to": { type: "string", description: "End date YYYY-MM-DD" },
+    "bill-code": { type: "string", description: "Filter votes by bill number (e.g. '2807', '1665')" },
     limit: { type: "string", default: "100" },
     offset: { type: "string", default: "0" },
     format: { type: "string", default: "csv" },
@@ -245,6 +247,7 @@ const votesList = defineCommand({
       keyword: (args.keyword as string) || undefined,
       dateFrom: (args["date-from"] as string) || undefined,
       dateTo: (args["date-to"] as string) || undefined,
+      billCode: (args["bill-code"] as string) || undefined,
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,
       offset: Number(args.offset ?? 0),
     });
@@ -746,6 +749,28 @@ const billSignatoriesShow = defineCommand({
   },
 });
 
+const billRapporteursList = defineCommand({
+  meta: {
+    name: "list",
+    description: withExamples(
+      "List rapporteurs of a Camera DDL by committee.",
+      billRapporteursTool.examples,
+    ),
+  },
+  args: {
+    "bill-uri": { type: "string", description: "Full URI of a Camera DDL", required: true },
+    limit: { type: "string", default: "100" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await billRapporteursTool.execute({
+      billUri: args["bill-uri"] as string,
+      limit: parseIntFlag(args.limit as string, "limit") ?? 100,
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
 const amendmentsList = defineCommand({
   meta: {
     name: "list",
@@ -1037,6 +1062,10 @@ const main = defineCommand({
     "bill-signatories": defineCommand({
       meta: { name: "bill-signatories", description: "Signatories of a Senato DDL" },
       subCommands: { show: billSignatoriesShow },
+    }),
+    "bill-rapporteurs": defineCommand({
+      meta: { name: "bill-rapporteurs", description: "Rapporteurs of a Camera DDL by committee" },
+      subCommands: { list: billRapporteursList },
     }),
     amendments: defineCommand({
       meta: { name: "amendments", description: "Senato amendments" },

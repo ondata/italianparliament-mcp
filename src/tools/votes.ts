@@ -23,6 +23,10 @@ const inputSchema = z.object({
     .string()
     .optional()
     .describe("Cerca nel titolo della votazione (match case-insensitive, es. 'fiducia', 'bilancio')"),
+  billCode: z
+    .string()
+    .optional()
+    .describe("Filtra votazioni collegate a un DDL per numero atto (es. '2807', '1665'). Cerca in dc:description."),
   dateFrom: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -41,6 +45,7 @@ const columns = [
   "uri",
   "label",
   "title",
+  "description",
   "type",
   "date",
   "approved",
@@ -61,6 +66,7 @@ const columns = [
 
 const COL_MAP: Record<string, string> = {
   s: "uri",
+  description: "description",
   approvato: "approved",
   favorevoli: "in_favour",
   contrari: "against",
@@ -94,6 +100,7 @@ export const votesTool: Tool<typeof inputSchema> = {
     "italianparliament votes list --legislature 19 --keyword bilancio --limit 50",
     "italianparliament votes list --legislature 19 --date-from 2026-01-01 --limit 50",
     "italianparliament votes list --legislature 19 --date-from 2026-01-01 --date-to 2026-03-31 --format jsonl",
+    "italianparliament votes list --bill-code 2807",
   ],
   async execute(input) {
     const legFilter =
@@ -121,9 +128,15 @@ export const votesTool: Tool<typeof inputSchema> = {
     const dateToFilter = input.dateTo
       ? `FILTER(?date <= "${input.dateTo.replace(/-/g, "")}")`
       : "";
+    const billCodeEsc = input.billCode !== undefined
+      ? input.billCode.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
+      : "";
+    const billCodeFilter = input.billCode !== undefined
+      ? `FILTER(CONTAINS(STR(?description), "${billCodeEsc}"))`
+      : "";
 
     const query = `${OCD_PREFIXES}
-SELECT DISTINCT ?s ?label ?title ?type ?date
+SELECT DISTINCT ?s ?label ?title ?description ?type ?date
                 ?approvato ?favorevoli ?contrari ?astenuti
                 ?presenti ?votanti ?maggioranza
                 ?richiestaFiducia ?votazioneSegreta ?votazioneFinale
@@ -132,6 +145,7 @@ WHERE {
   ?s a <http://dati.camera.it/ocd/votazione> .
   ?s rdfs:label ?label .
   OPTIONAL { ?s dc:title ?title }
+  OPTIONAL { ?s dc:description ?description }
   OPTIONAL { ?s dc:type ?type }
   OPTIONAL { ?s dc:date ?date }
   OPTIONAL { ?s <http://dati.camera.it/ocd/approvato> ?approvato }
@@ -152,6 +166,7 @@ WHERE {
   ${approvedFilter}
   ${confidenceFilter}
   ${keywordFilter}
+  ${billCodeFilter}
   ${dateFromFilter}
   ${dateToFilter}
 }

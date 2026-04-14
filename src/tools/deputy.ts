@@ -23,6 +23,11 @@ const columns = [
   "gender",
   "description",
   "legislature_uri",
+  "election_region",
+  "election_district",
+  "election_type",
+  "mandate_start",
+  "mandate_end",
   "photo_url",
   "profile_url",
   "html_url",
@@ -52,6 +57,7 @@ export const deputyTool: Tool<typeof inputSchema> = {
     const query = `${OCD_PREFIXES}
 SELECT ?label ?firstName ?surname ?gender ?description
        ?rif_leg ?depiction ?isReferencedBy ?modified
+       ?startDate ?endDate ?electionRegion ?electionDistrict ?electionType
 WHERE {
   <${uri}> rdfs:label ?label .
   OPTIONAL { <${uri}> foaf:firstName ?firstName }
@@ -62,6 +68,17 @@ WHERE {
   OPTIONAL { <${uri}> foaf:depiction ?depiction }
   OPTIONAL { <${uri}> dcterms:isReferencedBy ?isReferencedBy }
   OPTIONAL { <${uri}> ods:modified ?modified }
+  OPTIONAL {
+    <${uri}> ocd:rif_mandatoCamera ?mandato .
+    OPTIONAL { ?mandato ocd:startDate ?startDate }
+    OPTIONAL { ?mandato ocd:endDate ?endDate }
+    OPTIONAL {
+      ?mandato ocd:rif_elezione ?el .
+      OPTIONAL { ?el dc:coverage ?electionRegion }
+      OPTIONAL { ?el dcterms:spatial ?electionDistrict }
+      OPTIONAL { ?el ocd:tipoElezione ?electionType }
+    }
+  }
 }
 LIMIT 1`;
 
@@ -84,6 +101,11 @@ LIMIT 1`;
         gender: r.gender ?? "",
         description: r.description ?? "",
         legislature_uri: r.rif_leg ?? "",
+        election_region: r.electionRegion ?? "",
+        election_district: r.electionDistrict ?? "",
+        election_type: r.electionType ?? "",
+        mandate_start: r.startDate ?? "",
+        mandate_end: r.endDate ?? "",
         photo_url: r.depiction ?? "",
         profile_url: r.isReferencedBy ?? "",
         html_url,
