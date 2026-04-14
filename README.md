@@ -8,7 +8,7 @@ Usabile in tre modi:
 
 - **Da terminale** — `italianparliament <risorsa> <azione>` (installabile via npm)
 - **Da Claude** — come MCP server integrato in Claude Desktop o Claude Code
-- **Da remoto** — come MCP server HTTP su Cloudflare Worker (futuro)
+- **Da remoto** — come MCP server HTTP su Cloudflare Worker (`https://italianparliament-mcp.andy-pr.workers.dev`)
 
 ## Cosa puoi fare
 
@@ -19,8 +19,8 @@ Usabile in tre modi:
 | `deputies list` | Lista deputati Camera, filtrabile per legislatura |
 | `senators list` | Lista senatori, filtrabile per legislatura |
 | `search find` | Cerca un parlamentare per nome in Camera, Senato o entrambi |
-| `deputy show` | Scheda di un deputato (nome, cognome, genere, foto, profilo Camera) |
-| `senator show` | Scheda di un senatore (nome, cognome, genere, data/luogo nascita, foto) |
+| `deputy show` | Scheda di un deputato (nome, cognome, genere, regione elezione, collegio, data mandato, foto) |
+| `senator show` | Scheda di un senatore (nome, cognome, genere, data nascita, regione elezione, tipo elezione, data mandato) |
 
 ### Attivita legislativa — Camera
 
@@ -29,8 +29,9 @@ Usabile in tre modi:
 | `bills list` | Disegni di legge Camera, filtrabile per legislatura, tipo, data (`--date-from`/`--date-to`) |
 | `bill show` | Scheda di un atto Camera (titolo, tipo, data, iniziativa, firmatario, stato) |
 | `aic list` | Atti di indirizzo e controllo (interrogazioni, interpellanze, mozioni), filtrabile per data |
-| `votes list` | Votazioni Camera con contatori (favorevoli, contrari, astenuti), filtrabile per data |
+| `votes list` | Votazioni Camera con contatori (favorevoli, contrari, astenuti), filtrabile per data, tipo fiducia (`--confidence-vote`), DDL collegato (`--bill-code`) |
 | `vote-detail show` | Come ha votato ogni singolo deputato in una votazione, con nome e gruppo |
+| `bill-rapporteurs list` | Relatori di un DDL Camera per commissione, con tipo (Relatore / Relatore f.f.) e data |
 | `speeches list` | Interventi in aula, filtrabile per legislatura e deputato |
 
 ### Attivita legislativa — Senato
@@ -105,6 +106,24 @@ Quali votazioni ci sono state questa settimana?
 italianparliament votes list --legislature 19 --date-from 2026-04-07 --date-to 2026-04-12
 ```
 
+Quali voti di fiducia ci sono stati nella XIX legislatura?
+
+```
+italianparliament votes list --legislature 19 --confidence-vote true
+```
+
+Tutte le votazioni collegate al DDL 2807:
+
+```
+italianparliament votes list --bill-code 2807 --legislature 19
+```
+
+Chi erano i relatori del DDL 2807 nelle commissioni?
+
+```
+italianparliament bill-rapporteurs list --bill-uri http://dati.camera.it/ocd/attocamera.rdf/ac19_2807
+```
+
 Quali interrogazioni sono state presentate questo mese?
 
 ```
@@ -172,7 +191,7 @@ Questo progetto e un porting in TypeScript ispirato a [italyParlR](https://githu
 
 ## Stato
 
-24 tool implementati. Vedi `LOG.md` per il diario di avanzamento.
+26 tool implementati. Vedi `LOG.md` per il diario di avanzamento.
 
 ## Licenza
 
