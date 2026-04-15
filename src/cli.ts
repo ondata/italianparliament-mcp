@@ -427,10 +427,14 @@ const senatorShow = defineCommand({
   },
   args: {
     uri: { type: "string", description: "Full URI of the senator", required: true },
+    legislature: { type: "string", description: "Legislature number (default: 19)" },
     format: { type: "string", default: "csv" },
   },
   async run({ args }) {
-    const result = await senatorTool.execute({ uri: args.uri as string });
+    const result = await senatorTool.execute({
+      uri: args.uri as string,
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
+    });
     emit(result, parseFormat(args.format as string));
   },
 });

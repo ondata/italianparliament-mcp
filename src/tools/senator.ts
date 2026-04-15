@@ -59,8 +59,7 @@ WHERE {
   OPTIONAL { <${input.uri}> foaf:depiction ?photo }
   OPTIONAL {
     <${input.uri}> osr:mandato ?m .
-    ?m osr:legislatura ${leg} .
-    ?m a <http://dati.camera.it/ocd/mandatoSenato> .
+    ?m osr:legislatura ?mandLeg . FILTER(STR(?mandLeg) = "${leg}")
     OPTIONAL { ?m osr:regioneElezione ?electionRegion }
     OPTIONAL { ?m osr:tipoElezione ?electionType }
     OPTIONAL { ?m osr:inizio ?mandateStart }
