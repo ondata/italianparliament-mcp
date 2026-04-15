@@ -1,5 +1,12 @@
 # LOG
 
+## 2026-04-15
+
+- `member-bills` [CAMERA+SENATO]: nuovo tool unificato per DDL come primo firmatario. Camera: filtra `ocd:primo_firmatario` + tipo atto. Senato: pattern `INIZ-DDL-{ddl_id}-{id}` + `osr:primoFirmatario="1"` (REGEX `[^0-9]{id}$` perché Virtuoso non supporta BIND/STRAFTER nidificato).
+- `bill` [CAMERA]: aggiunto campo `cosignatories` con tutti i cofirmatari (`dc:contributor`) separati da ` | `.
+- `deputy` [CAMERA]: aggiunti `committees`, `election_list`, `election_date`, `election_validated`, `birth_date`, `birth_place`. Nascita via `persona.rdf/p{id}` → `bio:Birth`.
+- `senator` [SENATO]: fix `birth_city` (via `bio:birth`→`bio:place`→`rdfs:label`); fix CLI `--legislature` non passato all'execute (mandato sempre leg 19); fix filtro `osr:legislatura` con `FILTER(STR(...))` (era `xsd:integer`, non stringa).
+
 ## 2026-04-14
 
 - Nuovo tool `bill-rapporteurs` [CAMERA]: relatori di un DDL per commissione con nome, tipo (Relatore/Relatore f.f.), commissione, data inizio esame e URI deputato. Path SPARQL: atto→rif_dibattito→dibattito→rif_discussione→discussione→rif_relatore. Totale tool: 26.

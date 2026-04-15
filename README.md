@@ -19,15 +19,16 @@ Usabile in tre modi:
 | `deputies list` | Lista deputati Camera, filtrabile per legislatura |
 | `senators list` | Lista senatori, filtrabile per legislatura |
 | `search find` | Cerca un parlamentare per nome in Camera, Senato o entrambi |
-| `deputy show` | Scheda di un deputato (nome, cognome, genere, regione elezione, collegio, data mandato, foto) |
-| `senator show` | Scheda di un senatore (nome, cognome, genere, data nascita, regione elezione, tipo elezione, data mandato) |
+| `deputy show` | Scheda di un deputato: nome, genere, data/luogo nascita, lista elezione, data elezione, convalida, commissioni |
+| `senator show` | Scheda di un senatore: nome, genere, data/luogo nascita, regione elezione, tipo elezione, data mandato |
 
 ### Attivita legislativa — Camera
 
 | Comando | Cosa fa |
 |---------|---------|
 | `bills list` | Disegni di legge Camera, filtrabile per legislatura, tipo, data (`--date-from`/`--date-to`) |
-| `bill show` | Scheda di un atto Camera (titolo, tipo, data, iniziativa, firmatario, stato) |
+| `bill show` | Scheda di un atto Camera (titolo, tipo, data, iniziativa, primo firmatario, cofirmatari) |
+| `member-bills list` | DDL presentati come primo firmatario da un deputato o senatore (Camera e Senato) |
 | `aic list` | Atti di indirizzo e controllo (interrogazioni, interpellanze, mozioni), filtrabile per data |
 | `votes list` | Votazioni Camera con contatori (favorevoli, contrari, astenuti), filtrabile per data, tipo fiducia (`--confidence-vote`), DDL collegato (`--bill-code`) |
 | `vote-detail show` | Come ha votato ogni singolo deputato in una votazione, con nome e gruppo |
@@ -189,9 +190,16 @@ I dati provengono dagli endpoint SPARQL ufficiali di Camera e Senato. Alcune lim
 
 Questo progetto e un porting in TypeScript ispirato a [italyParlR](https://github.com/paride92/italyParlR), un pacchetto R per interrogare i dati aperti del Parlamento italiano via SPARQL. Le query SPARQL di quel pacchetto hanno fornito un punto di partenza; molte altre sono state sviluppate autonomamente per coprire nuove risorse e casi d'uso.
 
+Quali DDL ha presentato come primo firmatario un parlamentare?
+
+```
+italianparliament member-bills list --member-uri http://dati.senato.it/senatore/32
+italianparliament member-bills list --member-uri http://dati.camera.it/ocd/deputato.rdf/d308920_19
+```
+
 ## Stato
 
-26 tool implementati. Vedi `LOG.md` per il diario di avanzamento.
+27 tool implementati. Vedi `LOG.md` per il diario di avanzamento.
 
 ## Licenza
 
