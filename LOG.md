@@ -2,6 +2,8 @@
 
 ## 2026-06-28
 
+- v0.3.3 (doc-only): skill CLI/MCP corrette (flag kebab, formato default CSV, parametri voteUri/ddlUri, valori --rank-by completi); README sezione "Uso con un agente AI (skill)" (install cross-agent `npx skills`, consiglio CLI+MCP in coppia con la skill). Republish per allineare la README su npm.
+
 - v0.3.2: fix `groups` acronimo — ora dal campo dedicato `dcterms:alternative` (prima puntava a `ocd:acronimo` inesistente, ripiegando su parsing regex della label). README "Note sui dati" corretta. Spostato l'esempio `member-bills` da "Riferimento" a "Esempi pratici".
 
 - v0.3.1: repo reso pubblico e **pubblicato su npm** come `@aborruso/italianparliament-mcp` (CLI + MCP installabili con `npm i -g`). Aggiunta sezione "Installazione" al README (CLI npm / MCP remoto-locale / da sorgente), `prepublishOnly` in package.json, e step npm in RELEASING.md.
