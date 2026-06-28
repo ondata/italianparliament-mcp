@@ -28,6 +28,8 @@ import { sindacatoIspettivoTool } from "./sindacato-ispettivo.js";
 import { committeeMembersTool } from "./committee-members.js";
 import { memberBillsTool } from "./member-bills.js";
 import { billTextTool } from "./bill-text.js";
+import { senatoVotesTool } from "./senato-votes.js";
+import { senatoVoteDetailTool } from "./senato-vote-detail.js";
 import type { Tool } from "./types.js";
 
 export const tools: Tool[] = [
@@ -61,6 +63,8 @@ export const tools: Tool[] = [
   committeeMembersTool,
   memberBillsTool,
   billTextTool,
+  senatoVotesTool,
+  senatoVoteDetailTool,
 ];
 
 export const toolsByName: Record<string, Tool> = Object.fromEntries(
@@ -98,5 +102,7 @@ export {
   committeeMembersTool,
   memberBillsTool,
   billTextTool,
+  senatoVotesTool,
+  senatoVoteDetailTool,
 };
 export type { Tool, ToolResult } from "./types.js";

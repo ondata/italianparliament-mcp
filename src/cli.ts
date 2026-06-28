@@ -30,6 +30,8 @@ import { sindacatoIspettivoTool } from "./tools/sindacato-ispettivo.js";
 import { committeeMembersTool } from "./tools/committee-members.js";
 import { memberBillsTool } from "./tools/member-bills.js";
 import { billTextTool } from "./tools/bill-text.js";
+import { senatoVotesTool } from "./tools/senato-votes.js";
+import { senatoVoteDetailTool } from "./tools/senato-vote-detail.js";
 import { fetchSenatoText } from "./core/fetch-text.js";
 import { formatRows, type Format } from "./core/format.js";
 import { SparqlError } from "./core/client.js";
@@ -1000,6 +1002,61 @@ const documentsList = defineCommand({
   },
 });
 
+const senatoVotesList = defineCommand({
+  meta: {
+    name: "list",
+    description: withExamples(
+      "List Senato Assembly votes with outcome, counters and linked bill.",
+      senatoVotesTool.examples,
+    ),
+  },
+  args: {
+    legislature: { type: "string", description: "Legislature number (default 19)", default: "19" },
+    "ddl-uri": { type: "string", description: "Filter votes linked to a bill (Senato ddl URI)" },
+    "date-from": { type: "string", description: "Session date from (YYYY-MM-DD)" },
+    "date-to": { type: "string", description: "Session date to (YYYY-MM-DD)" },
+    limit: { type: "string", default: "100" },
+    offset: { type: "string", default: "0" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await senatoVotesTool.execute({
+      legislature: parseIntFlag(args.legislature as string, "legislature") ?? 19,
+      ddlUri: (args["ddl-uri"] as string) || undefined,
+      dateFrom: (args["date-from"] as string) || undefined,
+      dateTo: (args["date-to"] as string) || undefined,
+      limit: parseIntFlag(args.limit as string, "limit") ?? 100,
+      offset: Number(args.offset) || 0,
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const senatoVoteDetailShow = defineCommand({
+  meta: {
+    name: "show",
+    description: withExamples(
+      "Show how each senator voted in a single Senato vote.",
+      senatoVoteDetailTool.examples,
+    ),
+  },
+  args: {
+    "vote-uri": { type: "string", description: "Senato vote URI (from senato-votes)", required: true },
+    "vote-type": {
+      type: "string",
+      description: "Filter by vote: Favorevole | Contrario | Astenuto | Presente non votante | In congedo/missione",
+    },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await senatoVoteDetailTool.execute({
+      voteUri: args["vote-uri"] as string,
+      voteType: (args["vote-type"] as string) || undefined,
+    } as Parameters<typeof senatoVoteDetailTool.execute>[0]);
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
 const billTextLinks = defineCommand({
   meta: {
     name: "links",
@@ -1201,6 +1258,14 @@ const main = defineCommand({
     "bill-text": defineCommand({
       meta: { name: "bill-text", description: "Links to a bill's text (links) and local fetch+convert of Senato text to markdown (fetch)" },
       subCommands: { links: billTextLinks, fetch: billTextFetch },
+    }),
+    "senato-votes": defineCommand({
+      meta: { name: "senato-votes", description: "Senato Assembly votes with outcome and counters" },
+      subCommands: { list: senatoVotesList },
+    }),
+    "senato-vote-detail": defineCommand({
+      meta: { name: "senato-vote-detail", description: "How each senator voted in a single Senato vote" },
+      subCommands: { show: senatoVoteDetailShow },
     }),
   },
 });

@@ -44,6 +44,8 @@ Usabile in tre modi:
 | `amendments list` | Emendamenti al Senato con link al testo |
 | `documents list` | Documenti parlamentari: atti del governo, atti UE, relazioni Corte dei Conti |
 | `sindacato-ispettivo list` | Atti di sindacato ispettivo Senato (interrogazioni, interpellanze, mozioni), filtrabile per data |
+| `senato-votes list` | Votazioni d'Assemblea del Senato con esito, contatori (favorevoli/contrari/astenuti), tipo, data e DDL collegato. Filtrabile per legislatura, data, DDL |
+| `senato-vote-detail show` | Come ha votato ogni singolo senatore in una votazione (favorevole/contrario/astenuto/presente non votante/in congedo) |
 
 ### Testo dei disegni di legge
 
@@ -179,6 +181,18 @@ Chi ha firmato un DDL al Senato?
 italianparliament bill-signatories show --ddl-uri http://dati.senato.it/ddl/25597
 ```
 
+Quali sono le ultime votazioni d'Assemblea al Senato?
+
+```
+italianparliament senato-votes list --legislature 19 --limit 20
+```
+
+Come ha votato ogni senatore in una votazione (e i contrari)?
+
+```
+italianparliament senato-vote-detail show --vote-uri http://dati.senato.it/votazione/19-167-42 --vote-type Contrario
+```
+
 Dove trovo il testo di un DDL e di che tipo è (html/pdf)?
 
 ```
@@ -231,7 +245,7 @@ italianparliament member-bills list --member-uri http://dati.camera.it/ocd/deput
 
 ## Stato
 
-31 tool implementati. Vedi `LOG.md` per il diario di avanzamento e `RELEASING.md` per il processo di rilascio.
+33 tool implementati. Vedi `LOG.md` per il diario di avanzamento e `RELEASING.md` per il processo di rilascio.
 
 ## Licenza
 

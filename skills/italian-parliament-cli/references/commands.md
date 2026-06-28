@@ -115,6 +115,21 @@ italianparliament sindacato-ispettivo list --legislature 19 --senatorUri <uri>
 italianparliament documents list --legislature 19
 ```
 
+### `senato-votes list`
+Votazioni d'Assemblea del Senato con esito e contatori.
+```bash
+italianparliament senato-votes list --legislature 19 --limit 20
+italianparliament senato-votes list --ddl-uri http://dati.senato.it/ddl/58039 --format jsonl
+italianparliament senato-votes list --date-from 2026-01-01 --date-to 2026-03-31
+```
+
+### `senato-vote-detail show`
+Voto del singolo senatore in una votazione (URI da `senato-votes`).
+```bash
+italianparliament senato-vote-detail show --vote-uri http://dati.senato.it/votazione/19-167-42
+italianparliament senato-vote-detail show --vote-uri http://dati.senato.it/votazione/19-167-42 --vote-type Contrario
+```
+
 ### `bill-text links` (Camera + Senato)
 Link diretti al testo di un DDL, con tipo risorsa (`format`) e se serve un browser (`auth`).
 ```bash

@@ -81,6 +81,18 @@ Atti di sindacato ispettivo Senato (interrogazioni, interpellanze).
 Documenti parlamentari Senato.
 - `legislature`: numero legislatura
 
+### `senato-votes`
+Votazioni d'Assemblea del Senato: esito, contatori, tipo, data seduta, DDL collegato.
+- `legislature`: numero legislatura (default 19)
+- `ddlUri`: filtra le votazioni collegate a un DDL
+- `dateFrom`/`dateTo`: intervallo data seduta (YYYY-MM-DD)
+
+### `senato-vote-detail`
+Voto del singolo senatore in una votazione.
+- `voteUri` (required): URI della votazione (da `senato-votes`)
+- `voteType`: filtro (Favorevole/Contrario/Astenuto/Presente non votante/In congedo/missione)
+- Il gruppo non è incluso: incrociare con `senator-group-members`.
+
 ### `bill-text` (Camera + Senato)
 Link diretti al testo di un DDL, con tipo risorsa (`format`: html/pdf/urn) e se serve un browser (`auth`: none/browser). Il testo integrale NON è nei dati SPARQL.
 - `uri` (required): URI dell'atto (`http://dati.senato.it/ddl/<N>` o atto Camera)

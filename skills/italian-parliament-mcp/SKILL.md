@@ -43,6 +43,7 @@ See [tool reference](references/tools.md) for the full list with parameters and 
 | Membri di una commissione Senato | `committee-members` |
 | Interrogazioni, interpellanze, mozioni | `aic` (Camera) / `sindacato-ispettivo` (Senato) |
 | Votazioni Camera | `votes` / `vote-detail` |
+| Votazioni Senato | `senato-votes` / `senato-vote-detail` |
 | Interventi in aula | `speeches` |
 | Emendamenti Senato | `amendments` |
 | Documenti parlamentari Senato | `documents` |
@@ -79,9 +80,13 @@ Use `rank` with `rankBy`: `aic-primo-firmatario`, `aic-co-firmatario`, `bills-pr
 1. `groups` → get group URI
 2. `group-members` with the URI and legislature
 
-**Who voted how**
+**Who voted how (Camera)**
 1. `votes` → get vote URI
 2. `vote-detail` with the URI
+
+**Who voted how (Senato)**
+1. `senato-votes` → get vote URI (filter by `ddlUri` for votes on a bill, or by date)
+2. `senato-vote-detail` with the URI. The group is not included: cross with `senator-group-members` for the group breakdown.
 
 **Read the actual text of a bill (articolato)**
 

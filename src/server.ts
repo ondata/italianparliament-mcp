@@ -30,6 +30,8 @@ import { sindacatoIspettivoTool } from "./tools/sindacato-ispettivo.js";
 import { committeeMembersTool } from "./tools/committee-members.js";
 import { memberBillsTool } from "./tools/member-bills.js";
 import { billTextTool } from "./tools/bill-text.js";
+import { senatoVotesTool } from "./tools/senato-votes.js";
+import { senatoVoteDetailTool } from "./tools/senato-vote-detail.js";
 import type { Tool, ToolResult } from "./tools/types.js";
 import { toJsonl } from "./core/format.js";
 import { SparqlError } from "./core/client.js";
@@ -71,7 +73,7 @@ function makeHandler(tool: { execute(input: any): Promise<ToolResult> }) {
 export function createServer(): McpServer {
   return new McpServer({
     name: "italianparliament-mcp",
-    version: "0.1.1",
+    version: "0.2.0",
   });
 }
 
@@ -108,6 +110,8 @@ export function registerAll(server: McpServer): void {
     committeeMembersTool,
     memberBillsTool,
     billTextTool,
+    senatoVotesTool,
+    senatoVoteDetailTool,
   ];
 
   for (const tool of allTools) {
