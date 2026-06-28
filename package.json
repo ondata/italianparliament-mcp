@@ -1,6 +1,6 @@
 {
   "name": "@aborruso/italianparliament-mcp",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "CLI and MCP server for querying Italian Parliament SPARQL endpoints (Camera dei Deputati and Senato della Repubblica)",
   "main": "dist/index.js",
   "type": "module",
@@ -23,7 +23,8 @@
     "dev": "npm run build && node dist/index.js",
     "deploy": "npm run build:worker && wrangler deploy",
     "test": "vitest",
-    "test:watch": "vitest --watch"
+    "test:watch": "vitest --watch",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "mcp",

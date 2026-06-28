@@ -6,9 +6,42 @@ Pensato per giornalisti, ricercatori e analisti parlamentari: ogni comando resti
 
 Usabile in tre modi:
 
-- **Da terminale** — `italianparliament <risorsa> <azione>` (installabile via npm)
+- **Da terminale** — `italianparliament <risorsa> <azione>` (CLI installabile via npm)
 - **Da Claude** — come MCP server integrato in Claude Desktop o Claude Code
 - **Da remoto** — come MCP server HTTP su Cloudflare Worker (`https://italianparliament-mcp.andy-pr.workers.dev`)
+
+## Installazione
+
+### Come CLI (consigliato — disponibile in tutto il sistema)
+
+```bash
+npm install -g @aborruso/italianparliament-mcp
+```
+
+Poi:
+
+```bash
+italianparliament --help
+italianparliament guide                       # flusso tipico di utilizzo
+italianparliament search find --name schlein
+```
+
+> Per scaricare il **testo dei DDL del Senato** (`bill-text fetch`) servono anche [`agent-browser`](https://www.npmjs.com/package/agent-browser) e `lit` (liteparse) installati.
+
+### Come server MCP (Claude Desktop / Claude Code)
+
+- **Remoto** (più semplice): usa l'endpoint `https://italianparliament-mcp.andy-pr.workers.dev/mcp`.
+- **Locale**: dopo l'installazione globale, configura il comando `italianparliament-mcp` (trasporto stdio) nel client MCP.
+
+### Da sorgente (sviluppo)
+
+```bash
+git clone https://github.com/aborruso/italianparliament-mcp
+cd italianparliament-mcp
+npm install
+npm run build
+node dist/cli.js --help
+```
 
 ## Cosa puoi fare
 

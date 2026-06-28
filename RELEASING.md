@@ -1,8 +1,8 @@
 # Processo di release
 
-Release manuale, senza CI. Il pacchetto **non** è pubblicato su npm; la
-distribuzione avviene via server MCP (stdio + Cloudflare Worker), skill e
-pacchetto `.dxt`.
+Release manuale, senza CI. Distribuzione: **CLI/MCP su npm** come
+[`@aborruso/italianparliament-mcp`](https://www.npmjs.com/package/@aborruso/italianparliament-mcp),
+più server MCP HTTP su Cloudflare Worker, skill e pacchetto `.dxt`.
 
 ## Passi per una nuova versione `X.Y.Z`
 
@@ -44,7 +44,20 @@ pacchetto `.dxt`.
    gh release create vX.Y.Z --title "vX.Y.Z — <titolo>" --notes "..."
    ```
 
-7. **Deploy del Worker** su Cloudflare:
+7. **Pubblicazione su npm** (CLI + MCP installabili globalmente):
+
+   ```bash
+   npm whoami                      # deve essere loggato (aborruso); altrimenti: npm login
+   npm publish --access public     # scoped package → serve --access public
+   ```
+
+   `prepublishOnly` (in `package.json`) ricostruisce `dist/` prima della
+   pubblicazione. Il campo `files` include `dist`, `README.md`, `LICENSE`
+   (così `dist/`, pur gitignored, finisce nel tarball). Verifica del contenuto
+   prima di pubblicare: `npm pack --dry-run`. Dopo la pubblicazione:
+   `npm i -g @aborruso/italianparliament-mcp` → comando `italianparliament`.
+
+8. **Deploy del Worker** su Cloudflare:
 
    ```bash
    npm run deploy        # = build:worker + wrangler deploy
@@ -58,7 +71,7 @@ pacchetto `.dxt`.
 
 ## Note
 
-- `dist/` è in `.gitignore`: gli artefatti sono ricostruiti al deploy, non versionati.
+- `dist/` è in `.gitignore` ma è incluso nel pacchetto npm via il campo `files`; per il repo gli artefatti sono ricostruiti, non versionati.
 - Il comando CLI `bill-text fetch` è **solo locale** (usa `node:child_process`
   e un browser via `agent-browser`): non entra nel bundle del Worker, che
   espone solo i tool basati su SPARQL/URL.
