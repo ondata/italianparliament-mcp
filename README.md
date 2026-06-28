@@ -320,6 +320,8 @@ italianparliament member-bills list --member-uri http://dati.camera.it/ocd/deput
 
 ### Un'inchiesta passo per passo: la riforma della Corte dei Conti
 
+> Un secondo caso, più esteso e con glossario + lettura del testo, è in [`docs/case-study-salario-giusto.md`](docs/case-study-salario-giusto.md): la fiducia del 2026-06-24 sulla conversione del decreto "salario giusto".
+
 A dicembre 2025 il Senato approva in via definitiva la riforma che limita i poteri di controllo dei giudici contabili (il cosiddetto "scudo erariale"). Ricostruiamo i fatti partendo solo dai dati ufficiali.
 
 Trova il provvedimento e il suo stato (cerca per parola chiave nell'iter del Senato):
@@ -368,6 +370,7 @@ I dati provengono dagli endpoint SPARQL ufficiali di Camera e Senato. Alcune lim
 
 - **Gruppi** (`groups`): l'acronimo viene dal campo `dcterms:alternative` dell'endpoint (es. `AVS`, `PD-IDP`); per i rari casi senza quel campo si ricava dalla label.
 - **Documenti Camera**: l'endpoint Camera non espone documenti parlamentari via SPARQL. Il tool `documents` usa i dati del Senato.
+- **Voti di fiducia al Senato** (`senato-votes`): il campo `ddl_uri` delle votazioni di fiducia è **vuoto** — il legame con il DDL è scritto solo nel testo della `label` (es. "Disegno di legge n.1933. Votazione questione di fiducia."). Di conseguenza `senato-votes list --ddl-uri <uri>` **non** restituisce il voto di fiducia. Per trovarlo filtrare per **data della seduta** (`--date-from`/`--date-to`), poi ricollegarlo al DDL via la `label`. Attenzione anche alle votazioni "finali" trovate per data: possono appartenere a un atto diverso (testo unificato) — verificare sempre il campo `ddl_uri`.
 
 ## Riferimento
 

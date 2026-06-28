@@ -40,6 +40,9 @@ import { formatRows, type Format } from "./core/format.js";
 import { SparqlError } from "./core/client.js";
 import { ZodError } from "zod";
 import type { ToolResult } from "./tools/types.js";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const { version } = require("../package.json") as { version: string };
 
 function withExamples(description: string, examples: string[]): string {
   return `${description}\n\nExamples:\n${examples.map((e) => `  ${e}`).join("\n")}`;
@@ -1348,7 +1351,7 @@ const whichCmd = defineCommand({
 const main = defineCommand({
   meta: {
     name: "italianparliament",
-    version: "0.0.1",
+    version,
     description:
       "CLI for querying Italian Parliament SPARQL endpoints (Camera + Senato). Agent-friendly: flags for everything, machine-readable output.",
   },

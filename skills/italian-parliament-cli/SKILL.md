@@ -97,3 +97,4 @@ italianparliament group-rank list --rank-by aic --legislature 19   # colonna cou
 - Pipe CSV into `duckdb -c "SELECT ... FROM read_csv_auto('/dev/stdin')"` for SQL analysis
 - Use `--limit` to cap results during exploration
 - URIs from `list` commands can be passed to `show` commands
+- **Senato confidence votes have empty `ddl_uri`**: `senato-votes list --ddl-uri <uri>` won't return a *fiducia* — the bill link is only in the `label` text. Filter by **seduta date** (`--date-from`/`--date-to`), then match the DDL via `label`. Also check `ddl_uri` on any "final" vote found by date: it may belong to a different act (unified text).

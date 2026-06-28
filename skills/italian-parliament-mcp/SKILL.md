@@ -90,6 +90,8 @@ Use `rank` with `rankBy`: `aic-primo-firmatario`, `aic-cofirmatario`, `bills-pri
 1. `senato-votes` → get vote URI (filter by `ddlUri` for votes on a bill, or by date)
 2. `senato-vote-detail` with the URI. Each row includes the senator's `group_label` at the vote date, so the group breakdown comes directly (no need to cross-reference).
 
+> **Confidence votes caveat:** `senato-votes list --ddlUri <uri>` does **not** return a *fiducia* — the `ddlUri` field is empty for confidence votes; the bill link is only in the `label` text (e.g. "Disegno di legge n.1933. Votazione questione di fiducia."). Filter by **seduta date** (`--dateFrom`/`--dateTo`), then match the DDL via `label`. Also verify `ddlUri` on any "final" vote found by date: it may belong to a different act (unified text).
+
 **Read the actual text of a bill (articolato)**
 
 The full text is **not** in the SPARQL data — only metadata. `bill-text` returns the direct links to the text, each with a `format` (html/pdf/urn) and an `auth` field:
