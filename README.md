@@ -83,10 +83,10 @@ Il testo integrale di un DDL non è nei dati aperti SPARQL (solo metadati). Ques
 
 ## Esempi pratici
 
-Quanti deputati ha la XIX legislatura?
+Quanti deputati hanno fatto parte della XIX legislatura (inclusi i subentrati)?
 
 ```
-italianparliament deputies list --legislature 19 --limit 1000 --format csv | wc -l
+italianparliament deputies list --legislature 19 --limit 1000 --format csv | tail -n +2 | wc -l
 ```
 
 Chi sono i membri del governo Meloni?
@@ -177,6 +177,18 @@ Chi ha firmato un DDL al Senato?
 
 ```
 italianparliament bill-signatories show --ddl-uri http://dati.senato.it/ddl/25597
+```
+
+Dove trovo il testo di un DDL e di che tipo è (html/pdf)?
+
+```
+italianparliament bill-text links --uri http://dati.senato.it/ddl/59294 --format jsonl
+```
+
+Scarica il testo di un DDL del Senato in markdown (apre un browser per superare l'AWS WAF; richiede `agent-browser` e `lit`):
+
+```
+italianparliament bill-text fetch --did 59294 --out testo.md
 ```
 
 Quali atti del governo sono al vaglio del Senato?

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { cdQuery, snQuery } from "../core/client.js";
 import { OCD_PREFIXES, OSR_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
+import { decodeHtml } from "../core/decode-html.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -74,7 +75,7 @@ SELECT DISTINCT ?uri ?title ?date ?type ?initiative ?identifier WHERE {
   const results = await cdQuery(query);
   const rows = flattenBindings(results).map((r) => ({
     uri: r.uri ?? "",
-    title: r.title ?? "",
+    title: decodeHtml(r.title ?? ""),
     date: r.date ?? "",
     initiative_type: r.initiative ?? "",
     status: "",
@@ -111,7 +112,7 @@ SELECT DISTINCT ?ddl ?titolo ?data ?tipo ?stato ?idDdl WHERE {
   const results = await snQuery(query);
   const rows = flattenBindings(results).map((r) => ({
     uri: r.ddl ?? "",
-    title: r.titolo ?? "",
+    title: decodeHtml(r.titolo ?? ""),
     date: r.data ?? "",
     initiative_type: r.tipo ?? "",
     status: r.stato ?? "",
