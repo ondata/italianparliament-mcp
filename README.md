@@ -59,10 +59,19 @@ Il testo integrale di un DDL non è nei dati aperti SPARQL (solo metadati). Ques
 | Comando | Cosa fa |
 |---------|---------|
 | `groups list` | Gruppi parlamentari Camera con acronimo (FDI, PD-IDP, M5S...) |
-| `group-members list` | Composizione di un gruppo: chi ne fa parte, da quando |
+| `group-members list` | Composizione di un gruppo Camera: chi ne fa parte, da quando |
+| `senator-group-members list` | Composizione di un gruppo al Senato a una certa data |
 | `roles list` | Incarichi parlamentari con ruolo (presidente, vicepresidente, segretario...) |
 | `sessions list` | Sedute della Camera con numero progressivo |
 | `committees list` | Commissioni Senato; con filtro legislatura mostra solo quelle attive e il numero di sedute |
+| `committee-members list` | Membri di una commissione del Senato |
+
+### Analisi
+
+| Comando | Cosa fa |
+|---------|---------|
+| `rank list` | Classifiche di attività parlamentare (`--rank-by`: aic-primo-firmatario, aic-co-firmatario, bills-primo-firmatario, bills-co-firmatario, speeches) |
+| `sparql query` | Query SPARQL libera contro l'endpoint Camera o Senato (per dati non coperti dagli altri comandi) |
 
 ### Contesto istituzionale
 
@@ -208,7 +217,7 @@ italianparliament member-bills list --member-uri http://dati.camera.it/ocd/deput
 
 ## Stato
 
-27 tool implementati. Vedi `LOG.md` per il diario di avanzamento.
+31 tool implementati. Vedi `LOG.md` per il diario di avanzamento e `RELEASING.md` per il processo di rilascio.
 
 ## Licenza
 
