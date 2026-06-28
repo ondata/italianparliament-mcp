@@ -131,3 +131,28 @@ Nota: nella versione R alcuni endpoint Camera risultano vuoti (`roles`, `speeche
 - Test: **10/10** vitest verdi
 - Type check: pulito
 - Smoke test reali verdi su entrambi gli endpoint + CLI + MCP stdio
+
+---
+
+## Task 2026-06-28 — Link al testo dei DDL (+ spunti printing-press)
+
+### Scoperte verificate
+- Testo integrale DDL NON nei dati SPARQL (solo metadati + URN `osr:testoPresentato`).
+- Senato www.senato.it: anti-bot Akamai → fetch server-side = HTTP 202, 0 byte. Camera www.camera.it: HTTP 200.
+- Pattern URL testo Senato (Wayback + dati): `https://www.senato.it/leg/{LEG}/BGT/Schede/Ddliter/testi/{N}_testi.htm`, `{N}` = numero in `dati.senato.it/ddl/{N}` (non idDdl). Solo se esiste `osr:testoPresentato`.
+- printing-press library reale: `/home/aborruso/printing-press/library` (giustizia-amministrativa, ars-sicilia...). Pattern HTML→Markdown in `giustizia-amministrativa/internal/gaclient/markdown.go`.
+
+### Fase 1 — Tool `bill-text` (link + tipo) ✅
+- [x] `bill-text` (MCP+CLI+Worker): input `uri`, autodetect Camera/Senato. Output `chamber, kind, format(html|pdf|urn|cli), auth(none|browser|cli-locale), url, description`.
+- [x] Senato: testi (html), fascicolo (pdf), scheda (html), urn (se testoPresentato), riga "come-scaricare" con comando CLI + prerequisiti. Camera: scheda (html), riferimento (html).
+- [x] Registrato in MCP (`server.ts`, anche `member-bills` che mancava), barrel, CLI `bill-text links`. Tot MCP: 31.
+- [x] Testato su Senato (S.596) + Camera. README + LOG + skill aggiornati.
+
+### Fase 2 — `bill-text fetch` (testo vero Senato) ✅
+- [x] Browser-sniff: confermato che `www.senato.it` è dietro AWS WAF; testo recuperabile con cookie `aws-waf-token` da browser reale.
+- [x] `src/core/fetch-text.ts`: agent-browser (token+UA) → scrape `<ol class="schede">` → download PDF per-testo (o `--fascicolo`) → `lit` → markdown. Pulizia `&shy;`. Token preso fresco a ogni run. Check dipendenze con errori azionabili.
+- [x] CLI `bill-text fetch --did N [--which|--all|--fascicolo|--out]`. Testato end-to-end su S.596 (articolato art.19 L.157/92). Test unitario `parseTextList`.
+
+### Note
+- `bill-text fetch` è CLI-only (no Worker: serve un browser). L'utente MCP è guidato via la riga "come-scaricare" nell'output del tool.
+- Camera: il testo è sulla pagina (no WAF) ma l'estrazione automatica Camera non è stata implementata (solo link). Eventuale Fase 3.

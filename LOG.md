@@ -1,5 +1,12 @@
 # LOG
 
+## 2026-06-28
+
+- Nuovo tool `bill-text` [CAMERA+SENATO]: link diretti al testo di un DDL, con `format` (html/pdf/urn) e `auth` (none/browser) pensati per un orchestratore. Il testo integrale NON è nei dati SPARQL: il Senato espone solo l'URN `osr:testoPresentato`. Registrato in MCP+CLI (`bill-text links`). Aggiunto anche `member-bills` al server MCP (era solo in CLI).
+- Nuovo comando CLI locale `bill-text fetch` (Senato): scarica e converte il testo in markdown. `www.senato.it` è dietro **AWS WAF** (fetch diretto → HTTP 202): apre un browser reale via `agent-browser`, estrae il cookie `aws-waf-token` + UA, scarica il PDF (singolo testo via scraping del tab "Testi ed emendamenti", oppure `--fascicolo` per il dossier completo) e converte con `lit` (liteparse). Opzioni `--which`, `--all`, `--fascicolo`, `--out`. Pulizia soft-hyphen (`&shy;`) per ricongiungere le parole sillabate. Token effimero → preso fresco a ogni run.
+- Pattern URL Senato verificati: testo presentato `…/Ddliter/testi/{N}_testi.htm`, fascicolo `…/FascicoloSchedeDDL/ebook/{N}.pdf`, singoli testi `…/service/PDF/PDFServer/BGT/{idDoc}.pdf`; `scheda-ddl?did={N}` con `{N}` = numero in `dati.senato.it/ddl/{N}` (non idDdl). Camera: nessun WAF, pagine fetchabili.
+- Skill `italian-parliament-mcp` (v1.1) e `italian-parliament-cli` aggiornate con `bill-text`. Test unitario per `parseTextList`. Totale tool MCP: 31.
+
 ## 2026-04-15
 
 - `member-bills` [CAMERA+SENATO]: nuovo tool unificato per DDL come primo firmatario. Camera: filtra `ocd:primo_firmatario` + tipo atto. Senato: pattern `INIZ-DDL-{ddl_id}-{id}` + `osr:primoFirmatario="1"` (REGEX `[^0-9]{id}$` perché Virtuoso non supporta BIND/STRAFTER nidificato).

@@ -4,7 +4,7 @@ description: Query Italian Parliament open data (Camera dei Deputati and Senato 
 compatibility: Requires italianparliament-mcp MCP server configured in Claude Desktop or Claude Code
 metadata:
   author: aborruso
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Italian Parliament MCP Skill
@@ -37,6 +37,10 @@ See [tool reference](references/tools.md) for the full list with parameters and 
 | Gruppi parlamentari Senato | `senator-group-members` |
 | Disegni di legge Camera | `bills` / `bill` |
 | Iter DDL Senato | `bill-progress` / `bill-signatories` |
+| Testo integrale di un DDL (articolato) | `bill-text` |
+| DDL di un parlamentare come primo firmatario | `member-bills` |
+| Relatori di un DDL Senato | `bill-rapporteurs` |
+| Membri di una commissione Senato | `committee-members` |
 | Interrogazioni, interpellanze, mozioni | `aic` (Camera) / `sindacato-ispettivo` (Senato) |
 | Votazioni Camera | `votes` / `vote-detail` |
 | Interventi in aula | `speeches` |
@@ -78,3 +82,12 @@ Use `rank` with `rankBy`: `aic-primo-firmatario`, `aic-co-firmatario`, `bills-pr
 **Who voted how**
 1. `votes` → get vote URI
 2. `vote-detail` with the URI
+
+**Read the actual text of a bill (articolato)**
+
+The full text is **not** in the SPARQL data — only metadata. `bill-text` returns the direct links to the text, each with a `format` (html/pdf/urn) and an `auth` field:
+1. `bill-text` with the bill URI (`http://dati.senato.it/ddl/<N>` or a Camera atto URI) → list of resources.
+2. `auth=none` (Camera): the orchestrator can fetch the page directly.
+3. `auth=browser` (Senato): `www.senato.it` is behind AWS WAF, so a plain fetch returns HTTP 202. Either let a browser-capable orchestrator open the URL, or use the local CLI `italianparliament bill-text fetch --did <N>` which drives a real browser to clear the WAF, downloads the PDF, and converts it to markdown with `lit`. Use `--which "Relazione"` to pick a specific text, `--all` for every text, `--fascicolo` for the full iter dossier.
+
+The `did` is the number `<N>` in the Senato DDL URI (`dati.senato.it/ddl/<N>`), same as `?did=` in the scheda URL.

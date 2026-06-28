@@ -27,6 +27,7 @@ import { rankTool } from "./rank.js";
 import { sindacatoIspettivoTool } from "./sindacato-ispettivo.js";
 import { committeeMembersTool } from "./committee-members.js";
 import { memberBillsTool } from "./member-bills.js";
+import { billTextTool } from "./bill-text.js";
 import type { Tool } from "./types.js";
 
 export const tools: Tool[] = [
@@ -59,6 +60,7 @@ export const tools: Tool[] = [
   sindacatoIspettivoTool,
   committeeMembersTool,
   memberBillsTool,
+  billTextTool,
 ];
 
 export const toolsByName: Record<string, Tool> = Object.fromEntries(
@@ -95,5 +97,6 @@ export {
   sindacatoIspettivoTool,
   committeeMembersTool,
   memberBillsTool,
+  billTextTool,
 };
 export type { Tool, ToolResult } from "./types.js";

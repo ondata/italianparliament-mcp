@@ -115,6 +115,23 @@ italianparliament sindacato-ispettivo list --legislature 19 --senatorUri <uri>
 italianparliament documents list --legislature 19
 ```
 
+### `bill-text links` (Camera + Senato)
+Link diretti al testo di un DDL, con tipo risorsa (`format`) e se serve un browser (`auth`).
+```bash
+italianparliament bill-text links --uri http://dati.senato.it/ddl/56784 --format jsonl
+italianparliament bill-text links --uri http://dati.camera.it/ocd/attocamera.rdf/ac19_1234
+```
+
+### `bill-text fetch` (Senato, locale)
+Scarica il testo di un DDL Senato e lo converte in markdown. Apre un browser reale (`agent-browser`) per superare l'AWS WAF di `www.senato.it`, scarica il PDF e lo converte con `lit`. Richiede `agent-browser` e `lit` installati.
+```bash
+italianparliament bill-text fetch --did 56784                       # primo testo
+italianparliament bill-text fetch --did 56784 --which Relazione     # testo specifico
+italianparliament bill-text fetch --did 56784 --all                 # tutti i testi
+italianparliament bill-text fetch --did 56784 --fascicolo --out fascicolo.md
+```
+`did` = il numero `<N>` nell'URI Senato `dati.senato.it/ddl/<N>`.
+
 ---
 
 ## Organizzazione parlamentare

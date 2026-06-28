@@ -28,6 +28,8 @@ import { sparqlTool } from "./tools/sparql.js";
 import { rankTool } from "./tools/rank.js";
 import { sindacatoIspettivoTool } from "./tools/sindacato-ispettivo.js";
 import { committeeMembersTool } from "./tools/committee-members.js";
+import { memberBillsTool } from "./tools/member-bills.js";
+import { billTextTool } from "./tools/bill-text.js";
 import type { Tool, ToolResult } from "./tools/types.js";
 import { toJsonl } from "./core/format.js";
 import { SparqlError } from "./core/client.js";
@@ -69,7 +71,7 @@ function makeHandler(tool: { execute(input: any): Promise<ToolResult> }) {
 export function createServer(): McpServer {
   return new McpServer({
     name: "italianparliament-mcp",
-    version: "0.0.1",
+    version: "0.1.0",
   });
 }
 
@@ -104,6 +106,8 @@ export function registerAll(server: McpServer): void {
     rankTool,
     sindacatoIspettivoTool,
     committeeMembersTool,
+    memberBillsTool,
+    billTextTool,
   ];
 
   for (const tool of allTools) {

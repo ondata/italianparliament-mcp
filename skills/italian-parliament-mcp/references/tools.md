@@ -81,6 +81,13 @@ Atti di sindacato ispettivo Senato (interrogazioni, interpellanze).
 Documenti parlamentari Senato.
 - `legislature`: numero legislatura
 
+### `bill-text` (Camera + Senato)
+Link diretti al testo di un DDL, con tipo risorsa (`format`: html/pdf/urn) e se serve un browser (`auth`: none/browser). Il testo integrale NON è nei dati SPARQL.
+- `uri` (required): URI dell'atto (`http://dati.senato.it/ddl/<N>` o atto Camera)
+- Senato (`auth=browser`): `www.senato.it` è dietro AWS WAF → un fetch diretto torna HTTP 202. Per scaricare e convertire in markdown usare la CLI locale `italianparliament bill-text fetch --did <N>` (apre un browser reale, supera il WAF, converte il PDF con `lit`). Opzioni: `--which "<etichetta>"`, `--all`, `--fascicolo`.
+- Camera (`auth=none`): pagina fetchabile direttamente.
+- `bill-text fetch` è solo CLI/locale (richiede `agent-browser` e `lit`), non è un tool MCP.
+
 ## Organizzazione parlamentare
 
 ### `groups`

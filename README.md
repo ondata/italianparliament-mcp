@@ -45,6 +45,15 @@ Usabile in tre modi:
 | `documents list` | Documenti parlamentari: atti del governo, atti UE, relazioni Corte dei Conti |
 | `sindacato-ispettivo list` | Atti di sindacato ispettivo Senato (interrogazioni, interpellanze, mozioni), filtrabile per data |
 
+### Testo dei disegni di legge
+
+Il testo integrale di un DDL non è nei dati aperti SPARQL (solo metadati). Questi comandi danno accesso al testo.
+
+| Comando | Cosa fa |
+|---|---|
+| `bill-text links` | Link diretti al testo di un DDL (Camera o Senato), con tipo risorsa (`format`: html/pdf/urn) e se serve un browser (`auth`: none/browser) |
+| `bill-text fetch` | Scarica un testo del DDL Senato e lo converte in markdown. `www.senato.it` è dietro AWS WAF: apre un browser reale (`agent-browser`) per superarlo, scarica il PDF e lo converte con `lit`. Opzioni `--which`, `--all`, `--fascicolo`, `--out`. Richiede `agent-browser` e `lit` installati |
+
 ### Organizzazione parlamentare
 
 | Comando | Cosa fa |

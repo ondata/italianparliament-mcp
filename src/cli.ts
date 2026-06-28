@@ -29,6 +29,8 @@ import { rankTool } from "./tools/rank.js";
 import { sindacatoIspettivoTool } from "./tools/sindacato-ispettivo.js";
 import { committeeMembersTool } from "./tools/committee-members.js";
 import { memberBillsTool } from "./tools/member-bills.js";
+import { billTextTool } from "./tools/bill-text.js";
+import { fetchSenatoText } from "./core/fetch-text.js";
 import { formatRows, type Format } from "./core/format.js";
 import { SparqlError } from "./core/client.js";
 import type { ToolResult } from "./tools/types.js";
@@ -998,6 +1000,76 @@ const documentsList = defineCommand({
   },
 });
 
+const billTextLinks = defineCommand({
+  meta: {
+    name: "links",
+    description: withExamples(
+      "Direct links to a bill's text, with resource type (html/pdf/urn) and whether a browser is needed to fetch them (auth field).",
+      billTextTool.examples,
+    ),
+  },
+  args: {
+    uri: { type: "string", description: "Bill URI (Camera atto or Senato ddl)", required: true },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await billTextTool.execute({ uri: args.uri as string });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const billTextFetch = defineCommand({
+  meta: {
+    name: "fetch",
+    description: withExamples(
+      "Fetch and convert a Senato bill text to markdown. Drives a real browser (agent-browser) to clear the AWS WAF, downloads the PDF, and converts it with lit. Local-only; requires agent-browser and lit installed.",
+      [
+        "italianparliament bill-text fetch --did 56784",
+        "italianparliament bill-text fetch --did 56784 --which Relazione",
+        "italianparliament bill-text fetch --did 56784 --all",
+        "italianparliament bill-text fetch --did 56784 --fascicolo --out fascicolo.md",
+      ],
+    ),
+  },
+  args: {
+    did: {
+      type: "string",
+      description: "Senato DDL id (the number N in dati.senato.it/ddl/N, == did in scheda-ddl)",
+      required: true,
+    },
+    which: {
+      type: "string",
+      description: "Pick a specific text by label substring (e.g. 'Testo DDL', 'Relazione'). Default: first.",
+    },
+    all: { type: "boolean", description: "Concatenate all available texts", default: false },
+    fascicolo: {
+      type: "boolean",
+      description: "Download the full iter dossier PDF instead of a single text",
+      default: false,
+    },
+    legislature: { type: "string", description: "Legislature for the fascicolo URL (default 19)", default: "19" },
+    out: { type: "string", description: "Write markdown to this file instead of stdout" },
+  },
+  async run({ args }) {
+    const result = await fetchSenatoText({
+      did: args.did as string,
+      which: (args.which as string) || undefined,
+      all: args.all as boolean,
+      fascicolo: args.fascicolo as boolean,
+      leg: args.legislature as string,
+    });
+    if (args.out) {
+      const { writeFile } = await import("node:fs/promises");
+      await writeFile(args.out as string, result.markdown + "\n");
+      process.stderr.write(
+        `Saved: ${args.out}\nSources:\n${result.sources.map((s) => `  ${s.label} — ${s.url}`).join("\n")}\n`,
+      );
+    } else {
+      process.stdout.write(result.markdown + "\n");
+    }
+  },
+});
+
 const main = defineCommand({
   meta: {
     name: "italianparliament",
@@ -1125,6 +1197,10 @@ const main = defineCommand({
     "member-bills": defineCommand({
       meta: { name: "member-bills", description: "Bills as first signatory for a deputy or senator (Camera+Senato)" },
       subCommands: { list: memberBillsList },
+    }),
+    "bill-text": defineCommand({
+      meta: { name: "bill-text", description: "Links to a bill's text (links) and local fetch+convert of Senato text to markdown (fetch)" },
+      subCommands: { links: billTextLinks, fetch: billTextFetch },
     }),
   },
 });
