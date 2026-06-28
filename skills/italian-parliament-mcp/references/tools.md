@@ -57,7 +57,9 @@ Votazioni Camera.
 
 ### `vote-detail`
 Come ha votato ogni deputato in una votazione.
-- `uri` (required): URI della votazione
+- `voteUri` (required): URI della votazione
+- `groupAcronym`: filtra per sigla gruppo (es. FDI)
+- `voteType`: Favorevole | Contrario | Astenuto | Non ha votato
 
 ### `speeches`
 Interventi in aula Camera.
@@ -72,7 +74,7 @@ Iter DDL al Senato.
 
 ### `bill-signatories`
 Firmatari di un DDL Senato.
-- `uri` (required): URI del DDL
+- `ddlUri` (required): URI del DDL
 
 ### `amendments`
 Emendamenti Senato con DDL collegato.
@@ -167,7 +169,7 @@ Nota: i tool lista `bills`/`aic`/`votes`/`senato-votes` accettano `countOnly` (s
 
 ### `rank`
 Ranking parlamentari per attività.
-- `rankBy` (required): `aic-primo-firmatario` | `aic-co-firmatario` | `bills-primo-firmatario` | `bills-co-firmatario` | `speeches`
+- `rankBy` (required): `aic-primo-firmatario` | `aic-cofirmatario` | `bills-primo-firmatario` | `bills-cofirmatario` | `speeches` | `sindacato-ispettivo` | `ddl-senato`
 - `legislature`: numero legislatura
 - `limit`: max risultati
 

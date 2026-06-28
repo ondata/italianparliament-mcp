@@ -1,10 +1,10 @@
 ---
 name: italian-parliament-cli
 description: Query Italian Parliament open data from the command line using the italianparliament CLI. Use when a user wants to run shell commands, build pipelines, export CSV/JSONL, or script parliamentary data analysis. Covers all subcommands for deputies, senators, bills, votes, speeches, groups, and more.
-compatibility: Requires italianparliament npm package installed globally or via npx
+compatibility: Requires the @aborruso/italianparliament-mcp npm package installed globally (provides the `italianparliament` command)
 metadata:
   author: aborruso
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Italian Parliament CLI Skill
@@ -14,9 +14,16 @@ Use the `italianparliament` CLI to query Camera dei Deputati and Senato della Re
 ## Installation
 
 ```bash
-npm install -g italianparliament
-# or without installing:
-npx italianparliament <resource> <action> [options]
+npm install -g @aborruso/italianparliament-mcp
+# provides the `italianparliament` command
+```
+
+## Discovery (orchestration)
+
+```bash
+italianparliament guide                  # typical workflow (discover → URI → detail)
+italianparliament which "testo ddl"      # capability → command (exit 0 match, 2 no-match); add --json for ranked output
+italianparliament <command> --help       # options + examples
 ```
 
 ## General syntax
@@ -25,7 +32,7 @@ npx italianparliament <resource> <action> [options]
 italianparliament <resource> <action> [--option value ...]
 ```
 
-Default output: JSONL. Add `--format csv` for CSV.
+Default output: **CSV**. Add `--format jsonl` for JSONL. List commands (`bills`, `aic`, `votes`, `senato-votes`) accept `--count-only`.
 
 ## Default legislature
 
@@ -49,18 +56,23 @@ italianparliament bills list --legislature 19 --format csv > bills-19.csv
 
 **Find an MP by name**
 ```bash
-italianparliament search find --query meloni
+italianparliament search find --name meloni
 ```
 
 **Top 20 MPs by interrogations (AIC)**
 ```bash
-italianparliament rank list --rankBy aic-primo-firmatario --legislature 19 --limit 20
+italianparliament rank list --rank-by aic-primo-firmatario --legislature 19 --limit 20
 ```
 
-**Who voted against in a session**
+**Who voted against in a vote**
 ```bash
-italianparliament vote-detail show --uri <vote-uri> --format csv | \
-  python3 -c "import sys,csv; [print(r) for r in csv.DictReader(sys.stdin) if r['voto']=='contro']"
+italianparliament vote-detail show --vote-uri <vote-uri> --format csv | \
+  python3 -c "import sys,csv; [print(r) for r in csv.DictReader(sys.stdin) if r['vote']=='Contrario']"
+```
+
+**A person's full career (legislatures + government)**
+```bash
+italianparliament person-career show --uri http://dati.camera.it/ocd/deputato.rdf/d302103_19
 ```
 
 **Government members filtered by name**
@@ -68,10 +80,10 @@ italianparliament vote-detail show --uri <vote-uri> --format csv | \
 italianparliament gov-members list --name draghi
 ```
 
-**Pipeline: group rank by AIC rate**
-1. Get group members count with `group-members`
-2. Get AIC count with `rank`
-3. Join and compute ratio with `duckdb` or `mlr`
+**Group ranking by AIC, also per member**
+```bash
+italianparliament group-rank list --rank-by aic --legislature 19   # colonna count_per_member già calcolata
+```
 
 ## Output formats
 

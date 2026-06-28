@@ -43,6 +43,24 @@ npm run build
 node dist/cli.js --help
 ```
 
+## Uso con un agente AI (skill)
+
+Lo strumento **dà il meglio guidato da un agente AI**. Il repo include due Agent Skill che insegnano all'agente a orchestrarlo passo passo:
+
+- **`italian-parliament-cli`** — uso da riga di comando (pipeline, export CSV/JSONL, scripting).
+- **`italian-parliament-mcp`** — uso via server MCP (conversazione).
+
+Le skill funzionano con diversi agenti (Claude Code, OpenCode, Codex, Copilot e altri). Installazione cross-agent in un comando con [`skills`](https://github.com/vercel-labs/skills):
+
+```bash
+npx skills add aborruso/italianparliament-mcp --skill italian-parliament-cli
+npx skills add aborruso/italianparliament-mcp --skill italian-parliament-mcp
+```
+
+In alternativa, copia la cartella `skills/<nome>/` e registrala secondo la documentazione del tuo agente.
+
+> **Consiglio: usa CLI e MCP in coppia con la skill.** La skill incapsula il *workflow* (scoperta → URI → dettaglio, catene tra comandi); MCP e CLI sono i due motori sotto: l'**MCP** per l'uso conversazionale, la **CLI** per pipeline/export e per le funzioni che da server sarebbero bloccate (es. `bill-text fetch`, che supera l'AWS WAF del Senato). Tenere entrambe dà all'agente sia la modalità conversazionale sia quella da terminale; gli affordance `guide` e `which` rendono inoltre la CLI scopribile anche a freddo.
+
 ## Cosa puoi fare
 
 ### Parlamentari
@@ -107,7 +125,7 @@ Il testo integrale di un DDL non è nei dati aperti SPARQL (solo metadati). Ques
 
 | Comando | Cosa fa |
 |---------|---------|
-| `rank list` | Classifiche di attività parlamentare (`--rank-by`: aic-primo-firmatario, aic-co-firmatario, bills-primo-firmatario, bills-co-firmatario, speeches) |
+| `rank list` | Classifiche di attività parlamentare (`--rank-by`: aic-primo-firmatario, aic-cofirmatario, bills-primo-firmatario, bills-cofirmatario, speeches, sindacato-ispettivo, ddl-senato) |
 | `group-rank list` | Classifica dei gruppi Camera per AIC o DDL (primo firmatario), con conteggio, numero membri e media per membro |
 | `sparql query` | Query SPARQL libera contro l'endpoint Camera o Senato (per dati non coperti dagli altri comandi) |
 

@@ -9,7 +9,24 @@ italianparliament <resource> <action> [options]
 Common options available on most commands:
 - `--legislature <n>`: numero legislatura (default: 19)
 - `--limit <n>`: max risultati
-- `--format csv|jsonl`: formato output (default: jsonl)
+- `--format csv|jsonl`: formato output (default: csv)
+
+---
+
+## Scoperta (orchestrazione)
+
+Comandi per orientarsi senza conoscere a memoria la superficie della CLI:
+
+```bash
+italianparliament guide                  # stampa il flusso tipico (scoperta → URI → dettaglio)
+italianparliament which "testo ddl"      # trova il comando per una capacità (exit 0 = match, 2 = nessun match)
+italianparliament which votazione --json # output ranked [{command, score, description}]
+italianparliament <comando> --help       # opzioni ed esempi del comando
+```
+
+Note utili:
+- `bills`/`aic`/`votes`/`senato-votes` accettano `--count-only` (solo il totale).
+- Su un valore enum errato (`--vote-type`, `--rank-by`, ...) l'errore elenca i valori validi.
 
 ---
 
@@ -30,7 +47,7 @@ italianparliament senators list --legislature 19
 ### `search find`
 Cerca un parlamentare per nome.
 ```bash
-italianparliament search find --query "mario rossi" --chamber both
+italianparliament search find --name "mario rossi" --chamber both
 ```
 Options: `--chamber camera|senato|both`
 
@@ -82,13 +99,13 @@ italianparliament votes list --legislature 19 --format csv
 ### `vote-detail show`
 Come ha votato ogni deputato.
 ```bash
-italianparliament vote-detail show --uri <vote-uri> --format csv
+italianparliament vote-detail show --vote-uri <vote-uri> --format csv
 ```
 
 ### `speeches list`
 Interventi in aula (disponibili da leg. 17).
 ```bash
-italianparliament speeches list --legislature 19 --deputyUri <uri>
+italianparliament speeches list --legislature 19
 ```
 
 ---
@@ -102,7 +119,7 @@ italianparliament bill-progress list --legislature 19
 
 ### `bill-signatories show`
 ```bash
-italianparliament bill-signatories show --uri <ddl-uri>
+italianparliament bill-signatories show --ddl-uri <ddl-uri>
 ```
 
 ### `amendments list`
@@ -116,7 +133,7 @@ italianparliament amendments list --ddl-uri http://dati.senato.it/ddl/56260 --fo
 Atti di sindacato ispettivo Senato.
 ```bash
 italianparliament sindacato-ispettivo list --legislature 19
-italianparliament sindacato-ispettivo list --legislature 19 --senatorUri <uri>
+italianparliament sindacato-ispettivo list --legislature 19 --senator-uri <uri>
 ```
 
 ### `documents list`
@@ -173,12 +190,12 @@ italianparliament groups list --legislature 19
 
 ### `group-members list`
 ```bash
-italianparliament group-members list --groupUri <uri> --legislature 19 --format csv
+italianparliament group-members list --group-uri <uri> --legislature 19 --format csv
 ```
 
 ### `senator-group-members list`
 ```bash
-italianparliament senator-group-members list --groupName "fratelli" --legislature 19
+italianparliament senator-group-members list --group-uri <uri> --legislature 19
 ```
 
 ### `roles list`
@@ -231,9 +248,9 @@ Nota: `bills`/`aic`/`votes`/`senato-votes` accettano `--count-only` (solo il tot
 ### `rank list`
 Ranking parlamentari per attività.
 ```bash
-italianparliament rank list --rankBy aic-primo-firmatario --legislature 19 --limit 20 --format csv
+italianparliament rank list --rank-by aic-primo-firmatario --legislature 19 --limit 20 --format csv
 ```
-`--rankBy` values: `aic-primo-firmatario` | `aic-co-firmatario` | `bills-primo-firmatario` | `bills-co-firmatario` | `speeches`
+`--rank-by` values: `aic-primo-firmatario` | `aic-cofirmatario` | `bills-primo-firmatario` | `bills-cofirmatario` | `speeches` | `sindacato-ispettivo` | `ddl-senato`
 
 ### `sparql query`
 Query SPARQL libera.

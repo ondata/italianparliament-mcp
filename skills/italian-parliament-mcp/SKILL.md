@@ -76,7 +76,7 @@ Tools return CSV or JSONL. For display, format results as markdown tables. For a
 2. `deputy` or `senator` with the URI
 
 **Ranking by activity**
-Use `rank` with `rankBy`: `aic-primo-firmatario`, `aic-co-firmatario`, `bills-primo-firmatario`, `bills-co-firmatario`, `speeches`.
+Use `rank` with `rankBy`: `aic-primo-firmatario`, `aic-cofirmatario`, `bills-primo-firmatario`, `bills-cofirmatario`, `speeches`, `sindacato-ispettivo`, `ddl-senato`.
 
 **Group composition**
 1. `groups` → get group URI
