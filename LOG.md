@@ -2,6 +2,8 @@
 
 ## 2026-06-28
 
+- v0.3.2: fix `groups` acronimo — ora dal campo dedicato `dcterms:alternative` (prima puntava a `ocd:acronimo` inesistente, ripiegando su parsing regex della label). README "Note sui dati" corretta. Spostato l'esempio `member-bills` da "Riferimento" a "Esempi pratici".
+
 - v0.3.1: repo reso pubblico e **pubblicato su npm** come `@aborruso/italianparliament-mcp` (CLI + MCP installabili con `npm i -g`). Aggiunta sezione "Installazione" al README (CLI npm / MCP remoto-locale / da sorgente), `prepublishOnly` in package.json, e step npm in RELEASING.md.
 - Affordance di scoperta CLI stile opensdmx: comando `guide` (flusso tipico di orchestrazione: scoperta→URI→dettaglio, catene, opzioni trasversali); comando `which <capacità>` (mappa capacità→comando, es. `which "testo ddl"` → bill-text); errori enum con valori validi via wrapper `runTool` che valida l'input Zod prima di `execute` (prima la CLI chiamava execute senza validare: gli enum errati scivolavano nella query). Solo-CLI, non tool MCP.
 - Nuovo tool `person-career` [CAMERA] (gap US-22 + US-31): carriera unificata di una persona via il hub `persona.rdf/p{id}`, che collega tutti i mandati da deputato (per legislatura, join `rif_mandatoCamera`) e gli incarichi di governo (`rif_membroGoverno`), più `owl:sameAs` Wikidata. Risolve doppio incarico parlamento+governo e carriera multi-legislatura. Es. Meloni: 5 mandati (leg15-19) + PM + ministra; Wikidata Q451791. NB: Camera↔Senato non collegabile dai dati (namespace separati, nessun ID condiviso, nessun owl:sameAs sul Senato) → match solo per nome+data nascita (non implementato). Tot tool 36.

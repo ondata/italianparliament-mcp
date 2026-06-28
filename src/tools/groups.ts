@@ -38,7 +38,7 @@ WHERE {
   ?s a <http://dati.camera.it/ocd/gruppoParlamentare> .
   ?s rdfs:label ?label .
   OPTIONAL { ?s dc:title ?title }
-  OPTIONAL { ?s <http://dati.camera.it/ocd/acronimo> ?acronym }
+  OPTIONAL { ?s dcterms:alternative ?acronym }
   OPTIONAL { ?s <http://dati.camera.it/ocd/rif_leg> ?rif_leg }
   ${legFilter}
 }
