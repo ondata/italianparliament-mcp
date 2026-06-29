@@ -191,16 +191,29 @@ italianparliament bill-text fetch --did 56784 --fascicolo --out fascicolo.md
 ## Organizzazione parlamentare
 
 ### `groups list`
+Gruppi parlamentari Camera con sigla e URI.
 ```bash
 italianparliament groups list --legislature 19
 ```
 
 ### `group-members list`
+Composizione di un gruppo Camera.
 ```bash
 italianparliament group-members list --group-uri <uri> --legislature 19 --format csv
 ```
 
+### `senato-groups list`
+Gruppi parlamentari Senato con sigla e numero di componenti distinti. Parallelo di `groups list` per il Senato.
+```bash
+italianparliament senato-groups list --legislature 19
+italianparliament senato-groups list --legislature 18 --as-of 2022-10-12
+italianparliament senato-groups list --legislature 18 --as-of 2022-10-12 --format jsonl
+```
+`--as-of` YYYY-MM-DD: data di riferimento per le adesioni attive (default: oggi). Per legislature passate usare l'ultima data della legislatura.
+Output: `uri`, `title`, `acronym`, `members`, `html_url`
+
 ### `senator-group-members list`
+Composizione nominativa di un gruppo Senato (URI da `senato-groups list`).
 ```bash
 italianparliament senator-group-members list --group-uri <uri> --legislature 19
 ```

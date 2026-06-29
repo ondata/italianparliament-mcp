@@ -30,6 +30,7 @@ import { sindacatoIspettivoTool } from "./tools/sindacato-ispettivo.js";
 import { committeeMembersTool } from "./tools/committee-members.js";
 import { memberBillsTool } from "./tools/member-bills.js";
 import { billTextTool } from "./tools/bill-text.js";
+import { senatoGroupsTool } from "./tools/senato-groups.js";
 import { senatoVotesTool } from "./tools/senato-votes.js";
 import { senatoVoteDetailTool } from "./tools/senato-vote-detail.js";
 import { groupRankTool } from "./tools/group-rank.js";
@@ -374,6 +375,30 @@ const groupsList = defineCommand({
   async run({ args }) {
     const result = await runTool(groupsTool, {
       legislature: parseIntFlag(args.legislature as string, "legislature"),
+      limit: parseIntFlag(args.limit as string, "limit") ?? 100,
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const senatoGroupsList = defineCommand({
+  meta: {
+    name: "list",
+    description: withExamples(
+      "List parliamentary groups of the Senato della Repubblica with member count.",
+      senatoGroupsTool.examples,
+    ),
+  },
+  args: {
+    legislature: { type: "string", description: "Legislature number (e.g. 19)" },
+    "as-of": { type: "string", description: "Reference date YYYY-MM-DD (default: today). For past legislatures use the last date of that legislature (e.g. 2022-10-12 for XVIII)" },
+    limit: { type: "string", default: "100" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await runTool(senatoGroupsTool, {
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
+      asOf: (args["as-of"] as string) || undefined,
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,
     });
     emit(result, parseFormat(args.format as string));
@@ -1383,6 +1408,10 @@ const main = defineCommand({
     groups: defineCommand({
       meta: { name: "groups", description: "Parliamentary groups of Camera" },
       subCommands: { list: groupsList },
+    }),
+    "senato-groups": defineCommand({
+      meta: { name: "senato-groups", description: "Parliamentary groups of Senato with member count" },
+      subCommands: { list: senatoGroupsList },
     }),
     sessions: defineCommand({
       meta: { name: "sessions", description: "Parliamentary sessions of Camera" },

@@ -115,6 +115,7 @@ Il testo integrale di un DDL non è nei dati aperti SPARQL (solo metadati). Ques
 |---------|---------|
 | `groups list` | Gruppi parlamentari Camera con acronimo (FDI, PD-IDP, M5S...) |
 | `group-members list` | Composizione di un gruppo Camera: chi ne fa parte, da quando |
+| `senato-groups list` | Gruppi parlamentari Senato con sigla e numero di componenti distinti. `--as-of YYYY-MM-DD` per legislature passate (es. `--as-of 2022-10-12` per la XVIII) |
 | `senator-group-members list` | Composizione di un gruppo al Senato a una certa data |
 | `roles list` | Incarichi parlamentari con ruolo (presidente, vicepresidente, segretario...) |
 | `sessions list` | Sedute della Camera con numero progressivo |

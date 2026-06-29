@@ -35,7 +35,7 @@ See [tool reference](references/tools.md) for the full list with parameters and 
 | Carriera persona (legislature + governo) | `person-career` |
 | Lista deputati/senatori | `deputies` / `senators` |
 | Gruppi parlamentari Camera | `groups` / `group-members` |
-| Gruppi parlamentari Senato | `senator-group-members` |
+| Gruppi parlamentari Senato | `senato-groups` / `senator-group-members` |
 | Disegni di legge Camera | `bills` / `bill` |
 | Iter DDL Senato | `bill-progress` / `bill-signatories` |
 | Testo integrale di un DDL (articolato) | `bill-text` |
@@ -78,9 +78,13 @@ Tools return CSV or JSONL. For display, format results as markdown tables. For a
 **Ranking by activity**
 Use `rank` with `rankBy`: `aic-primo-firmatario`, `aic-cofirmatario`, `bills-primo-firmatario`, `bills-cofirmatario`, `speeches`, `sindacato-ispettivo`, `ddl-senato`.
 
-**Group composition**
+**Group composition (Camera)**
 1. `groups` → get group URI
 2. `group-members` with the URI and legislature
+
+**Group composition (Senato)**
+1. `senato-groups` → get list with sigla and member count, pick group URI
+2. `senator-group-members` with the URI and legislature
 
 **Who voted how (Camera)**
 1. `votes` → get vote URI

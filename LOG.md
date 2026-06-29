@@ -1,5 +1,9 @@
 # LOG
 
+## 2026-06-29
+
+- Nuovo tool **`senato-groups`** [SENATO]: elenca i gruppi parlamentari del Senato con sigla (`acronym`) e numero di componenti distinti (`members`), filtrabile per legislatura. È il parallelo diretto di `groups` (Camera). Query SPARQL con `COUNT(DISTINCT ?sen)` per evitare il doppio conteggio dovuto a senatori con carica interna (Presidente, Tesoriere, ecc.) che hanno due adesioni attive. Output: `uri`, `title`, `acronym`, `members`, `html_url`. Testato: XIX leg. → 9 gruppi, FdI 63, PD-IDP 36, Lega 29. CLI: `senato-groups list --legislature 19`. MCP, skill e README aggiornati.
+
 ## 2026-06-28
 
 - **v0.4.1** (patch, doc-only): case study `docs/case-study-salario-giusto.md` (fiducia DL "salario giusto", catena verificata 94+61+2+36=193); avvertenza trasversale sui voti di fiducia Senato (`ddl_uri` vuoto, legame solo nella `label`) in README + 2 skill; fix `src/cli.ts` (versione CLI letta da `package.json` invece dell'hardcoded `0.0.1`). Versione allineata 0.4.1 nei 3 punti; tsc/build/worker puliti; 40/40 test.

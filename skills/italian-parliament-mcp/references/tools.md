@@ -121,17 +121,23 @@ Link diretti al testo di un DDL, con tipo risorsa (`format`: html/pdf/urn) e se 
 ## Organizzazione parlamentare
 
 ### `groups`
-Gruppi parlamentari Camera.
+Gruppi parlamentari Camera con sigla e URI.
 - `legislature`: numero legislatura
 
 ### `group-members`
 Composizione di un gruppo Camera.
-- `groupUri` (required): URI del gruppo
+- `groupUri`: URI del gruppo (opzionale; senza → tutti i gruppi)
 - `legislature`: numero legislatura
 
+### `senato-groups`
+Gruppi parlamentari Senato con sigla e numero di componenti distinti (`members`). Parallelo di `groups` per il Senato.
+- `legislature`: numero legislatura (es. 19)
+- `asOf`: data di riferimento YYYY-MM-DD (default: oggi). Per legislature passate usare l'ultima data della legislatura (es. `2022-10-12` per la XVIII).
+- Output: `uri`, `title`, `acronym`, `members`, `html_url`
+
 ### `senator-group-members`
-Composizione di un gruppo Senato.
-- `groupName` (required): nome o parte del nome del gruppo
+Composizione di un gruppo Senato (lista nominativa).
+- `groupUri`: URI del gruppo (da `senato-groups`)
 - `legislature`: numero legislatura
 - `asOf`: data di riferimento (default: oggi)
 

@@ -28,6 +28,7 @@ import { sindacatoIspettivoTool } from "./sindacato-ispettivo.js";
 import { committeeMembersTool } from "./committee-members.js";
 import { memberBillsTool } from "./member-bills.js";
 import { billTextTool } from "./bill-text.js";
+import { senatoGroupsTool } from "./senato-groups.js";
 import { senatoVotesTool } from "./senato-votes.js";
 import { senatoVoteDetailTool } from "./senato-vote-detail.js";
 import { groupRankTool } from "./group-rank.js";
@@ -66,6 +67,7 @@ export const tools: Tool[] = [
   committeeMembersTool,
   memberBillsTool,
   billTextTool,
+  senatoGroupsTool,
   senatoVotesTool,
   senatoVoteDetailTool,
   groupRankTool,
@@ -108,6 +110,7 @@ export {
   committeeMembersTool,
   memberBillsTool,
   billTextTool,
+  senatoGroupsTool,
   senatoVotesTool,
   senatoVoteDetailTool,
   groupRankTool,
