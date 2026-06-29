@@ -930,9 +930,11 @@ const sindacatoIspettivoList = defineCommand({
   args: {
     legislature: { type: "string", description: "Legislature number" },
     "senator-uri": { type: "string", description: "Full URI of a senator" },
-    tipo: { type: "string", description: "Filter by act type (case-insensitive)" },
+    type: { type: "string", description: "Filter by act type (case-insensitive)" },
+    keyword: { type: "string", description: "Search in act label (case-insensitive)" },
     "date-from": { type: "string", description: "Start date YYYY-MM-DD" },
     "date-to": { type: "string", description: "End date YYYY-MM-DD" },
+    "count-only": { type: "boolean", description: "Return only total count" },
     limit: { type: "string", default: "100" },
     offset: { type: "string", default: "0" },
     format: { type: "string", default: "csv" },
@@ -941,9 +943,11 @@ const sindacatoIspettivoList = defineCommand({
     const result = await runTool(sindacatoIspettivoTool, {
       legislature: parseIntFlag(args.legislature as string, "legislature"),
       senatorUri: (args["senator-uri"] as string) || undefined,
-      tipo: (args.tipo as string) || undefined,
+      type: (args.type as string) || undefined,
+      keyword: (args.keyword as string) || undefined,
       dateFrom: (args["date-from"] as string) || undefined,
       dateTo: (args["date-to"] as string) || undefined,
+      countOnly: args["count-only"] === true || args["count-only"] === "true" ? true : undefined,
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,
       offset: Number(args.offset ?? 0),
     });

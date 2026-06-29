@@ -50,7 +50,7 @@ const columns = [
   "date",
   "identifier",
   "sponsor_uri",
-  "legislature_uri",
+  "legislature",
   "description",
   "url",
   "html_url",
@@ -136,15 +136,22 @@ WHERE {
       const html_url = m
         ? `https://aic.camera.it/aic/scheda.html?core=aic&numero=${m[1]}/${m[2]}&ramo=CAMERA&leg=${m[3]}`
         : "";
+      const legM = (r.rif_leg ?? "").match(/repubblica_(\d+)$/);
+      const legislature = legM ? legM[1] : "";
+      const dateRaw = r.date ?? "";
+      const date =
+        dateRaw.length === 8
+          ? `${dateRaw.slice(0, 4)}-${dateRaw.slice(4, 6)}-${dateRaw.slice(6, 8)}`
+          : dateRaw;
       return {
         uri,
         label: r.label ?? "",
         title: r.title ?? "",
         type: r.type ?? "",
-        date: r.date ?? "",
+        date,
         identifier: r.identifier ?? "",
         sponsor_uri: r.sponsor_uri ?? "",
-        legislature_uri: r.rif_leg ?? "",
+        legislature,
         description: r.description ?? "",
         url: r.url ?? "",
         html_url,
