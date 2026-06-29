@@ -762,12 +762,17 @@ const billProgressList = defineCommand({
   meta: {
     name: "list",
     description: withExamples(
-      "List Senato DDL progress (iter legislativo).",
+      "Bill progress / iter. Senato: list DDL with current status. Camera: full iter timeline of a single atto (use --uri).",
       billProgressTool.examples,
     ),
   },
   args: {
     "ddl-uri": { type: "string", description: "Full URI of a Senato DDL" },
+    uri: {
+      type: "string",
+      description:
+        "Full URI of a Camera atto (e.g. http://dati.camera.it/ocd/attocamera.rdf/ac19_2822): returns the full iter timeline",
+    },
     keyword: {
       type: "string",
       description: "Search in DDL title (case-insensitive)",
@@ -788,6 +793,7 @@ const billProgressList = defineCommand({
   async run({ args }) {
     const result = await runTool(billProgressTool, {
       ddlUri: (args["ddl-uri"] as string) || undefined,
+      uri: (args.uri as string) || undefined,
       keyword: (args.keyword as string) || undefined,
       dateFrom: (args["date-from"] as string) || undefined,
       dateTo: (args["date-to"] as string) || undefined,

@@ -194,6 +194,29 @@ describe("Senato tools", () => {
     expect(result.rows[0].legislature).toBe("19");
   }, 30000);
 
+  it("bill-progress: Camera atto returns iter timeline with same schema as Senato", async () => {
+    const camera = await billProgressTool.execute({
+      uri: "http://dati.camera.it/ocd/attocamera.rdf/ac19_302",
+      limit: 100,
+      offset: 0,
+    });
+    const senato = await billProgressTool.execute({
+      legislature: 19,
+      limit: 1,
+      offset: 0,
+    });
+    // schema colonne identico tra ramo Camera e ramo Senato (issue #11)
+    expect(camera.columns).toEqual(senato.columns);
+    expect(camera.rows.length).toBeGreaterThanOrEqual(2);
+    const first = camera.rows[0];
+    expect(first.ddl_uri).toBe(
+      "http://dati.camera.it/ocd/attocamera.rdf/ac19_302",
+    );
+    expect(first).toHaveProperty("status");
+    expect(first.status_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(first.phase).toBe("C.302");
+  }, 30000);
+
   it("bill-signatories: returns signatories for a DDL", async () => {
     const result = await billSignatoriesTool.execute({
       ddlUri: "http://dati.senato.it/ddl/25597",

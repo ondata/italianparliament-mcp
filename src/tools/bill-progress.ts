@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { snQuery } from "../core/client.js";
-import { OSR_PREFIXES } from "../core/prefixes.js";
+import { snQuery, cdQuery } from "../core/client.js";
+import { OSR_PREFIXES, OCD_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
 import type { Tool } from "./types.js";
 
@@ -10,6 +10,13 @@ const inputSchema = z.object({
     .url()
     .optional()
     .describe("URI del DDL Senato (es. http://dati.senato.it/ddl/25597)"),
+  uri: z
+    .string()
+    .url()
+    .optional()
+    .describe(
+      "URI di un atto Camera (es. http://dati.camera.it/ocd/attocamera.rdf/ac19_2822): restituisce la cronologia completa dell'iter (timeline degli stati)",
+    ),
   keyword: z
     .string()
     .optional()
@@ -51,19 +58,39 @@ const columns = [
 export const billProgressTool: Tool<typeof inputSchema> = {
   name: "bill-progress",
   description:
-    "[SENATO] Disegni di legge (DDL) al Senato con stato dell'iter (assegnato, esame in commissione, approvato, ecc.), date, iniziativa, natura. Filtrabile per legislatura, parola chiave nel titolo e intervallo date di presentazione. Usare questo tool per cercare DDL al Senato.",
+    "Iter legislativo di un disegno di legge. [SENATO] senza --uri: lista DDL al Senato con stato corrente dell'iter (assegnato, esame in commissione, approvato, ecc.), filtrabile per legislatura, parola chiave nel titolo e intervallo date. [CAMERA] con --uri <atto Camera>: cronologia completa (timeline) di tutti gli stati attraversati dall'atto, in ordine cronologico. Stesse colonne in entrambi i casi.",
   inputSchema,
   examples: [
     "italianparliament bill-progress list --legislature 19 --limit 20",
     "italianparliament bill-progress list --ddl-uri http://dati.senato.it/ddl/25597",
     "italianparliament bill-progress list --legislature 19 --keyword autonomia --limit 20",
     "italianparliament bill-progress list --legislature 19 --date-from 2026-04-01 --date-to 2026-04-13",
-    "italianparliament bill-progress list --legislature 19 --format jsonl",
+    "italianparliament bill-progress list --uri http://dati.camera.it/ocd/attocamera.rdf/ac19_2822",
+    "italianparliament bill-progress list --uri http://dati.camera.it/ocd/attocamera.rdf/ac19_2822 --format jsonl",
   ],
   async execute(input) {
+    // Routing per host: un URI Camera attiva il ramo "timeline iter".
+    const isCamera = (u?: string): u is string =>
+      !!u && u.includes("dati.camera.it");
+    const cameraUri = isCamera(input.uri)
+      ? input.uri
+      : isCamera(input.ddlUri)
+        ? input.ddlUri
+        : undefined;
+    if (cameraUri) {
+      return cameraIterTimeline(cameraUri, columns);
+    }
+
+    // Se un URI Senato è passato via --uri, trattalo come ddlUri.
+    const senatoDdlUri =
+      input.ddlUri ??
+      (input.uri && input.uri.includes("dati.senato.it")
+        ? input.uri
+        : undefined);
+
     const filters: string[] = [];
-    if (input.ddlUri) {
-      filters.push(`FILTER(?s = <${input.ddlUri}>)`);
+    if (senatoDdlUri) {
+      filters.push(`FILTER(?s = <${senatoDdlUri}>)`);
     }
     if (input.keyword) {
       const escaped = input.keyword.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
@@ -125,3 +152,49 @@ OFFSET ${input.offset}`;
     return { rows, columns };
   },
 };
+
+/**
+ * Camera: cronologia completa dell'iter di un atto via `ocd:rif_statoIter`.
+ * Una riga per stato attraversato, in ordine cronologico, mappata sullo
+ * stesso schema colonne del ramo Senato (colonne non pertinenti vuote).
+ */
+async function cameraIterTimeline(uri: string, cols: string[]) {
+  const query = `${OCD_PREFIXES}
+SELECT DISTINCT ?titolo ?date ?stato WHERE {
+  <${uri}> ocd:rif_statoIter ?st .
+  OPTIONAL { <${uri}> dc:title ?titolo }
+  ?st dc:date ?date .
+  ?st dc:title ?stato .
+}
+ORDER BY ?date`;
+
+  const results = await cdQuery(query);
+  const raw = flattenBindings(results);
+
+  const idMatch = uri.match(/ac(\d+)_(\d+)$/);
+  const leg = idMatch ? idMatch[1] : "";
+  const id = idMatch ? idMatch[2] : "";
+  const html_url = idMatch
+    ? `https://www.camera.it/leg${leg}/126?leg=${leg}&idDocumento=${id}`
+    : "";
+
+  const fmtDate = (d?: string): string =>
+    d && /^\d{8}$/.test(d)
+      ? `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`
+      : (d ?? "");
+
+  const rows = raw.map((r) => ({
+    ddl_uri: uri,
+    title: r.titolo ?? "",
+    status: r.stato ?? "",
+    status_date: fmtDate(r.date),
+    presentation_date: "",
+    initiative_description: "",
+    nature: "",
+    legislature: leg,
+    phase: id ? `C.${id}` : "",
+    phase_number: id,
+    html_url,
+  }));
+  return { rows, columns: cols };
+}
