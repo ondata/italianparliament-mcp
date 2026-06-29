@@ -33,11 +33,12 @@ See [tool reference](references/tools.md) for the full list with parameters and 
 | Scheda deputato | `deputy` |
 | Scheda senatore | `senator` |
 | Carriera persona (legislature + governo) | `person-career` |
+| Risolvi URI persona → nome (batch, Camera+Senato) | `people` |
 | Lista deputati/senatori | `deputies` / `senators` |
 | Gruppi parlamentari Camera | `groups` / `group-members` |
 | Gruppi parlamentari Senato | `senato-groups` / `senator-group-members` |
 | Disegni di legge Camera | `bills` / `bill` |
-| Iter DDL Senato | `bill-progress` / `bill-signatories` |
+| Iter DDL (Camera con `uri`, Senato lista/`ddlUri`) | `bill-progress` / `bill-signatories` |
 | Testo integrale di un DDL (articolato) | `bill-text` |
 | DDL di un parlamentare come primo firmatario | `member-bills` |
 | Relatori di un DDL (Camera o Senato) | `bill-rapporteurs` |

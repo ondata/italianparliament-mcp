@@ -1,5 +1,9 @@
 # Tool Reference — italianparliament-mcp
 
+38 tool. Colonne trasversali nell'output:
+- **`html_url`**: link alla scheda istituzionale su `camera.it`/`senato.it`, accanto all'URI SPARQL. Presente sui tool che restituiscono persone (`deputies`, `senators`, `search`, `group-members`, `senator-group-members`, `rank`, `vote-detail`, `senato-vote-detail`, `people`...) e atti/DDL (`bills`, `bill`, `member-bills`, `bill-signatories`, `bill-rapporteurs`, `amendments`, `senato-votes`, `bill-progress`...).
+- **`rss_url`**: feed RSS con l'iter dettagliato del DDL (fasi, sedute, voto finale). Presente sui tool DDL del Senato (`amendments`, `senato-votes`, `bill-progress`).
+
 ## Parlamentari
 
 ### `search`
@@ -31,6 +35,11 @@ Carriera unificata di una persona: mandati da deputato (per legislatura) + appar
 - `uri` (required): URI deputato o persona (Camera)
 - Output ordinato: persona, mandati, gruppi (cronologici), governo.
 - Camera+governo affidabile; Camera↔Senato non nei dati (solo via nome + data nascita).
+
+### `people`
+Risolve in batch una lista di URI persona (anche misti Camera + Senato) nei rispettivi nomi, con una query per endpoint. Dà i nominativi agli URI "nudi" restituiti dai tool relazionali, evitando una chiamata `deputy`/`senator` per ciascuno.
+- `uris` (required): array di URI persona (Camera `deputato.rdf/...` o Senato `senatore/...`), max 500. La camera è rilevata dall'URI.
+- Output: `uri`, `first_name`, `last_name`, `label`, `chamber`, `html_url`. Gli URI non risolti restano in output con label vuota.
 
 ## Attività legislativa — Camera
 
@@ -70,8 +79,13 @@ Interventi in aula Camera.
 ## Attività legislativa — Senato
 
 ### `bill-progress`
-Iter DDL al Senato.
-- `legislature`: numero legislatura
+Iter di un disegno di legge, Camera o Senato (stesse colonne in entrambi i casi).
+- **Senato** (senza `uri`): lista DDL con stato corrente dell'iter, filtrabile.
+  - `legislature`: numero legislatura
+  - `ddlUri`: singolo DDL Senato
+  - `keyword`: cerca nel titolo del DDL
+  - `dateFrom`/`dateTo`: intervallo data presentazione
+- **Camera** (`uri` = atto Camera `attocamera.rdf/...`): timeline completa di tutti gli stati attraversati, in ordine cronologico.
 
 ### `bill-signatories`
 Firmatari di un DDL Senato.
@@ -125,7 +139,7 @@ Gruppi parlamentari Camera con sigla e URI.
 - `legislature`: numero legislatura
 
 ### `group-members`
-Composizione di un gruppo Camera.
+Composizione di un gruppo Camera, con il nome del deputato (colonna `deputy_name`) accanto all'URI.
 - `groupUri`: URI del gruppo (opzionale; senza → tutti i gruppi)
 - `legislature`: numero legislatura
 
@@ -136,7 +150,7 @@ Gruppi parlamentari Senato con sigla e numero di componenti distinti (`members`)
 - Output: `uri`, `title`, `acronym`, `members`, `html_url`
 
 ### `senator-group-members`
-Composizione di un gruppo Senato (lista nominativa).
+Composizione di un gruppo Senato (lista nominativa, con il nome del senatore nella colonna `senator_name`).
 - `groupUri`: URI del gruppo (da `senato-groups`)
 - `legislature`: numero legislatura
 - `asOf`: data di riferimento (default: oggi)

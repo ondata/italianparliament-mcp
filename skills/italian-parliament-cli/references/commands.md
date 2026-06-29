@@ -27,6 +27,8 @@ italianparliament <comando> --help       # opzioni ed esempi del comando
 Note utili:
 - `bills`/`aic`/`votes`/`senato-votes` accettano `--count-only` (solo il totale).
 - Su un valore enum errato (`--vote-type`, `--rank-by`, ...) l'errore elenca i valori validi.
+- **`html_url`**: i tool su persone e atti/DDL espongono una colonna `html_url` con il link alla scheda istituzionale su `camera.it`/`senato.it`, accanto all'URI SPARQL.
+- **`rss_url`**: i tool sui DDL del Senato (`amendments`, `senato-votes`, `bill-progress`) espongono `rss_url`, il feed RSS con l'iter dettagliato (fasi, sedute, voto finale).
 
 ---
 
@@ -67,6 +69,13 @@ italianparliament senator show --uri <uri>
 Carriera unificata: mandati per legislatura + appartenenza ai gruppi (cronologica, con date) + incarichi di governo + link Wikidata.
 ```bash
 italianparliament person-career show --uri http://dati.camera.it/ocd/deputato.rdf/d301551_15
+```
+
+### `people resolve`
+Risolve in batch una lista di URI persona (anche misti Camera + Senato) nei nomi, con una query per endpoint. Utile per dare i nominativi agli URI "nudi" dei tool relazionali senza una chiamata `deputy`/`senator` per ciascuno. Output: `uri`, `first_name`, `last_name`, `label`, `chamber`, `html_url`.
+```bash
+italianparliament people resolve --uris http://dati.senato.it/senatore/32,http://dati.camera.it/ocd/deputato.rdf/d308917_19
+italianparliament people resolve --uris http://dati.senato.it/senatore/32 --format jsonl
 ```
 
 ---
@@ -113,8 +122,11 @@ italianparliament speeches list --legislature 19
 ## Attività legislativa — Senato
 
 ### `bill-progress list`
+Iter di un disegno di legge. **Senato** (senza `--uri`): lista DDL con stato corrente, filtrabile per legislatura, `--keyword`, `--date-from`/`--date-to`, o per singolo DDL con `--ddl-uri`. **Camera** (con `--uri <atto Camera>`): timeline completa di tutti gli stati attraversati, in ordine cronologico. Stesse colonne in entrambi i casi.
 ```bash
 italianparliament bill-progress list --legislature 19
+italianparliament bill-progress list --ddl-uri http://dati.senato.it/ddl/25597
+italianparliament bill-progress list --uri http://dati.camera.it/ocd/attocamera.rdf/ac19_2822
 ```
 
 ### `bill-signatories show`

@@ -73,6 +73,7 @@ In alternativa, copia la cartella `skills/<nome>/` e registrala secondo la docum
 | `deputy show` | Scheda di un deputato: nome, genere, data/luogo nascita, lista elezione, data elezione, convalida, commissioni |
 | `senator show` | Scheda di un senatore: nome, genere, data/luogo nascita, regione elezione, tipo elezione, data mandato |
 | `person-career show` | Carriera unificata di una persona: tutti i mandati da deputato (per legislatura) e gli incarichi di governo, con link Wikidata. Risolve doppio incarico parlamento+governo e carriera multi-legislatura |
+| `people resolve` | Risolve in batch una lista di URI persona (anche misti Camera + Senato) nei rispettivi nomi, con una query per endpoint. Dà i nominativi agli URI "nudi" restituiti dai tool relazionali senza una chiamata `deputy`/`senator` per ciascuno |
 
 ### Attivita legislativa — Camera
 
@@ -91,7 +92,7 @@ In alternativa, copia la cartella `skills/<nome>/` e registrala secondo la docum
 
 | Comando | Cosa fa |
 |---------|---------|
-| `bill-progress list` | Iter dei DDL al Senato: stato, date, iniziativa, natura |
+| `bill-progress list` | Iter dei DDL: al Senato stato/date/iniziativa/natura (lista o per `--ddl-uri`); con `--uri <atto Camera>` restituisce la timeline completa dell'iter alla Camera (tutti gli stati attraversati, con data) |
 | `bill-signatories show` | Firmatari di un DDL: primo firmatario e cofirmatari |
 | `amendments list` | Emendamenti al Senato con numero, tipo, DDL collegato e link al testo. Filtrabile per legislatura e per DDL (`--ddl-uri`) |
 | `documents list` | Documenti parlamentari: atti del governo, atti UE, relazioni Corte dei Conti |
@@ -114,9 +115,9 @@ Il testo integrale di un DDL non è nei dati aperti SPARQL (solo metadati). Ques
 | Comando | Cosa fa |
 |---------|---------|
 | `groups list` | Gruppi parlamentari Camera con acronimo (FDI, PD-IDP, M5S...) |
-| `group-members list` | Composizione di un gruppo Camera: chi ne fa parte, da quando |
+| `group-members list` | Composizione di un gruppo Camera: chi ne fa parte (con nome del deputato, colonna `deputy_name`) e da quando |
 | `senato-groups list` | Gruppi parlamentari Senato con sigla e numero di componenti distinti. `--as-of YYYY-MM-DD` per legislature passate (es. `--as-of 2022-10-12` per la XVIII) |
-| `senator-group-members list` | Composizione di un gruppo al Senato a una certa data |
+| `senator-group-members list` | Composizione di un gruppo al Senato a una certa data (con nome del senatore, colonna `senator_name`) |
 | `roles list` | Incarichi parlamentari con ruolo (presidente, vicepresidente, segretario...) |
 | `sessions list` | Sedute della Camera con numero progressivo |
 | `committees list` | Commissioni Senato; con filtro legislatura mostra solo quelle attive e il numero di sedute |
@@ -312,6 +313,12 @@ Cerca "schlein" in entrambe le camere:
 italianparliament search find --name schlein
 ```
 
+Risolvi una lista di URI persona (anche misti Camera + Senato) nei nomi:
+
+```
+italianparliament people resolve --uris http://dati.senato.it/senatore/32,http://dati.camera.it/ocd/deputato.rdf/d308917_19
+```
+
 Quali DDL ha presentato come primo firmatario un parlamentare?
 
 ```
@@ -369,6 +376,8 @@ Da qui si verifica che **Matteo Salvini** (Lega) ha votato **Favorevole** e si r
 
 I dati provengono dagli endpoint SPARQL ufficiali di Camera e Senato. Alcune limitazioni note:
 
+- **Scheda istituzionale** (`html_url`): i tool che restituiscono persone (`deputies`, `senators`, `search`, `group-members`, `senator-group-members`, `rank`, `vote-detail`, `senato-vote-detail`, `people`...) e atti/DDL (`bills`, `bill`, `member-bills`, `bill-signatories`, `bill-rapporteurs`, `amendments`, `senato-votes`, `bill-progress`...) espongono una colonna `html_url` con il link alla scheda su `camera.it`/`senato.it`, accanto all'URI SPARQL. I pattern sono verificati sulla legislatura 19; per legislature passate l'URL è best-effort.
+- **Feed RSS iter** (`rss_url`): i tool sui DDL del Senato (`amendments`, `senato-votes`, `bill-progress`) espongono `rss_url`, il feed RSS con l'iter dettagliato del DDL (fasi, sedute, voto finale, esiti).
 - **Gruppi** (`groups`): l'acronimo viene dal campo `dcterms:alternative` dell'endpoint (es. `AVS`, `PD-IDP`); per i rari casi senza quel campo si ricava dalla label.
 - **Documenti Camera**: l'endpoint Camera non espone documenti parlamentari via SPARQL. Il tool `documents` usa i dati del Senato.
 - **Voti di fiducia al Senato** (`senato-votes`): il campo `ddl_uri` delle votazioni di fiducia è **vuoto** — il legame con il DDL è scritto solo nel testo della `label` (es. "Disegno di legge n.1933. Votazione questione di fiducia."). Di conseguenza `senato-votes list --ddl-uri <uri>` **non** restituisce il voto di fiducia. Per trovarlo filtrare per **data della seduta** (`--date-from`/`--date-to`), poi ricollegarlo al DDL via la `label`. Attenzione anche alle votazioni "finali" trovate per data: possono appartenere a un atto diverso (testo unificato) — verificare sempre il campo `ddl_uri`.
@@ -381,7 +390,7 @@ Per le esigenze giornalistiche e le funzionalità da coprire prendiamo come rife
 
 ## Stato
 
-36 tool implementati. Vedi `LOG.md` per il diario di avanzamento e `RELEASING.md` per il processo di rilascio.
+38 tool implementati. Vedi `LOG.md` per il diario di avanzamento e `RELEASING.md` per il processo di rilascio.
 
 ## Licenza
 
