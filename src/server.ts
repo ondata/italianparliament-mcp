@@ -77,7 +77,7 @@ function makeHandler(tool: { execute(input: any): Promise<ToolResult> }) {
 export function createServer(): McpServer {
   return new McpServer({
     name: "italianparliament-mcp",
-    version: "0.5.2",
+    version: "0.6.0",
   });
 }
 
