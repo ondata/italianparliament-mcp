@@ -73,11 +73,18 @@ export const speechesTool: Tool<typeof inputSchema> = {
 /* ── Camera ─────────────────────────────────────────────────────────── */
 
 async function executeCamera(input: z.infer<typeof inputSchema>) {
+  // Gli interventi Camera non hanno ocd:rif_leg: la legislatura è solo nel
+  // pattern URI. Filtrare con STRSTARTS impedisce a Virtuoso di usare l'indice
+  // sul soggetto e forza la materializzazione/ordinamento di tutti gli interventi
+  // della legislatura (~250k) prima del LIMIT. Riscritto come range filter
+  // (?s >= in19_ && ?s < in19_z): Virtuoso percorre l'indice e si ferma al LIMIT.
+  // Ordinamento per ?s DESC = ordine di creazione (gli ID sono incrementali e a
+  // lunghezza costante per legislatura), proxy della cronologia reale e index-friendly
+  // (ods:modified è il timestamp di modifica del record, non la data dell'intervento).
   const filters: string[] = [];
   if (input.legislature) {
-    filters.push(
-      `FILTER(STRSTARTS(STR(?s), "http://dati.camera.it/ocd/intervento.rdf/in${input.legislature}_"))`,
-    );
+    const base = `http://dati.camera.it/ocd/intervento.rdf/in${input.legislature}_`;
+    filters.push(`FILTER(?s >= <${base}> && ?s < <${base}z>)`);
   }
   if (input.deputyUri) {
     filters.push(`?s ocd:rif_deputato <${input.deputyUri}> .`);
@@ -96,29 +103,48 @@ WHERE {
     return { rows: [{ count }], columns: ["count"] };
   }
 
+  // Subquery-first: l'interna seleziona/ordina/limita i soli ?s (poche righe),
+  // l'esterna aggancia label e le OPTIONAL solo a quelle. ods:modified e
+  // dc:relation sono multi-valore su molti interventi → dedup per uri in TS.
+  // GROUP BY ?s nell'interna (non DISTINCT): la tripla `?s a ocd:intervento` è
+  // duplicata alla fonte (presente 2× per ogni intervento), quindi senza dedup
+  // il LIMIT conterebbe doppioni; GROUP BY collassa ed è ~2× più veloce di DISTINCT.
   const query = `${OCD_PREFIXES}
-SELECT DISTINCT ?s ?label ?rif_deputato ?relation ?modified
+SELECT ?s ?label ?rif_deputato ?relation ?modified
 WHERE {
-  ?s a ocd:intervento .
+  {
+    SELECT ?s WHERE {
+      ?s a ocd:intervento .
+      ${filters.join("\n      ")}
+    }
+    GROUP BY ?s
+    ORDER BY DESC(?s)
+    LIMIT ${input.limit}
+    OFFSET ${input.offset}
+  }
   ?s rdfs:label ?label .
   OPTIONAL { ?s ocd:rif_deputato ?rif_deputato }
   OPTIONAL { ?s dc:relation ?relation }
   OPTIONAL { ?s ods:modified ?modified }
-  ${filters.join("\n  ")}
 }
-ORDER BY DESC(?modified)
-LIMIT ${input.limit}
-OFFSET ${input.offset}`;
+ORDER BY DESC(?s)`;
 
   const results = await cdQuery(query);
   const raw = flattenBindings(results);
-  const rows = raw.map((r) => ({
-    uri: r.s ?? "",
-    label: r.label ?? "",
-    deputy_uri: r.rif_deputato ?? "",
-    document_url: r.relation ?? "",
-    modified: r.modified ?? "",
-  }));
+  const seen = new Set<string>();
+  const rows = [];
+  for (const r of raw) {
+    const uri = r.s ?? "";
+    if (seen.has(uri)) continue;
+    seen.add(uri);
+    rows.push({
+      uri,
+      label: r.label ?? "",
+      deputy_uri: r.rif_deputato ?? "",
+      document_url: r.relation ?? "",
+      modified: r.modified ?? "",
+    });
+  }
   return { rows, columns: cameraColumns };
 }
 
