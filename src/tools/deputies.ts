@@ -2,6 +2,7 @@ import { z } from "zod";
 import { cdQuery } from "../core/client.js";
 import { flattenBindings } from "../core/flatten.js";
 import { OCD_PREFIXES } from "../core/prefixes.js";
+import { personHtmlUrl } from "../core/html-url.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -36,6 +37,7 @@ const columns = [
   "mandate_validation",
   "election_uri",
   "election_label",
+  "html_url",
 ];
 
 export const deputiesTool: Tool<typeof inputSchema> = {
@@ -91,7 +93,12 @@ OFFSET ${input.offset}`;
     const raw = flattenBindings(results);
     const rows = raw.map((r) => {
       const { s, rif_leg, ...rest } = r;
-      return { uri: s ?? "", legislature_uri: rif_leg ?? "", ...rest };
+      return {
+        uri: s ?? "",
+        legislature_uri: rif_leg ?? "",
+        ...rest,
+        html_url: personHtmlUrl(s),
+      };
     });
     return { rows, columns };
   },

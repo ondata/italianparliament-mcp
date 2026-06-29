@@ -2,6 +2,7 @@ import { z } from "zod";
 import { cdQuery, snQuery } from "../core/client.js";
 import { flattenBindings } from "../core/flatten.js";
 import { OCD_PREFIXES, OSR_PREFIXES } from "../core/prefixes.js";
+import { personHtmlUrl } from "../core/html-url.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -23,6 +24,7 @@ const columns = [
   "last_name",
   "gender",
   "legislature_uri",
+  "html_url",
 ];
 
 function sparqlEscape(s: string): string {
@@ -61,6 +63,7 @@ LIMIT ${limit}`;
     last_name: r.last_name ?? "",
     gender: r.gender ?? "",
     legislature_uri: r.rif_leg ?? "",
+    html_url: personHtmlUrl(r.s),
   }));
 }
 
@@ -103,6 +106,7 @@ LIMIT ${limit}`;
     last_name: r.ln ?? "",
     gender: r.gen ?? "",
     legislature_uri: r.leg ?? "",
+    html_url: personHtmlUrl(r.s),
   }));
 }
 

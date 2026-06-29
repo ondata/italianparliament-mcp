@@ -2,6 +2,7 @@ import { z } from "zod";
 import { snQuery } from "../core/client.js";
 import { flattenBindings } from "../core/flatten.js";
 import { OSR_PREFIXES } from "../core/prefixes.js";
+import { personHtmlUrl } from "../core/html-url.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -34,6 +35,7 @@ const columns = [
   "birth_date",
   "birth_city",
   "photo",
+  "html_url",
 ];
 
 const COL_MAP: Record<string, string> = {
@@ -103,6 +105,7 @@ LIMIT ${input.limit} OFFSET ${input.offset}`;
       for (const [k, v] of Object.entries(r)) {
         row[COL_MAP[k] ?? k] = v;
       }
+      row.html_url = personHtmlUrl(row.uri);
       return row;
     });
     return { rows, columns };

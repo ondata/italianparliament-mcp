@@ -3,6 +3,7 @@ import { cdQuery } from "../core/client.js";
 import { OCD_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
 import { cleanGroupLabel } from "../core/group-label.js";
+import { personHtmlUrl } from "../core/html-url.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -33,6 +34,7 @@ const columns = [
   "start_date",
   "end_date",
   "legislature_uri",
+  "html_url",
 ];
 
 export const groupMembersTool: Tool<typeof inputSchema> = {
@@ -91,6 +93,7 @@ OFFSET ${input.offset}`;
         start_date: start,
         end_date: end,
         legislature_uri: r.rif_leg ?? "",
+        html_url: personHtmlUrl(r.deputy_uri),
       };
     });
     return { rows, columns };

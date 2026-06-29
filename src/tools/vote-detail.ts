@@ -2,6 +2,7 @@ import { z } from "zod";
 import { cdQuery } from "../core/client.js";
 import { OCD_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
+import { personHtmlUrl } from "../core/html-url.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -26,7 +27,7 @@ function stripLegLabel(label: string): string {
   return label.replace(/,\s*.* Legislatura della Repubblica\s*$/, "").trim();
 }
 
-const columns = ["deputy_uri", "deputy_name", "vote", "group_uri", "group_acronym"];
+const columns = ["deputy_uri", "deputy_name", "vote", "group_uri", "group_acronym", "html_url"];
 
 export const voteDetailTool: Tool<typeof inputSchema> = {
   name: "vote-detail",
@@ -66,6 +67,7 @@ LIMIT ${input.limit}`;
       vote: r.type ?? "",
       group_uri: r.rif_gruppoParlamentare ?? "",
       group_acronym: r.siglaGruppo ?? "",
+      html_url: personHtmlUrl(r.deputy_uri),
     }));
     return { rows, columns };
   },

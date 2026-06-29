@@ -2,6 +2,7 @@ import { z } from "zod";
 import { snQuery } from "../core/client.js";
 import { OSR_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
+import { personHtmlUrl } from "../core/html-url.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -33,6 +34,7 @@ const columns = [
   "start_date",
   "end_date",
   "legislature",
+  "html_url",
 ];
 
 export const senatorGroupMembersTool: Tool<typeof inputSchema> = {
@@ -98,6 +100,7 @@ OFFSET ${input.offset}`;
         start_date: r.start_date ?? "",
         end_date: r.end_date ?? "",
         legislature: r.legislature ?? "",
+        html_url: personHtmlUrl(r.senator_uri),
       };
     });
     return { rows, columns };

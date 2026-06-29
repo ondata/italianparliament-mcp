@@ -2,6 +2,7 @@ import { z } from "zod";
 import { snQuery } from "../core/client.js";
 import { OSR_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
+import { personHtmlUrl } from "../core/html-url.js";
 import type { Tool } from "./types.js";
 
 // Categorie di voto del Senato (proprietà osr → etichetta leggibile).
@@ -25,7 +26,7 @@ const inputSchema = z.object({
     .describe("Filtra per tipo di voto"),
 });
 
-const columns = ["senator_uri", "senator_name", "group_label", "vote"];
+const columns = ["senator_uri", "senator_name", "group_label", "vote", "html_url"];
 
 // Data della seduta della votazione: serve per agganciare il gruppo del senatore
 // attivo in quel giorno. Query separata, indipendente dai conteggi del voto.
@@ -105,6 +106,7 @@ SELECT DISTINCT ?sen ?nome ?cognome WHERE {
     const rows = results.flat().map((row) => ({
       ...row,
       group_label: groupMap.get(row.senator_uri) ?? "",
+      html_url: personHtmlUrl(row.senator_uri),
     }));
     if (rows.length === 0) {
       throw new Error(`Nessun voto trovato per la votazione: ${input.voteUri}`);
