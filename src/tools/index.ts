@@ -34,6 +34,7 @@ import { senatoVoteDetailTool } from "./senato-vote-detail.js";
 import { groupRankTool } from "./group-rank.js";
 import { committeeSessionsTool } from "./committee-sessions.js";
 import { personCareerTool } from "./person-career.js";
+import { peopleTool } from "./people.js";
 import type { Tool } from "./types.js";
 
 export const tools: Tool[] = [
@@ -73,6 +74,7 @@ export const tools: Tool[] = [
   groupRankTool,
   committeeSessionsTool,
   personCareerTool,
+  peopleTool,
 ];
 
 export const toolsByName: Record<string, Tool> = Object.fromEntries(
@@ -116,5 +118,6 @@ export {
   groupRankTool,
   committeeSessionsTool,
   personCareerTool,
+  peopleTool,
 };
 export type { Tool, ToolResult } from "./types.js";

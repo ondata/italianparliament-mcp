@@ -36,6 +36,7 @@ import { senatoVoteDetailTool } from "./tools/senato-vote-detail.js";
 import { groupRankTool } from "./tools/group-rank.js";
 import { committeeSessionsTool } from "./tools/committee-sessions.js";
 import { personCareerTool } from "./tools/person-career.js";
+import { peopleTool } from "./tools/people.js";
 import type { Tool, ToolResult } from "./tools/types.js";
 import { toJsonl } from "./core/format.js";
 import { SparqlError } from "./core/client.js";
@@ -77,7 +78,7 @@ function makeHandler(tool: { execute(input: any): Promise<ToolResult> }) {
 export function createServer(): McpServer {
   return new McpServer({
     name: "italianparliament-mcp",
-    version: "0.6.0",
+    version: "0.7.0",
   });
 }
 
@@ -120,6 +121,7 @@ export function registerAll(server: McpServer): void {
     groupRankTool,
     committeeSessionsTool,
     personCareerTool,
+    peopleTool,
   ];
 
   for (const tool of allTools) {

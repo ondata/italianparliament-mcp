@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { peopleTool } from "./people.js";
 import { deputiesTool } from "./deputies.js";
 import { senatorsTool } from "./senators.js";
 import { searchTool } from "./search.js";
@@ -192,6 +193,22 @@ describe("Senato tools", () => {
     expect(result.rows[0]).toHaveProperty("status");
     expect(result.rows[0]).toHaveProperty("title");
     expect(result.rows[0].legislature).toBe("19");
+  }, 30000);
+
+  it("people: resolves a mixed Camera+Senato batch of URIs to names", async () => {
+    const result = await peopleTool.execute({
+      uris: [
+        "http://dati.senato.it/senatore/32",
+        "http://dati.camera.it/ocd/deputato.rdf/d308917_19",
+      ],
+    });
+    expect(result.rows.length).toBe(2);
+    const sen = result.rows.find((r) => r.chamber === "senato");
+    const cam = result.rows.find((r) => r.chamber === "camera");
+    expect(sen?.last_name).toMatch(/casellati/i);
+    expect(cam?.last_name).toMatch(/colosimo/i);
+    expect(sen?.html_url).toContain("scheda-attivita?did=32");
+    expect(cam?.html_url).toContain("19-308917");
   }, 30000);
 
   it("bill-progress: Camera atto returns iter timeline with same schema as Senato", async () => {

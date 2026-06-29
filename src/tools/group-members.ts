@@ -31,6 +31,7 @@ const columns = [
   "group_uri",
   "group_label",
   "deputy_uri",
+  "deputy_name",
   "start_date",
   "end_date",
   "legislature_uri",
@@ -63,12 +64,14 @@ export const groupMembersTool: Tool<typeof inputSchema> = {
     }
 
     const query = `${OCD_PREFIXES}
-SELECT DISTINCT ?group ?group_label ?deputy_uri ?start_date ?end_date ?rif_leg
+SELECT DISTINCT ?group ?group_label ?deputy_uri ?dep_fn ?dep_ln ?start_date ?end_date ?rif_leg
 WHERE {
   ?group a ocd:gruppoParlamentare .
   ?group rdfs:label ?group_label .
   ?group ocd:siComponeDi ?membership .
   ?membership ocd:rif_deputato ?deputy_uri .
+  OPTIONAL { ?deputy_uri foaf:firstName ?dep_fn }
+  OPTIONAL { ?deputy_uri foaf:surname ?dep_ln }
   OPTIONAL { ?membership dc:date ?start_date }
   OPTIONAL { ?membership ocd:dataFine ?end_date }
   OPTIONAL { ?group ocd:rif_leg ?rif_leg }
@@ -90,6 +93,7 @@ OFFSET ${input.offset}`;
         group_uri: r.group ?? "",
         group_label: cleanGroupLabel(r.group_label ?? ""),
         deputy_uri: r.deputy_uri ?? "",
+        deputy_name: `${r.dep_fn ?? ""} ${r.dep_ln ?? ""}`.trim(),
         start_date: start,
         end_date: end,
         legislature_uri: r.rif_leg ?? "",

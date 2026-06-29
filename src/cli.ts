@@ -36,6 +36,7 @@ import { senatoVoteDetailTool } from "./tools/senato-vote-detail.js";
 import { groupRankTool } from "./tools/group-rank.js";
 import { committeeSessionsTool } from "./tools/committee-sessions.js";
 import { personCareerTool } from "./tools/person-career.js";
+import { peopleTool } from "./tools/people.js";
 import { fetchSenatoText } from "./core/fetch-text.js";
 import { formatRows, type Format } from "./core/format.js";
 import { SparqlError } from "./core/client.js";
@@ -1100,6 +1101,33 @@ const personCareerShow = defineCommand({
   },
 });
 
+const peopleResolve = defineCommand({
+  meta: {
+    name: "resolve",
+    description: withExamples(
+      "Resolve a batch of person URIs (mixed Camera + Senato) to names.",
+      peopleTool.examples,
+    ),
+  },
+  args: {
+    uris: {
+      type: "string",
+      description:
+        "Comma-separated person URIs (Camera and/or Senato, mixed)",
+      required: true,
+    },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const uris = (args.uris as string)
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const result = await runTool(peopleTool, { uris });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
 const committeeSessionsList = defineCommand({
   meta: {
     name: "list",
@@ -1538,6 +1566,10 @@ const main = defineCommand({
     "person-career": defineCommand({
       meta: { name: "person-career", description: "A person's unified career across legislatures and government" },
       subCommands: { show: personCareerShow },
+    }),
+    people: defineCommand({
+      meta: { name: "people", description: "Batch resolve person URIs (mixed Camera + Senato) to names" },
+      subCommands: { resolve: peopleResolve },
     }),
     guide: guideCmd,
     which: whichCmd,

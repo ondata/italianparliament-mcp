@@ -28,6 +28,7 @@ const inputSchema = z.object({
 
 const columns = [
   "senator_uri",
+  "senator_name",
   "group_uri",
   "group_label",
   "group_html_url",
@@ -61,10 +62,12 @@ export const senatorGroupMembersTool: Tool<typeof inputSchema> = {
 
     const query = `${OSR_PREFIXES}
 PREFIX ocd: <http://dati.camera.it/ocd/>
-SELECT DISTINCT ?senator_uri ?group ?group_label ?start_date ?end_date ?legislature
+SELECT DISTINCT ?senator_uri ?sen_fn ?sen_ln ?group ?group_label ?start_date ?end_date ?legislature
 WHERE {
   ?senator_uri a osr:Senatore ;
                ocd:aderisce ?membership .
+  OPTIONAL { ?senator_uri <http://xmlns.com/foaf/0.1/firstName> ?sen_fn }
+  OPTIONAL { ?senator_uri <http://xmlns.com/foaf/0.1/lastName> ?sen_ln }
   ?membership a ocd:adesioneGruppo ;
               osr:gruppo ?group ;
               osr:legislatura ?legislature ;
@@ -94,6 +97,7 @@ OFFSET ${input.offset}`;
         : "";
       return {
         senator_uri: r.senator_uri ?? "",
+        senator_name: `${r.sen_fn ?? ""} ${r.sen_ln ?? ""}`.trim(),
         group_uri,
         group_label: r.group_label ?? "",
         group_html_url,
