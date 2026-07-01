@@ -2,6 +2,7 @@ import { z } from "zod";
 import { cdQuery } from "../core/client.js";
 import { flattenBindings } from "../core/flatten.js";
 import { OCD_PREFIXES } from "../core/prefixes.js";
+import { extractBillNumber, billBaseNumber } from "../core/bill-number.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -64,6 +65,7 @@ const columns = [
   "final_vote",
   "legislature_uri",
   "session_uri",
+  "bill_number",
   "bill_uri",
   "url",
 ];
@@ -242,6 +244,38 @@ ORDER BY DESC(?date)`;
       seen.add(uri);
       return true;
     });
+    // bill_number dal testo della descrizione ("DDL 2920-A - VOTO FINALE" → "2920-A").
+    for (const r of deduped) r.bill_number = extractBillNumber(r.description);
+    // Fallback: alcune votazioni non hanno rif_attoCamera ma citano il DDL nella
+    // descrizione. Risolviamo il numero base → URI atto (ac<leg>_<num>)
+    // verificandone l'esistenza via dc:identifier — niente URI fabbricati. La
+    // legislatura è quella della riga (rif_leg): una query per legislatura.
+    const needing = deduped.filter((r) => !r.bill_uri && r.bill_number && r.legislature_uri);
+    if (needing.length) {
+      const byLeg = new Map<string, typeof needing>();
+      for (const r of needing) {
+        const g = byLeg.get(r.legislature_uri) ?? [];
+        g.push(r);
+        byLeg.set(r.legislature_uri, g);
+      }
+      for (const [legUri, group] of byLeg) {
+        const bases = [...new Set(group.map((r) => billBaseNumber(r.bill_number)))];
+        const filter = bases.map((n) => `STR(?id) = "${n}"`).join(" || ");
+        const fbQuery = `${OCD_PREFIXES}
+SELECT ?a ?id WHERE {
+  ?a a <${V}/atto> ; <${V}/rif_leg> <${legUri}> ; dc:identifier ?id .
+  FILTER(${filter})
+}`;
+        const byId = new Map<string, string>();
+        for (const rr of flattenBindings(await cdQuery(fbQuery))) {
+          if (rr.id && rr.a && !byId.has(rr.id)) byId.set(rr.id, rr.a);
+        }
+        for (const r of group) {
+          const a = byId.get(billBaseNumber(r.bill_number));
+          if (a) r.bill_uri = a;
+        }
+      }
+    }
     return { rows: deduped, columns };
   },
 };

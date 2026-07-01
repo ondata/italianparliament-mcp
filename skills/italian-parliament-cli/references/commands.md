@@ -104,6 +104,7 @@ italianparliament aic list --deputy-uri <uri>
 ```bash
 italianparliament votes list --legislature 19 --format csv
 ```
+Colonne `bill_number` (numero atto dalla descrizione, es. `2920-A`) e `bill_uri` (URI atto, popolato anche senza `rif_attoCamera` risolvendo il numero via `dc:identifier`).
 
 ### `vote-detail show`
 Come ha votato ogni deputato.
@@ -167,6 +168,7 @@ italianparliament senato-votes list --legislature 19 --limit 20
 italianparliament senato-votes list --ddl-uri http://dati.senato.it/ddl/58039 --format jsonl
 italianparliament senato-votes list --date-from 2026-01-01 --date-to 2026-03-31
 ```
+Colonne `bill_number` (numero DDL dal label, es. `562-B`) e `ddl_uri` (URI DDL, popolato anche per le fiducie prive di `osr:oggetto` risolvendo il numero via `osr:fase`).
 
 ### `senato-vote-detail show`
 Voto del singolo senatore in una votazione (URI da `senato-votes`); include il gruppo alla data del voto (`group_label`) → voto per gruppo.

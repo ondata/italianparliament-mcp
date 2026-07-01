@@ -64,6 +64,7 @@ Atti di indirizzo e controllo (interrogazioni, interpellanze, mozioni). Il testo
 Votazioni Camera.
 - `legislature`: numero legislatura
 - `limit`: max risultati
+- Colonna `bill_number`: numero atto citato nella descrizione (es. `2920-A`). `bill_uri`: URI dell'atto Camera, popolato anche quando manca `rif_attoCamera` risolvendo il numero via `dc:identifier`.
 
 ### `vote-detail`
 Come ha votato ogni deputato in una votazione.
@@ -114,6 +115,7 @@ Votazioni d'Assemblea del Senato: esito, contatori, tipo, data seduta, DDL colle
 - `legislature`: numero legislatura (default 19)
 - `ddlUri`: filtra le votazioni collegate a un DDL
 - `dateFrom`/`dateTo`: intervallo data seduta (YYYY-MM-DD)
+- Colonna `bill_number`: numero DDL citato nel label (es. `562-B`). `ddl_uri`: URI del DDL, popolato anche per le fiducie (prive di `osr:oggetto`) risolvendo il numero via `osr:fase`.
 
 ### `senato-vote-detail`
 Voto del singolo senatore in una votazione, con il gruppo di appartenenza alla data del voto (colonna `group_label`) — consente il voto per gruppo.

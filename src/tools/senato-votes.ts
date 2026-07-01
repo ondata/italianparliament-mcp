@@ -3,6 +3,7 @@ import { snQuery } from "../core/client.js";
 import { OSR_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
 import { actHtmlUrl, ddlRssUrl } from "../core/html-url.js";
+import { extractBillNumber } from "../core/bill-number.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -48,6 +49,7 @@ const columns = [
   "present",
   "voters",
   "majority",
+  "bill_number",
   "ddl_uri",
   "ddl_html_url",
   "rss_url",
@@ -141,9 +143,34 @@ WHERE {
         present: r.presenti ?? "",
         voters: r.votanti ?? "",
         majority: r.maggioranza ?? "",
+        bill_number: extractBillNumber(r.label),
         ddl_uri: ddl,
         object_uri: r.oggetto ?? "",
       });
+    }
+    // Fallback: alcuni voti (tipicamente le fiducie) non hanno osr:oggetto e
+    // quindi nessun ddl_uri via grafo, ma citano il DDL nel label. Risolviamo il
+    // numero → URI in un'unica query via osr:fase="S.<num>" (univoco intra-leg;
+    // niente VALUES batch su Virtuoso → OR-chain). Solo per i label che citano
+    // davvero un DDL (bill_number non vuoto).
+    const needing = [...byUri.values()].filter((v) => !v.ddl_uri && v.bill_number);
+    const nums = [...new Set(needing.map((v) => v.bill_number))];
+    if (nums.length) {
+      const filter = nums.map((n) => `STR(?f) = "S.${n}"`).join(" || ");
+      const fbQuery = `${OSR_PREFIXES}
+SELECT ?ddl ?f WHERE {
+  ?ddl a osr:Ddl ; osr:legislatura ${input.legislature} ; osr:fase ?f .
+  FILTER(${filter})
+}`;
+      const byFase = new Map<string, string>();
+      for (const r of flattenBindings(await snQuery(fbQuery))) {
+        const num = (r.f ?? "").replace(/^S\./, "");
+        if (num && r.ddl && !byFase.has(num)) byFase.set(num, r.ddl);
+      }
+      for (const v of needing) {
+        const ddl = byFase.get(v.bill_number);
+        if (ddl) v.ddl_uri = ddl;
+      }
     }
     const joinMap = (ddl: string, fn: (u: string) => string): string =>
       ddl
