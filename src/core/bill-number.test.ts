@@ -20,6 +20,35 @@ describe("extractBillNumber", () => {
     expect(extractBillNumber("DDL.n. 2920-A")).toBe("2920-A");
   });
 
+  it("estrae dagli Ordini del Giorno Camera (numerazione 9/atto/progressivo)", () => {
+    expect(extractBillNumber("ODG 9/2920/46")).toBe("2920");
+    expect(extractBillNumber("ODG 9/2920/9")).toBe("2920");
+    expect(extractBillNumber("odg 9/1632/3")).toBe("1632");
+  });
+
+  it("estrae dagli Ordini del Giorno in forma estesa, col suffisso 'E ABB'", () => {
+    expect(extractBillNumber("Ordine del giorno n. 9/1049/3 ZANELLA LUANA (AVS)")).toBe("1049");
+    expect(extractBillNumber("Ordine del giorno n. 9/1042 E ABB/11 BONETTI ELENA (APERRE)")).toBe(
+      "1042",
+    );
+    expect(extractBillNumber("ODG 9/2564-A E ABB/1")).toBe("2564-A");
+  });
+
+  it("estrae dalle PDL (proposta di legge, stesso schema delle DDL)", () => {
+    expect(extractBillNumber("PDL 1928-A - VOTO FINALE")).toBe("1928-A");
+    expect(extractBillNumber("TU PDL 1928 E ABB-A/R - ODG 2")).toBe("1928");
+    expect(extractBillNumber("Proposta di legge n. 703-B")).toBe("703-B");
+  });
+
+  it("ritorna vuoto sui riferimenti a Doc./relazioni e sui casi composti a 4 segmenti", () => {
+    // "Doc." non è un DDL/PDL: nessuna estrazione forzata.
+    expect(extractBillNumber("Ordine del giorno n. 9/Doc. VIII, n. 6/18 RICCIARDI (M5S)")).toBe(
+      "",
+    );
+    // testo unificato + riferimento di ramo: 4 segmenti anziché 3, non tentiamo un'estrazione a rischio di errore.
+    expect(extractBillNumber("ODG 9/1928 E ABB-A/R/8")).toBe("");
+  });
+
   it("ritorna vuoto quando non c'è un DDL (mozioni, verifica numero legale, undefined)", () => {
     expect(extractBillNumber("Mozione n. 1-00234")).toBe("");
     expect(extractBillNumber("Verifica del numero legale")).toBe("");

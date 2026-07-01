@@ -93,10 +93,11 @@ italianparliament bill show --uri <uri>
 ```
 
 ### `aic list`
-Atti di indirizzo e controllo. `--keyword` cerca nel testo (label/titolo/description).
+Atti di indirizzo e controllo. `--keyword` cerca nel testo (label/titolo/description, a confini di parola: "CETA" non matcha "Acetamiprid"). `--type` filtra per tipo (match parziale su `dc:type`, con fallback sul label — per la leg. 19 "a risposta immediata"/question time non è distinto da "a risposta orale" nel `dc:type`, la differenza è solo testuale).
 ```bash
 italianparliament aic list --legislature 19 --limit 200 --format csv
 italianparliament aic list --legislature 19 --keyword xylella
+italianparliament aic list --legislature 19 --type immediata --limit 20
 italianparliament aic list --deputy-uri <uri>
 ```
 

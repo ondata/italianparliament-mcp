@@ -57,7 +57,8 @@ Scheda di un atto Camera.
 Atti di indirizzo e controllo (interrogazioni, interpellanze, mozioni). Il testo è in `description`.
 - `legislature`: numero legislatura
 - `deputyUri`: filtra per deputato
-- `keyword`: cerca nel testo (label/titolo/description), es. un tema
+- `keyword`: cerca nel testo (label/titolo/description) a confini di parola, es. un tema ("CETA" non matcha "Acetamiprid")
+- `type`: filtra per tipo (match parziale su `dc:type`, fallback sul label — "immediata" trova le interrogazioni a risposta immediata/question time anche quando `dc:type` le etichetta genericamente "orale")
 - `limit`: max risultati
 
 ### `votes`

@@ -44,6 +44,8 @@ Camera: analogo. Numero da `dc:description` (`DDL <num> - <VOTO FINALE|EM|ODG>`,
 
 Dalla v0.8.0 il fallback è nei tool `senato-votes` e `votes`: colonna `bill_number` (numero grezzo dal testo, sempre) + `ddl_uri`/`bill_uri` popolati quando risolvibili. Estrazione in `src/core/bill-number.ts` (`extractBillNumber`/`billBaseNumber`); regex tollerante a `DDL n.`, `DDL.n.`, `Disegno di legge n.`, suffissi `-B`/`-bis`.
 
+Estesa il 1° luglio 2026 (pomeriggio) dopo aver scoperto che gli Ordini del Giorno Camera citano l'atto **senza** la parola "DDL": aggiunto il pattern "9/<atto>/<progressivo>" (forma breve "ODG 9/2920/46" e forma estesa "Ordine del giorno n. 9/1049/3 COGNOME NOME (GRUPPO)"), tollerante al suffisso "E ABB" (e abbinate), e aggiunta l'alternativa "PDL"/"proposta di legge" accanto a "DDL"/"disegno di legge" (stesso schema, atto di iniziativa parlamentare invece che governativa). Validato su un campione di 6000 votazioni leg. 19: **1591/1606 ODG risolti (99%)**. I 15 residui sono voci Doc. VIII (non un DDL/PDL, correttamente vuote) o "testo unificato" con riferimento di ramo a 4 segmenti (`9/1928 E ABB-A/R/8`), lasciate vuote per non rischiare un'estrazione sbagliata. Tipi come `Articolo`/`Mozione`/`Risoluzione` restano in parte vuoti perché il **testo stesso non cita l'atto** (es. `dc:description = "ARTICOLO 1"`): non è un gap di parsing, è la conferma diretta del problema segnalato in `docs/note-gestori-lod/camera-assistenza-dati.md` (punto 2).
+
 # Citations
 
 [1] Indagine LOD del 2026-07-01 (issue #21): enumerazione percorsi + validazione resolver su `19-432-3`→`ddl/60201`, `19-21-1`→`ddl/56123`, `19-389-7`→`ddl/59837`.
