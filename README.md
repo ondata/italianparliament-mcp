@@ -253,10 +253,10 @@ Quali commissioni del Senato sono attive nella XIX legislatura e quante sedute h
 italianparliament committees list --legislature 19
 ```
 
-A che punto e un DDL al Senato?
+A che punto è un DDL al Senato?
 
 ```
-italianparliament bill-progress list --legislature 19 --limit 10
+italianparliament bill-progress list --ddl-uri http://dati.senato.it/ddl/25597
 ```
 
 Chi ha firmato un DDL al Senato?
@@ -271,7 +271,7 @@ Quali sono le ultime votazioni d'Assemblea al Senato?
 italianparliament senato-votes list --legislature 19 --limit 20
 ```
 
-Come ha votato ogni senatore in una votazione (e i contrari)?
+Chi ha votato contro in una votazione del Senato?
 
 ```
 italianparliament senato-vote-detail show --vote-uri http://dati.senato.it/votazione/19-167-42 --vote-type Contrario
