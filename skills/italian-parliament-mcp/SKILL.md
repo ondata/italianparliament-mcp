@@ -38,7 +38,8 @@ See [tool reference](references/tools.md) for the full list with parameters and 
 | Gruppi parlamentari Camera | `groups` / `group-members` |
 | Gruppi parlamentari Senato | `senato-groups` / `senator-group-members` |
 | Disegni di legge Camera | `bills` / `bill` |
-| Iter DDL (Camera con `uri`, Senato lista/`ddlUri`) | `bill-progress` / `bill-signatories` |
+| Iter DDL (Camera con `uri`, Senato lista/`ddlUri`) | `bill-progress` |
+| Firmatari di un DDL (Camera o Senato, `billUri`) | `bill-signatories` |
 | Testo integrale di un DDL (articolato) | `bill-text` |
 | DDL di un parlamentare come primo firmatario | `member-bills` |
 | Relatori di un DDL (Camera o Senato) | `bill-rapporteurs` |

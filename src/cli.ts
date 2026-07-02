@@ -819,19 +819,22 @@ const billSignatoriesShow = defineCommand({
   meta: {
     name: "show",
     description: withExamples(
-      "Show signatories of a Senato DDL.",
+      "Show signatories of a DDL (Camera or Senato, auto-detected from the URI).",
       billSignatoriesTool.examples,
     ),
   },
   args: {
-    "ddl-uri": { type: "string", description: "Full URI of a Senato DDL", required: true },
-    limit: { type: "string", default: "100" },
+    "bill-uri": { type: "string", description: "Full URI of a DDL (Camera or Senato)" },
+    "ddl-uri": { type: "string", description: "Alias of --bill-uri (deprecated)" },
+    limit: { type: "string", default: "200" },
     format: { type: "string", default: "csv" },
   },
   async run({ args }) {
+    const billUri = (args["bill-uri"] as string) || (args["ddl-uri"] as string);
+    if (!billUri) throw new Error("--bill-uri is required");
     const result = await runTool(billSignatoriesTool, {
-      ddlUri: args["ddl-uri"] as string,
-      limit: parseIntFlag(args.limit as string, "limit") ?? 100,
+      billUri,
+      limit: parseIntFlag(args.limit as string, "limit") ?? 200,
     });
     emit(result, parseFormat(args.format as string));
   },
@@ -1566,7 +1569,7 @@ const main = defineCommand({
       subCommands: { list: billProgressList },
     }),
     "bill-signatories": defineCommand({
-      meta: { name: "bill-signatories", description: "Signatories of a Senato DDL" },
+      meta: { name: "bill-signatories", description: "Signatories of a DDL (Camera+Senato)" },
       subCommands: { show: billSignatoriesShow },
     }),
     "bill-rapporteurs": defineCommand({

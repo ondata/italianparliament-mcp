@@ -244,15 +244,26 @@ describe("Senato tools", () => {
     expect(first.phase).toBe("C.302");
   }, 30000);
 
-  it("bill-signatories: returns signatories for a DDL", async () => {
+  it("bill-signatories: returns signatories for a Senato DDL", async () => {
     const result = await billSignatoriesTool.execute({
-      ddlUri: "http://dati.senato.it/ddl/25597",
+      billUri: "http://dati.senato.it/ddl/25597",
       limit: 10,
     });
     expect(result.rows.length).toBeGreaterThan(0);
-    expect(result.rows[0]).toHaveProperty("presenter");
+    expect(result.rows[0]).toHaveProperty("name");
     const primary = result.rows.find((r) => r.is_primary === "true");
     expect(primary).toBeDefined();
+  }, 30000);
+
+  it("bill-signatories: returns signatories for a Camera atto", async () => {
+    const result = await billSignatoriesTool.execute({
+      billUri: "http://dati.camera.it/ocd/attocamera.rdf/ac19_2696",
+      limit: 50,
+    });
+    expect(result.rows.length).toBeGreaterThan(0);
+    const primary = result.rows.find((r) => r.is_primary === "true");
+    expect(primary).toBeDefined();
+    expect(primary?.name).toBeTruthy();
   }, 30000);
 
   it("amendments: returns amendments for legislature 19", async () => {

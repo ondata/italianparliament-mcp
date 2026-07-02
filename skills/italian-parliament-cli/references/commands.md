@@ -132,8 +132,10 @@ italianparliament bill-progress list --uri http://dati.camera.it/ocd/attocamera.
 ```
 
 ### `bill-signatories show`
+Firmatari di un DDL, **Camera o Senato** (riconosciuto dall'URI): primo firmatario e cofirmatari con nome e link al profilo.
 ```bash
-italianparliament bill-signatories show --ddl-uri <ddl-uri>
+italianparliament bill-signatories show --bill-uri http://dati.camera.it/ocd/attocamera.rdf/ac19_2696
+italianparliament bill-signatories show --bill-uri http://dati.senato.it/ddl/25597
 ```
 
 ### `bill-rapporteurs list`

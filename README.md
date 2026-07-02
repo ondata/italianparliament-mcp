@@ -93,7 +93,7 @@ In alternativa, copia la cartella `skills/<nome>/` e registrala secondo la docum
 | Comando | Cosa fa |
 |---------|---------|
 | `bill-progress list` | Iter dei DDL: al Senato stato/date/iniziativa/natura (lista o per `--ddl-uri`); con `--uri <atto Camera>` restituisce la timeline completa dell'iter alla Camera (tutti gli stati attraversati, con data) |
-| `bill-signatories show` | Firmatari di un DDL: primo firmatario e cofirmatari |
+| `bill-signatories show` | Firmatari di un DDL (Camera o Senato): primo firmatario e cofirmatari |
 | `amendments list` | Emendamenti al Senato con numero, tipo, DDL collegato e link al testo. Filtrabile per legislatura e per DDL (`--ddl-uri`) |
 | `documents list` | Documenti parlamentari: atti del governo, atti UE, relazioni Corte dei Conti |
 | `sindacato-ispettivo list` | Atti di sindacato ispettivo Senato (interrogazioni, interpellanze, mozioni), filtrabile per data |
@@ -278,10 +278,11 @@ A che punto è un DDL al Senato?
 italianparliament bill-progress list --ddl-uri http://dati.senato.it/ddl/25597
 ```
 
-Chi ha firmato un DDL al Senato?
+Chi ha firmato un DDL? Camera o Senato, il ramo è riconosciuto dall'URI:
 
 ```
-italianparliament bill-signatories show --ddl-uri http://dati.senato.it/ddl/25597
+italianparliament bill-signatories show --bill-uri http://dati.camera.it/ocd/attocamera.rdf/ac19_2696
+italianparliament bill-signatories show --bill-uri http://dati.senato.it/ddl/25597
 ```
 
 Quali sono le ultime votazioni d'Assemblea al Senato?
@@ -362,7 +363,7 @@ Risultato: il DDL **S.1457** (`http://dati.senato.it/ddl/59070`), "appr. definit
 Chi l'ha firmato? Il primo firmatario e i cofirmatari:
 
 ```
-italianparliament bill-signatories show --ddl-uri http://dati.senato.it/ddl/59070
+italianparliament bill-signatories show --bill-uri http://dati.senato.it/ddl/59070
 ```
 
 Risultato: primo firmatario **On. Tommaso Foti** (FdI), cofirmatari De Corato e Barelli.

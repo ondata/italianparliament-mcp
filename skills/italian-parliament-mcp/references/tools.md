@@ -90,8 +90,8 @@ Iter di un disegno di legge, Camera o Senato (stesse colonne in entrambi i casi)
 - **Camera** (`uri` = atto Camera `attocamera.rdf/...`): timeline completa di tutti gli stati attraversati, in ordine cronologico.
 
 ### `bill-signatories`
-Firmatari di un DDL Senato.
-- `ddlUri` (required): URI del DDL
+Firmatari di un DDL, **Camera o Senato** (il ramo è riconosciuto dall'URI): primo firmatario e cofirmatari con nome e link al profilo.
+- `billUri` (required): URI del DDL (Camera `attocamera.rdf/...` o Senato `ddl/...`)
 
 ### `bill-rapporteurs`
 Relatori di un DDL, **Camera o Senato** (il ramo è riconosciuto dall'URI). Nome, tipo (Relatore / f.f.), commissione/organo e data.
