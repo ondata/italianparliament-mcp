@@ -392,10 +392,6 @@ Questo progetto e un porting in TypeScript ispirato a [italyParlR](https://githu
 
 Per le esigenze giornalistiche e le funzionalità da coprire prendiamo come riferimento [openparlamento](https://parlamento19.openpolis.it/) di Openpolis: schede parlamentari, iter dei DDL, votazioni, gruppi, indicatori e classifiche sono una guida alle user story che l'MCP punta a soddisfare.
 
-## Stato
-
-38 tool implementati. Vedi `LOG.md` per il diario di avanzamento e `RELEASING.md` per il processo di rilascio.
-
 ## Licenza
 
 MIT
