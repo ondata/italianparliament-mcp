@@ -86,6 +86,23 @@ SELECT ?organo ?label WHERE {
 
 Il `dc:relation`/`ocd:rif_bollettino` punta al **documento bollettino** (HTML/indice). Gli **argomenti trattati** e gli **atti discussi** in ciascuna seduta **non sono modellati come triple**: vanno recuperati parsando il bollettino. La seduta dà data + commissione + URL del bollettino, non l'elenco strutturato degli oggetti.
 
+# ocd:discussione — la voce all'ordine del giorno di una seduta
+
+`ocd:discussione` **non** è il "dibattito" nel senso comune: è la **singola voce trattata in una specifica seduta** (d'Aula o, in gran parte, di commissione) — l'unità atomica di "cosa è successo su quell'argomento, in quella seduta". È la classe più granulare della catena `seduta → dibattito → discussione`. **~533.000 istanze** su tutte le legislature (verificato 2026-07-02).
+
+| Proprietà di `ocd:discussione` | Tipo | Contenuto |
+|---|---|---|
+| `dc:title`/`rdfs:label` | stringa | **la voce dell'ODG in testo libero** — es. *"Seguito dell'esame e rinvio - Modifiche all'articolo 17 del codice dei contratti pubblici… C. 219"*. Qui finiscono anche le **audizioni** (vedi sotto). |
+| `dc:type` | stringa | **fase procedurale** semi-controllata: `Seguito dell'esame e rinvio`, `Esame e rinvio`, `Discussione`, `Votazione segreta`, `Esame e conclusione - Parere favorevole`, ecc. Valorizzato solo su **~36k/533k** istanze; sono verbi di procedura, **non** categorie di evento (non esiste il valore "Audizione"). |
+| `dc:date` | stringa `AAAAMMGG` | data |
+| `ocd:rif_seduta` | URI → `ocd:seduta` | seduta contenitore |
+| `ocd:rif_intervento` | URI → `intervento` | interventi pronunciati (la mole maggiore: ~980k triple) |
+| `ocd:rif_deputato` / `ocd:rif_relatore` / `ocd:rif_persona` | URI | chi partecipa / relatori / auditi |
+| `ocd:rif_allegatoDiscussione` | URI | allegati |
+| `dc:relation` | URI | link al **bollettino** ufficiale (pagina HTML del resoconto, ancorata al punto esatto) |
+
+> ⚠️ **`dc:type` ≠ categoria dell'evento.** Descrive *cosa si è fatto proceduralmente* (esaminare, votare, rinviare, dare parere), non *che tipo di evento è*. Per questo la natura "audizione" **non** è in `dc:type` ma va cercata nel `dc:title`. Vedi la sezione successiva.
+
 # ocd:dibattito — le audizioni SI trovano anche per la leg. 19, ma NON via dc:type
 
 `ocd:dibattito` è una classe **diversa** da `ocd:seduta`. La sua struttura è **cambiata tra legislature** e ci sono **due vie distinte** per le audizioni, da non confondere.
@@ -146,3 +163,4 @@ La *Commissione parlamentare di inchiesta sul femminicidio e su ogni forma di vi
 [1] Enumerazione proprietà `ocd:seduta` (2026-07-01): `SELECT ?p (COUNT(*) AS ?n) WHERE { ?s a ocd:seduta ; ocd:rif_organo <…/o19_3941> . ?s ?p ?o } GROUP BY ?p` → `dc:date`, `dc:title`, `ocd:rif_leg`, `ocd:rif_organo`, `dc:relation`, `ocd:rif_bollettino`.
 [2] Verifica filtro legislatura (2026-07-01): senza `ocd:rif_leg` la ricerca "giustizia" restituisce organi leg. 10–18; con `repubblica_19` → solo `o19_3502`.
 [3] Conteggio attività femminicidio (2026-07-01): `o19_3941` → 181 URI seduta / 157 date distinte (i "292" erano triple `rif_bollettino`, non sedute distinte), ultima data `20260608`.
+[4] Enumerazione `ocd:discussione` (2026-07-02): `SELECT (COUNT(*) AS ?n) WHERE { ?d a ocd:discussione }` → 533.049; `SELECT ?p (COUNT(*) AS ?n) … GROUP BY ?p` → `rif_intervento` (981.591), `rif_seduta` (532.794), `rif_deputato` (370.278), `dc:title`/`rdfs:label` (318.035), `dc:date`, `dc:relation`, `rif_relatore`, `rif_allegatoDiscussione`, `rif_persona`, `dc:type` (36.069). `SELECT ?type (COUNT(*)) … GROUP BY ?type` → top valori procedurali: `Votazione segreta`, `Seguito dell'esame e rinvio`, `Esame e rinvio`, `Esame e conclusione - Parere favorevole`, `Discussione` (nessun valore "Audizione").

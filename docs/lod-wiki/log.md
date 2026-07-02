@@ -2,6 +2,7 @@
 
 ## 2026-07-02
 
+* **Update**: [sedute commissione Camera](/camera/sedute-commissione.md) — aggiunta sezione **`ocd:discussione`** (classe generale): è la **voce all'ordine del giorno di una seduta** (unità atomica della catena `seduta → dibattito → discussione`), ~533k istanze. Chiarito che `dc:type` è la **fase procedurale** (esame/rinvio/votazione/parere), valorizzato su ~36k/533k, **non** una categoria di evento → per questo la natura "audizione" sta nel `dc:title`, non in `dc:type`. Elencate le proprietà reali (`rif_intervento`, `rif_seduta`, `rif_deputato/relatore/persona`, `dc:relation` → bollettino).
 * **Update**: [sedute commissione Camera](/camera/sedute-commissione.md) — riscritta la sezione `ocd:dibattito`. **Correzione**: le audizioni della leg. 19 SI trovano via SPARQL, non via `dc:type` (solo leg. 14) ma via **titolo della `ocd:discussione`** collegata al dibattito (`ocd:rif_discussione` → `dc:title` con "Audizione di ..."). 6.636 discussioni leg. 19, dato vivo fino al 2026-06-16, con nome+ruolo dell'audito nel titolo. Documentata la Via A (dc:type, leg.14) vs Via B (titolo discussione, leg.19). Allineato `tmp/audizioni.md` (v2).
 
 ## 2026-07-01
