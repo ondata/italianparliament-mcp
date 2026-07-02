@@ -52,7 +52,7 @@ See [tool reference](references/tools.md) for the full list with parameters and 
 | Documenti parlamentari Senato | `documents` |
 | Governi e ministri | `governments` / `gov-members` |
 | Legislature | `legislatures` |
-| Commissioni Senato | `committees` |
+| Commissioni Camera e Senato | `committees` |
 | Incarichi parlamentari Camera | `roles` |
 | Sedute Camera | `sessions` |
 | Query SPARQL libera | `sparql` |

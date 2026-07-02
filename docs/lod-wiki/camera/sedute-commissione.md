@@ -31,7 +31,10 @@ Le sedute di commissione della Camera sono modellate come `ocd:seduta` collegate
 | `rdfs:label` | stringa | denominazione (MAIUSCOLO, es. "II COMMISSIONE (GIUSTIZIA)") |
 | `ocd:rif_leg` | URI → `ocd:legislatura.rdf/repubblica_<N>` | legislatura di appartenenza |
 | `dc:title` | stringa | — |
+| `dc:type` | stringa | categoria dell'organo: `COMMISSIONE PERMANENTE`, `COMMISSIONE BICAMERALE D'INCHIESTA`, `COMMISSIONE MONOCAMERALE D'INCHIESTA`, `GIUNTA PER LE ELEZIONI`, `COMITATO PERMANENTE`, `ORGANO DELLA PRESIDENZA`, ecc. (leg. 19: 168 organi, 14 `COMMISSIONE PERMANENTE`) |
 | `ocd:haMembro` | URI → deputato | composizione |
+
+> Non tutti gli organi sono "commissioni" in senso stretto: `ocd:organo` copre anche giunte, comitati, delegazioni e organi di presidenza — filtrare su `dc:type = "COMMISSIONE PERMANENTE"` per le sole 14 commissioni permanenti.
 
 # Query Template — sedute di un organo per data
 

@@ -178,14 +178,23 @@ describe("Senato tools", () => {
     expect(result.rows[0].last_name).toBe("Alberti Casellati");
   }, 30000);
 
-  it("committees: returns active committees for leg 19", async () => {
-    const result = await committeesTool.execute({ legislature: 19, limit: 300 });
+  it("committees: returns active Senato committees for leg 19", async () => {
+    const result = await committeesTool.execute({ chamber: "senato", legislature: 19, limit: 300 });
     expect(result.rows.length).toBeGreaterThan(10);
     const affari = result.rows.find((r) =>
       r.short_title.includes("Affari Costituzionali"),
     );
     expect(affari).toBeDefined();
     expect(Number(affari!.session_count)).toBeGreaterThan(100);
+  }, 30000);
+
+  it("committees: returns Camera committees for leg 19", async () => {
+    const result = await committeesTool.execute({ chamber: "camera", legislature: 19, limit: 300 });
+    expect(result.rows.length).toBeGreaterThan(10);
+    const giustizia = result.rows.find((r) => r.title.includes("GIUSTIZIA"));
+    expect(giustizia).toBeDefined();
+    expect(giustizia!.category).toBe("COMMISSIONE PERMANENTE");
+    expect(Number(giustizia!.session_count)).toBeGreaterThan(10);
   }, 30000);
 
   it("bill-progress: returns DDL for legislature 19", async () => {

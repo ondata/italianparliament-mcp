@@ -743,17 +743,23 @@ const committeesList = defineCommand({
   meta: {
     name: "list",
     description: withExamples(
-      "List Senato committees.",
+      "List Camera/Senato committees.",
       committeesTool.examples,
     ),
   },
   args: {
-    legislature: { type: "string", description: "Legislature number (shows only active committees)" },
+    chamber: { type: "string", default: "both", description: "camera, senato, or both" },
+    legislature: { type: "string", description: "Legislature number (Camera default: 19; Senato: shows only active committees)" },
     limit: { type: "string", default: "300" },
     format: { type: "string", default: "csv" },
   },
   async run({ args }) {
+    const chamber = (args.chamber as string) || "both";
+    if (!["camera", "senato", "both"].includes(chamber)) {
+      throw new Error(`Invalid --chamber "${chamber}". Expected: camera, senato, both.`);
+    }
     const result = await runTool(committeesTool, {
+      chamber: chamber as "camera" | "senato" | "both",
       legislature: parseIntFlag(args.legislature as string, "legislature"),
       limit: parseIntFlag(args.limit as string, "limit") ?? 300,
     });
@@ -1368,7 +1374,7 @@ const CAPABILITIES: { cmd: string; terms: string[]; desc: string }[] = [
   { cmd: "groups list / group-members list", terms: ["gruppo", "gruppi", "composizione gruppo"], desc: "Gruppi parlamentari Camera" },
   { cmd: "rank list / group-rank list", terms: ["classifica", "ranking", "più attivi", "top", "per gruppo"], desc: "Classifiche per persona o per gruppo" },
   { cmd: "gov-members list", terms: ["ministro", "governo", "sottosegretario", "rimpasto"], desc: "Membri del governo" },
-  { cmd: "committees list / committee-members list", terms: ["commissioni", "membri commissione"], desc: "Commissioni Senato e loro membri" },
+  { cmd: "committees list / committee-members list", terms: ["commissioni", "membri commissione"], desc: "Commissioni Camera+Senato e loro membri" },
   { cmd: "speeches list", terms: ["intervento", "discorso", "aula"], desc: "Interventi in aula" },
   { cmd: "sparql query", terms: ["sparql", "query libera", "dato non coperto"], desc: "Query SPARQL libera (ultima risorsa)" },
 ];
@@ -1519,7 +1525,7 @@ const main = defineCommand({
       subCommands: { list: govMembersList },
     }),
     committees: defineCommand({
-      meta: { name: "committees", description: "Senato committees" },
+      meta: { name: "committees", description: "Camera+Senato committees" },
       subCommands: { list: committeesList },
     }),
     "bill-progress": defineCommand({

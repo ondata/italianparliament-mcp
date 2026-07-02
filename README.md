@@ -120,7 +120,7 @@ Il testo integrale di un DDL non è nei dati aperti SPARQL (solo metadati). Ques
 | `senator-group-members list` | Composizione di un gruppo al Senato a una certa data (con nome del senatore, colonna `senator_name`) |
 | `roles list` | Incarichi parlamentari con ruolo (presidente, vicepresidente, segretario...) |
 | `sessions list` | Sedute della Camera con numero progressivo |
-| `committees list` | Commissioni Senato; con filtro legislatura mostra solo quelle attive e il numero di sedute |
+| `committees list` | Commissioni Camera e Senato (`--chamber`), con categoria e numero di sedute; Camera filtrata per legislatura (default 19) |
 | `committee-members list` | Membri di una commissione del Senato |
 
 ### Analisi
@@ -247,10 +247,11 @@ Quali interrogazioni ha presentato un deputato?
 italianparliament aic list --deputy-uri http://dati.camera.it/ocd/deputato.rdf/d308001_19
 ```
 
-Quali commissioni del Senato sono attive nella XIX legislatura e quante sedute hanno fatto?
+Quali commissioni sono attive nella XIX legislatura e quante sedute hanno fatto?
 
 ```
 italianparliament committees list --legislature 19
+italianparliament committees list --chamber camera --legislature 19
 ```
 
 A che punto è un DDL al Senato?

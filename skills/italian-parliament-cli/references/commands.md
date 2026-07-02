@@ -254,9 +254,12 @@ italianparliament roles list --legislature 19
 italianparliament sessions list --legislature 19
 ```
 
-### `committees list`
+### `committees list` (Camera + Senato)
+Commissioni parlamentari con categoria (permanente/speciale/inchiesta/comitato) e numero di sedute.
 ```bash
 italianparliament committees list --legislature 19
+italianparliament committees list --chamber camera --legislature 19
+italianparliament committees list --chamber senato
 ```
 
 ---
