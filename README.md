@@ -390,7 +390,7 @@ I dati provengono dagli endpoint SPARQL ufficiali di Camera e Senato. Alcune lim
 
 Questo progetto e un porting in TypeScript ispirato a [italyParlR](https://github.com/paride92/italyParlR), un pacchetto R per interrogare i dati aperti del Parlamento italiano via SPARQL. Le query SPARQL di quel pacchetto hanno fornito un punto di partenza; molte altre sono state sviluppate autonomamente per coprire nuove risorse e casi d'uso.
 
-Per le esigenze giornalistiche e le funzionalità da coprire prendiamo come riferimento [openparlamento](https://parlamento19.openpolis.it/) di Openpolis: schede parlamentari, iter dei DDL, votazioni, gruppi, indicatori e classifiche sono una guida alle user story che l'MCP punta a soddisfare.
+[openparlamento](https://parlamento19.openpolis.it/) di Openpolis è stato e resterà sempre un riferimento e una fonte di ispirazione per le esigenze giornalistiche e le funzionalità da coprire.
 
 ## Licenza
 
