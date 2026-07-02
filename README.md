@@ -184,6 +184,7 @@ italianparliament vote-detail show --vote-uri http://dati.camera.it/ocd/votazion
 Quali votazioni ci sono state questa settimana?
 
 ```
+# sostituisci le date con l'intervallo corrente
 italianparliament votes list --legislature 19 --date-from 2026-04-07 --date-to 2026-04-12
 ```
 
@@ -208,6 +209,7 @@ italianparliament bill-rapporteurs list --bill-uri http://dati.camera.it/ocd/att
 Quali interrogazioni sono state presentate questo mese?
 
 ```
+# sostituisci la data con l'inizio del mese corrente
 italianparliament aic list --legislature 19 --date-from 2026-04-01
 ```
 
@@ -238,6 +240,7 @@ italianparliament committee-sessions list --ddl-uri http://dati.senato.it/ddl/56
 Quali interrogazioni al Senato questa settimana?
 
 ```
+# sostituisci la data con l'inizio della settimana corrente
 italianparliament sindacato-ispettivo list --legislature 19 --date-from 2026-04-07
 ```
 
