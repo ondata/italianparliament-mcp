@@ -1158,6 +1158,7 @@ const committeeSessionsList = defineCommand({
     "date-to": { type: "string", description: 'End date inclusive. Senato: AAAA-MM-GG; Camera: AAAAMMGG or AAAA-MM-GG.' },
     limit: { type: "string", default: "200" },
     offset: { type: "string", default: "0" },
+    "count-only": { type: "boolean", description: "Return only the session count, not the full list." },
     format: { type: "string", default: "csv" },
   },
   async run({ args }) {
@@ -1175,6 +1176,7 @@ const committeeSessionsList = defineCommand({
       dateTo: (args["date-to"] as string) || undefined,
       limit: parseIntFlag(args.limit as string, "limit") ?? 200,
       offset: Number(args.offset ?? 0),
+      countOnly: args["count-only"] === true,
     });
     emit(result, parseFormat(args.format as string));
   },

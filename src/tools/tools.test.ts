@@ -148,6 +148,19 @@ describe("Camera tools", () => {
     expect(giorgia?.gender).toBe("female");
   }, 30000);
 
+  // Regressione: "nome cognome" deve funzionare anche con un secondo nome in
+  // mezzo (label anagrafica "Elena Ethel Schlein"). Prima falliva perché il
+  // match era su sottostringa contigua invece che per token.
+  it("search: finds middle-name person by 'first last'", async () => {
+    const result = await searchTool.execute({
+      name: "Elena Schlein",
+      chamber: "camera",
+      limit: 10,
+    });
+    const schlein = result.rows.find((r) => r.last_name === "Schlein");
+    expect(schlein).toBeDefined();
+  }, 30000);
+
   it("gov-members: returns Meloni government members", async () => {
     const result = await govMembersTool.execute({ legislature: 19, limit: 5, offset: 0 });
     expect(result.rows.length).toBe(5);

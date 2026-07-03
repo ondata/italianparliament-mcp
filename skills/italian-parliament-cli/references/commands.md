@@ -193,7 +193,11 @@ italianparliament committee-sessions list --committee-name femminicidio --chambe
 italianparliament committee-sessions list --committee-name giustizia --chamber senato --date-from 2026-05-01 --date-to 2026-05-31
 # o per URI diretto
 italianparliament committee-sessions list --committee-uri http://dati.camera.it/ocd/organo.rdf/o19_3941 --chamber camera
+# solo il conteggio (es. "quante audizioni ha svolto la commissione"): output chamber,count
+italianparliament committee-sessions list --committee-name femminicidio --chamber camera --count-only
 ```
+
+Con `--count-only` restituisce solo il numero di sedute (una riga per ramo), senza scaricare l'elenco completo — ideale per i conteggi.
 
 > Le commissioni bicamerali (es. inchiesta femminicidio) hanno attività esposta solo dalla Camera.
 

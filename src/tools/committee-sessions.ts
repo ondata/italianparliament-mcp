@@ -47,6 +47,12 @@ const inputSchema = z.object({
     .describe('Data finale (inclusiva). Senato: "AAAA-MM-GG"; Camera: "AAAAMMGG" o "AAAA-MM-GG".'),
   limit: z.number().int().min(1).max(1000).default(200),
   offset: z.number().int().min(0).default(0),
+  countOnly: z
+    .boolean()
+    .optional()
+    .describe(
+      "Restituisce solo il numero di sedute invece dell'elenco completo. Ideale per conteggi rapidi (es. quante audizioni ha svolto una commissione) senza scaricare tutte le righe.",
+    ),
 });
 
 const columns = [
@@ -172,6 +178,29 @@ OFFSET ${opts.offset}`;
   });
 }
 
+/** Conteggio sedute Camera (query leggera: niente OPTIONAL/GROUP_CONCAT). */
+async function countCamera(
+  organoUri: string,
+  opts: { dateFrom?: string; dateTo?: string },
+): Promise<string> {
+  const filters: string[] = [];
+  const fromIso = toIso(opts.dateFrom);
+  const toIso2 = toIso(opts.dateTo);
+  if (fromIso) filters.push(`FILTER(?date >= "${isoToCompact(fromIso)}")`);
+  if (toIso2) filters.push(`FILTER(?date <= "${isoToCompact(toIso2)}")`);
+
+  const query = `${OCD_PREFIXES}
+SELECT (COUNT(DISTINCT ?seduta) AS ?count)
+WHERE {
+  ?seduta a ocd:seduta ;
+          ocd:rif_organo <${organoUri}> ;
+          dc:date ?date .
+  ${filters.join("\n  ")}
+}`;
+  const results = await cdQuery(query);
+  return flattenBindings(results)[0]?.count ?? "0";
+}
+
 // --- Senato -----------------------------------------------------------------
 
 async function resolveSenatoCommissione(
@@ -276,6 +305,47 @@ OFFSET ${opts.offset}`;
   }));
 }
 
+/** Conteggio sedute in cui un DDL è stato trattato (modalità iter). */
+async function countSenatoByDdl(ddlUri: string): Promise<string> {
+  const query = `${OSR_PREFIXES}
+SELECT (COUNT(DISTINCT ?seduta) AS ?count)
+WHERE {
+  ?int a osr:Intervento ; osr:oggetto ?o ; osr:seduta ?seduta .
+  ?o osr:relativoA <${ddlUri}> .
+}`;
+  const results = await snQuery(query);
+  return flattenBindings(results)[0]?.count ?? "0";
+}
+
+/** Conteggio sedute di una commissione Senato. */
+async function countSenatoByCommission(
+  commissioneUri: string,
+  opts: { dateFrom?: string; dateTo?: string },
+): Promise<string> {
+  const filters: string[] = [];
+  const fromIso = toIso(opts.dateFrom);
+  const toIso2 = toIso(opts.dateTo);
+  if (fromIso)
+    filters.push(
+      `FILTER(?date >= "${fromIso}"^^<http://www.w3.org/2001/XMLSchema#date>)`,
+    );
+  if (toIso2)
+    filters.push(
+      `FILTER(?date <= "${toIso2}"^^<http://www.w3.org/2001/XMLSchema#date>)`,
+    );
+
+  const query = `${OSR_PREFIXES}
+SELECT (COUNT(DISTINCT ?seduta) AS ?count)
+WHERE {
+  ?seduta a osr:SedutaCommissione ;
+          osr:commissione <${commissioneUri}> ;
+          osr:dataSeduta ?date .
+  ${filters.join("\n  ")}
+}`;
+  const results = await snQuery(query);
+  return flattenBindings(results)[0]?.count ?? "0";
+}
+
 // --- orchestration ----------------------------------------------------------
 
 export const committeeSessionsTool: Tool<typeof inputSchema> = {
@@ -290,12 +360,20 @@ export const committeeSessionsTool: Tool<typeof inputSchema> = {
     "italianparliament committee-sessions list --ddl-uri http://dati.senato.it/ddl/56260",
     "italianparliament committee-sessions list --committee-uri http://dati.camera.it/ocd/organo.rdf/o19_3941 --chamber camera",
     "italianparliament committee-sessions list --committee-name femminicidio --chamber camera",
+    "italianparliament committee-sessions list --committee-name femminicidio --chamber camera --count-only",
     "italianparliament committee-sessions list --committee-uri http://dati.senato.it/commissione/0-2 --chamber senato --date-from 2026-05-01 --date-to 2026-05-31",
     "italianparliament committee-sessions list --committee-name giustizia --chamber both --legislature 19",
   ],
   async execute(input) {
     // Modalità (1): iter di un DDL — retrocompatibile, sempre Senato.
     if (input.ddlUri) {
+      if (input.countOnly) {
+        const c = await countSenatoByDdl(input.ddlUri);
+        return {
+          rows: [{ chamber: "senato", count: c }],
+          columns: ["chamber", "count"],
+        };
+      }
       const rows = await querySenatoByDdl(input.ddlUri, {
         limit: input.limit,
         offset: input.offset,
@@ -349,6 +427,35 @@ export const committeeSessionsTool: Tool<typeof inputSchema> = {
           `Nessuna commissione trovata per il nome "${input.committeeName}" (chamber: ${unresolved.join(", ")}).`,
         );
       }
+    }
+
+    // Conteggio: una riga per ramo interrogato (query leggera, no elenco).
+    if (input.countOnly) {
+      const countRows: Array<{ chamber: string; count: string }> = [];
+      if ((chamber === "camera" || chamber === "both") && camUri) {
+        countRows.push({
+          chamber: "camera",
+          count: await countCamera(camUri, {
+            dateFrom: input.dateFrom,
+            dateTo: input.dateTo,
+          }),
+        });
+      }
+      if ((chamber === "senato" || chamber === "both") && senUri) {
+        countRows.push({
+          chamber: "senato",
+          count: await countSenatoByCommission(senUri, {
+            dateFrom: input.dateFrom,
+            dateTo: input.dateTo,
+          }),
+        });
+      }
+      if (countRows.length === 0) {
+        throw new Error(
+          "Nessuna commissione risolta per il conteggio (verifica --committee-uri / --committee-name e --chamber).",
+        );
+      }
+      return { rows: countRows, columns: ["chamber", "count"] };
     }
 
     if ((chamber === "camera" || chamber === "both") && camUri) {

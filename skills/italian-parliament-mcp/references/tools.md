@@ -124,9 +124,9 @@ Voto del singolo senatore in una votazione, con il gruppo di appartenenza alla d
 - `voteType`: filtro (Favorevole/Contrario/Astenuto/Presente non votante/In congedo/missione)
 
 ### `committee-sessions`
-Sedute di commissione in cui un DDL è stato trattato (iter in commissione).
-- `ddlUri` (required): URI del DDL Senato
-- Output: data, commissione, tipo seduta, n. interventi.
+Attività delle commissioni. Due modalità: (1) iter di un DDL (`ddlUri`, Senato): sedute in cui il provvedimento è stato trattato; (2) segui una commissione (`committeeUri` o `committeeName` + `chamber`): tutte le sedute, filtrabili per data.
+- Output: data, commissione, tipo seduta, n. interventi (Camera: URL bollettino).
+- `countOnly`: restituisce solo il numero di sedute (una riga per ramo, `chamber,count`) invece dell'elenco. Usarlo per "quante audizioni/sedute ha svolto la commissione X" — evita di scaricare tutte le righe.
 
 ### `audizioni` (solo Camera)
 Audizioni delle commissioni della Camera: data, commissione, titolo (con nome/ruolo dell'audito nel testo), atti collegati, link al bollettino.

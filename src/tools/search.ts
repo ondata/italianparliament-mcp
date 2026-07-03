@@ -34,6 +34,11 @@ function sparqlEscape(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
+/** Spezza la stringa in token su spazi (scartando i vuoti). */
+function tokenize(name: string): string[] {
+  return name.trim().split(/\s+/).filter(Boolean);
+}
+
 async function searchCamera(
   name: string,
   legislature: number | undefined,
@@ -43,6 +48,15 @@ async function searchCamera(
     legislature !== undefined
       ? `FILTER(?rif_leg = <http://dati.camera.it/ocd/legislatura.rdf/repubblica_${legislature}>)`
       : "";
+  // AND per token: ogni parola deve comparire nell'etichetta (che è il nome
+  // anagrafico completo). Così "Elena Schlein" trova "Elena Ethel Schlein" e
+  // l'ordine ("Schlein Elena") è indifferente.
+  const nameFilters = tokenize(name)
+    .map(
+      (t) =>
+        `FILTER(CONTAINS(LCASE(STR(?label)), LCASE("${sparqlEscape(t)}")))`,
+    )
+    .join("\n  ");
   const query = `${OCD_PREFIXES}
 SELECT DISTINCT ?s ?label ?first_name ?last_name ?gender ?rif_leg
 WHERE {
@@ -52,7 +66,7 @@ WHERE {
   OPTIONAL { ?s foaf:surname ?last_name }
   OPTIONAL { ?s foaf:gender ?gender }
   OPTIONAL { ?s <http://dati.camera.it/ocd/rif_leg> ?rif_leg }
-  FILTER(CONTAINS(LCASE(STR(?label)), LCASE("${sparqlEscape(name)}")))
+  ${nameFilters}
   ${legFilter}
 }
 LIMIT ${limit}`;
@@ -85,7 +99,15 @@ async function searchSenato(
   const legFilter =
     legislature !== undefined ? `FILTER(?leg=${legislature})` : "";
   const activeFilter = effectiveActive ? "FILTER(!bound(?me))" : "";
-  const escaped = sparqlEscape(name);
+  // AND per token su "nome cognome": ogni parola deve comparire. L'ordine è
+  // indifferente (il token match non dipende dalla sequenza), quindi non serve
+  // più il doppio CONCAT nome/cognome + cognome/nome.
+  const nameFilters = tokenize(name)
+    .map(
+      (t) =>
+        `FILTER(CONTAINS(LCASE(CONCAT(?fn, " ", ?ln)), LCASE("${sparqlEscape(t)}")))`,
+    )
+    .join("\n  ");
 
   const query = `${OSR_PREFIXES}
 SELECT DISTINCT ?s ?fn ?ln ?leg ?me ?gen
@@ -97,7 +119,7 @@ WHERE {
   ?m osr:legislatura ?leg .
   OPTIONAL { ?m osr:fine ?me }
   OPTIONAL { ?s <http://xmlns.com/foaf/0.1/gender> ?gen }
-  FILTER(CONTAINS(LCASE(CONCAT(?fn, " ", ?ln)), LCASE("${escaped}")) || CONTAINS(LCASE(CONCAT(?ln, " ", ?fn)), LCASE("${escaped}")))
+  ${nameFilters}
   ${legFilter}
   ${activeFilter}
 }

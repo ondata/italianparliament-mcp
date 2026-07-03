@@ -99,7 +99,7 @@ In alternativa, copia la cartella `skills/<nome>/` e registrala secondo la docum
 | `sindacato-ispettivo list` | Atti di sindacato ispettivo Senato (interrogazioni, interpellanze, mozioni), filtrabile per data |
 | `senato-votes list` | Votazioni d'Assemblea del Senato con esito, contatori (favorevoli/contrari/astenuti), tipo, data e DDL collegato. Filtrabile per legislatura, data, DDL |
 | `senato-vote-detail show` | Come ha votato ogni singolo senatore in una votazione (favorevole/contrario/astenuto/presente non votante/in congedo), con il gruppo di appartenenza alla data del voto — consente il voto per gruppo |
-| `committee-sessions list` | Attività delle commissioni. Iter di un DDL (`--ddl-uri`, Senato) o tutte le sedute di una commissione per data (`--committee-uri`/`--committee-name` + `--chamber`, Camera+Senato); Camera mostra data + URL del bollettino, Senato data/tipo/interventi |
+| `committee-sessions list` | Attività delle commissioni. Iter di un DDL (`--ddl-uri`, Senato) o tutte le sedute di una commissione per data (`--committee-uri`/`--committee-name` + `--chamber`, Camera+Senato); Camera mostra data + URL del bollettino, Senato data/tipo/interventi. `--count-only` per il solo conteggio delle sedute |
 | `audizioni list` | **[CAMERA]** Audizioni delle commissioni: data, commissione, titolo (con nome/ruolo dell'audito), atti collegati e link al bollettino. Filtrabile per `--legislature`, `--committee-name`, `--keyword`, data. Leg. 19 (dato vivo) via titolo della discussione; leg. 14 (storica) via `dc:type`. Senato non coperto (via SPARQL non espone data né commissione delle audizioni) |
 
 ### Testo dei disegni di legge
