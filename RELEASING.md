@@ -6,10 +6,12 @@ più server MCP HTTP su Cloudflare Worker, skill e pacchetto `.dxt`.
 
 ## Passi per una nuova versione `X.Y.Z`
 
-1. **Allinea la versione in 3 punti** (devono restare identici):
+1. **Allinea la versione in 5 punti** (devono restare identici):
    - `package.json` → campo `version`
    - `src/server.ts` → `version:` passato a `new McpServer(...)`
    - `src/worker.ts` → campo `version` dell'info endpoint **e** il contatore `tools:` (numero di tool registrati)
+   - `src/core/client.ts` → stringa `User-Agent` (`italianparliament-mcp/X.Y.Z`)
+   - `manifest.json` → campo `version` del pacchetto DXT
 
 2. **Build e type-check** (il type-check del MCP SDK richiede heap maggiorato):
 
