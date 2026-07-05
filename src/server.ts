@@ -50,18 +50,23 @@ function describe(tool: Tool): string {
     .join("\n")}`;
 }
 
-function formatResult(result: ToolResult): string {
-  if (result.rows.length === 0) return "No results.";
+const DEFAULT_EMPTY =
+  "Nessun risultato dai dati. NON dedurre né inventare il valore: se serve, riformula (termine normativo o radice più corta per le ricerche testuali, filtro più largo) o verifica gli identificatori (URI/numero/ramo). Un vuoto è spesso un mismatch, non un dato assente.";
+
+function formatResult(result: ToolResult, emptyHint?: string): string {
+  if (result.rows.length === 0) return emptyHint ?? DEFAULT_EMPTY;
   return toJsonl(result.rows);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function makeHandler(tool: { execute(input: any): Promise<ToolResult> }) {
+function makeHandler(tool: Tool) {
   return async (input: unknown) => {
     try {
-      const result = await tool.execute(input);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await tool.execute(input as any);
       return {
-        content: [{ type: "text" as const, text: formatResult(result) }],
+        content: [
+          { type: "text" as const, text: formatResult(result, tool.emptyHint) },
+        ],
       };
     } catch (err) {
       const message =
@@ -81,7 +86,7 @@ function makeHandler(tool: { execute(input: any): Promise<ToolResult> }) {
 export function createServer(): McpServer {
   return new McpServer({
     name: "italianparliament-mcp",
-    version: "0.16.0",
+    version: "0.16.1",
   });
 }
 

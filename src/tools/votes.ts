@@ -98,7 +98,9 @@ const BOOL_COLS = new Set([
 export const votesTool: Tool<typeof inputSchema> = {
   name: "votes",
   description:
-    "[CAMERA] Lista votazioni della Camera dei Deputati con contatori (favorevoli, contrari, astenuti), esito, tipo, seduta, atto collegato. Filtrabile per parola chiave nel titolo.",
+    "[CAMERA] Lista votazioni della Camera dei Deputati con contatori (favorevoli, contrari, astenuti), esito, tipo, seduta, atto collegato. Filtrabile per parola chiave nel titolo. Nota: la keyword matcha la descrizione della votazione, che spesso è generica; se non trovi il VOTO FINALE o la FIDUCIA di un atto, filtra per intervallo di date (attorno alla data di trasmissione/approvazione dall'iter) e leggi il dettaglio con vote-detail, invece di dedurre il conteggio.",
+  emptyHint:
+    "Nessuna votazione trovata. La ricerca per keyword sulle votazioni Camera spesso manca il voto finale/fiducia: riprova filtrando per intervallo di date (dalla timeline di bill-progress) e usa vote-detail per il dettaglio. Non inventare numeri, date o esiti del voto.",
   inputSchema,
   examples: [
     "italianparliament votes list --legislature 19 --limit 50",

@@ -59,7 +59,9 @@ const columns = [
 export const senatoVotesTool: Tool<typeof inputSchema> = {
   name: "senato-votes",
   description:
-    "[SENATO] Lista votazioni dell'Assemblea del Senato con esito, contatori (favorevoli, contrari, astenuti, presenti, votanti), tipo, data seduta e DDL collegato. Filtrabile per legislatura, data e DDL. Per il voto del singolo senatore usare senato-vote-detail.",
+    "[SENATO] Lista votazioni dell'Assemblea del Senato con esito, contatori (favorevoli, contrari, astenuti, presenti, votanti), tipo, data seduta e DDL collegato. Filtrabile per legislatura, data e DDL. Per il voto del singolo senatore usare senato-vote-detail. ATTENZIONE alle votazioni di FIDUCIA: hanno ddl_uri VUOTO, quindi --ddl-uri NON le restituisce — il DDL è solo nel campo label (es. 'Disegno di legge n.1933. Votazione questione di fiducia'); per trovarle filtra per data seduta e cerca nel label. Verifica sempre il ddl_uri di una 'Votazione finale' trovata per data: può appartenere a un atto diverso (testo unificato). Riporta solo i contatori restituiti, non stimarli.",
+  emptyHint:
+    "Nessuna votazione trovata. Se filtravi per --ddl-uri e cercavi una FIDUCIA, ricorda che le fiducie hanno ddl_uri vuoto: filtra invece per --date-from/--date-to (intorno alla data di approvazione) e riconosci il DDL dal campo label. Non inventare l'esito o i contatori del voto.",
   inputSchema,
   examples: [
     "italianparliament senato-votes list --legislature 19 --limit 50",

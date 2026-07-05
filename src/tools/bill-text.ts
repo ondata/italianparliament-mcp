@@ -118,7 +118,7 @@ SELECT ?ref WHERE {
 export const billTextTool: Tool<typeof inputSchema> = {
   name: "bill-text",
   description:
-    "[CAMERA+SENATO] Link diretti al testo di un DDL, con tipo di risorsa (html/pdf/urn) e se serve un browser per scaricarli (campo auth). Pensato per dare a un orchestratore le risorse da leggere. NB: il testo integrale non è nei dati SPARQL, sta in queste pagine/PDF. Per scaricare e convertire i PDF del Senato (protetti da AWS WAF) usare la CLI 'bill-text fetch'.",
+    "[CAMERA+SENATO] Link diretti al testo di un DDL, con tipo di risorsa (html/pdf/urn) e se serve un browser per scaricarli (campo auth). Pensato per dare a un orchestratore le risorse da leggere. NB: il testo integrale non è nei dati SPARQL, sta in queste pagine/PDF: se non lo recuperi e leggi davvero, NON descrivere il contenuto della legge (articoli, soglie, importi, sanzioni) — non è un dato disponibile qui. Per scaricare e convertire i PDF del Senato (protetti da AWS WAF) usare la CLI 'bill-text fetch'.",
   inputSchema,
   examples: [
     "italianparliament bill-text links --uri http://dati.senato.it/ddl/55479",

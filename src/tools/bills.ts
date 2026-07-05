@@ -65,7 +65,9 @@ function sparqlEscape(s: string): string {
 export const billsTool: Tool<typeof inputSchema> = {
   name: "bills",
   description:
-    "[CAMERA] Lista disegni di legge (atti) della Camera dei Deputati. Filtrabile per legislatura, tipo, iniziativa (Popolare, Governo, Parlamentare, Regioni) e parola chiave nel titolo. Per i DDL del Senato usare bill-progress.",
+    "[CAMERA] Lista disegni di legge (atti) della Camera dei Deputati. Filtrabile per legislatura, tipo, iniziativa (Popolare, Governo, Parlamentare, Regioni) e parola chiave nel titolo. Per i DDL del Senato usare bill-progress. Per ricostruire l'iter completo di un atto: prendi qui l'URI Camera, poi passa a bill-progress (--uri per la timeline Camera, --number+--branch S per agganciare il DDL Senato).",
+  emptyHint:
+    "Nessun atto trovato. Il --keyword è un match letterale sul titolo formale: prova il termine normativo o una radice più corta (2-3 varianti) prima di concludere che l'atto non esiste. Non inventare estremi dell'atto.",
   inputSchema,
   examples: [
     "italianparliament bills list --legislature 19 --limit 50",
