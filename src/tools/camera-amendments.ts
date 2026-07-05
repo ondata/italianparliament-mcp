@@ -47,7 +47,14 @@ const columns = [
 const countColumns = ["sede", "count", "list_url"];
 
 async function fetchHtml(url: string): Promise<string> {
-  const res = await fetch(url, { headers: { "User-Agent": UA } });
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": UA,
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "it-IT,it;q=0.9,en;q=0.8",
+    },
+    redirect: "follow",
+  });
   if (!res.ok) {
     throw new Error(`Recupero fallito (${res.status}) su ${url}`);
   }
@@ -141,7 +148,28 @@ export const cameraAmendmentsTool: Tool<typeof inputSchema> = {
     if (!schedaUrl) {
       throw new Error(`Impossibile derivare la scheda atto da "${input.billUri}".`);
     }
-    const listUrls = schedaListUrls(await fetchHtml(schedaUrl));
+    const scheda = await fetchHtml(schedaUrl);
+    const listUrls = schedaListUrls(scheda);
+
+    if (listUrls.length === 0) {
+      // Distinzione: scheda valida senza emendamenti (legittimo) vs pagina non
+      // valida (es. blocco anti-bot che serve un 200 "diverso" ai Worker
+      // Cloudflare — la fonte camera.it è raggiungibile dalla CLI locale ma non
+      // sempre da datacenter). Se mancano i marcatori di una scheda atto reale,
+      // è il secondo caso: fallire chiaro invece di restituire un vuoto ingannevole.
+      const looksValid = /idDocumento|proposte emendativ|scheda del progetto|EMENDAMENTI/i.test(
+        scheda,
+      );
+      if (!looksValid) {
+        throw new Error(
+          `Fonte Camera non raggiungibile o pagina non valida per ${schedaUrl} ` +
+            `(scheda di ${scheda.length} byte senza i marcatori attesi). ` +
+            `Gli emendamenti Camera si recuperano via scraping HTML: alcune reti ` +
+            `(es. Worker Cloudflare) possono ricevere una risposta anti-bot. ` +
+            `Riprovare dalla CLI locale.`,
+        );
+      }
+    }
 
     if (input.countOnly) {
       const rows: Record<string, string>[] = [];
