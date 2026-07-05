@@ -273,6 +273,11 @@ SELECT ?a ?id WHERE {
         for (const r of group) {
           const a = byId.get(billBaseNumber(r.bill_number));
           if (a) r.bill_uri = a;
+          // Difesa: il numero citato nella descrizione non corrisponde ad alcun
+          // atto della legislatura (refuso/atto assente dal grafo). Non esporlo
+          // come identificativo interrogabile: il testo grezzo resta in
+          // `description`, ma `bill_number` deve solo contenere numeri verificati.
+          else r.bill_number = "";
         }
       }
     }

@@ -170,6 +170,11 @@ SELECT ?ddl ?f WHERE {
       for (const v of needing) {
         const ddl = byFase.get(v.bill_number);
         if (ddl) v.ddl_uri = ddl;
+        // Difesa: il numero citato nel label non corrisponde ad alcun DDL della
+        // legislatura (es. refuso nella fonte, "DDL n. 1994" per S.1944). Non
+        // esporlo come identificativo interrogabile: il testo grezzo resta in
+        // `label`, ma `bill_number` deve solo contenere numeri verificati.
+        else v.bill_number = "";
       }
     }
     const joinMap = (ddl: string, fn: (u: string) => string): string =>
