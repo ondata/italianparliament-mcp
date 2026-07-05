@@ -540,6 +540,48 @@ function voteTitle(desc) {
   return (desc || "Votazione").replace(/^([A-Z]+)\b/, (m) => VOTE_KINDS[m] || m);
 }
 
+/** L'atto votato: MOZ/RIS → scheda AIC; altrimenti DDL → scheda atto Camera. */
+function voteActRef(v) {
+  const leg = ((v.legislature_uri || "").match(/repubblica_(\d+)/) || [])[1] || "19";
+  const m = (v.description || "").match(/^(MOZ|RIS)\s+(\d+)-(\d+)\b/);
+  if (m) {
+    const id = `${m[2]}/${m[3].padStart(5, "0")}`;
+    return { kind: "aic", id, url: `https://aic.camera.it/aic/scheda.html?core=aic&numero=${id}&ramo=CAMERA&leg=${leg}` };
+  }
+  if (v.bill_number) {
+    return { kind: "bill", id: v.bill_number, url: `https://www.camera.it/leg${leg}/126?leg=${leg}&idDocumento=${v.bill_number}` };
+  }
+  return null;
+}
+
+function titleCase(s) {
+  return s.toLowerCase().replace(/(^|[\s'-])\p{L}/gu, (c) => c.toUpperCase());
+}
+
+/** Una sola query SPARQL risolve tutti gli atti AIC delle card: chi li ha presentati e su cosa. */
+async function enrichVoteActs(leg) {
+  const els = [...document.querySelectorAll("[data-aic]")];
+  const ids = [...new Set(els.map((el) => el.dataset.aic))];
+  if (!ids.length) return;
+  const query = `PREFIX ocd: <http://dati.camera.it/ocd/> PREFIX dc: <http://purl.org/dc/elements/1.1/> PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> `
+    + `SELECT DISTINCT ?id ?label (SUBSTR(STR(?d), 1, 700) AS ?excerpt) WHERE { `
+    + `?s a ocd:aic ; ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_${leg}> ; dc:identifier ?id ; rdfs:label ?label . `
+    + `OPTIONAL { ?s dc:description ?d } VALUES ?id { ${ids.map((i) => `"${i}"`).join(" ")} } }`;
+  const rows = await callTool("sparql", { query, endpoint: "camera" }, 12 * HOUR);
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  for (const el of els) {
+    const r = byId.get(el.dataset.aic);
+    if (!r) continue;
+    const lm = (r.label || "").match(/presentat[ao] da\s+([^(]+?)\s*\(([^)]+)\)/i);
+    const who = lm ? `${titleCase(lm[1].trim().split(/\s+/)[0])} (${groupAcronym(lm[2])})` : "";
+    const em = (r.excerpt || "").match(/premesso che:?\s*(?:\d+\)\s*)?(.{40,160})/);
+    const cut = em ? em[1].slice(0, em[1].lastIndexOf(" ")).replace(/[,;:]$/, "") : "";
+    const topic = cut ? `: «${cut}…»` : "";
+    el.textContent = who ? `di ${who}${topic}` : "";
+    if (el.textContent) gsap.from(el, { autoAlpha: 0, duration: 0.6 });
+  }
+}
+
 async function loadVotes() {
   const from = new Date(Date.now() - 60 * 86400e3).toISOString().slice(0, 10);
   const rows = await callTool("votes", { dateFrom: from, limit: 9 }, 1 * HOUR);
@@ -552,11 +594,13 @@ async function loadVotes() {
   for (const v of rows) {
     const present = Math.max(1, +v.present || (+v.in_favour + +v.against + +v.abstentions));
     const ok = v.approved === "true";
+    const ref = voteActRef(v);
     const card = document.createElement("article");
     card.className = "vote-card";
     card.innerHTML = `
       <div class="vote-date"><span>${fmtDate(v.date)} · Camera</span><span class="vote-badge ${ok ? "ok" : "no"}">${ok ? "approvata" : "respinta"}</span></div>
-      <h3 class="vote-title"><a href="${v.url}" target="_blank" rel="noopener">${voteTitle(v.description || v.title)}</a></h3>
+      <h3 class="vote-title">${voteTitle(v.description || v.title)}</h3>
+      ${ref?.kind === "aic" ? `<div class="vote-atto" data-aic="${ref.id}"></div>` : ""}
       <div class="vote-bars">
         ${[["f", "sì", v.in_favour], ["c", "no", v.against], ["a", "ast", v.abstentions]].map(([cls, lab, n]) => `
           <div class="vote-bar ${cls}">
@@ -564,9 +608,16 @@ async function loadVotes() {
             <span class="bar-track"><span class="bar-fill" data-w="${Math.round((+n / present) * 100)}"></span></span>
             <span class="bar-n">${n || 0}</span>
           </div>`).join("")}
+      </div>
+      <div class="vote-links mono">
+        ${ref ? `<a href="${ref.url}" target="_blank" rel="noopener">testo dell'atto ↗</a><span class="sep">·</span>` : ""}
+        <a href="${v.url}" target="_blank" rel="noopener">scheda votazione ↗</a>
       </div>`;
     grid.appendChild(card);
   }
+
+  const leg = ((rows[0]?.legislature_uri || "").match(/repubblica_(\d+)/) || [])[1] || "19";
+  enrichVoteActs(leg).catch((e) => console.warn("[italianparliament] enrich", e));
 
   gsap.from(grid.children, {
     autoAlpha: 0, y: 26, stagger: 0.08, duration: 0.7, ease: "power2.out",

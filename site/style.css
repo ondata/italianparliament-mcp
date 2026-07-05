@@ -304,8 +304,24 @@ h2 {
   line-height: 1.4;
   flex: 1;
 }
-.vote-title a { border: none; color: inherit; }
-.vote-title a:hover { color: var(--gold-hi); }
+.vote-atto {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.vote-atto:empty { display: none; }
+
+.vote-links {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  font-size: 0.66rem;
+  letter-spacing: 0.05em;
+}
+.vote-links a { color: var(--gold-hi); border-bottom-color: transparent; }
+.vote-links a:hover { border-bottom-color: var(--gold); }
+.vote-links .sep { color: var(--text-dim); }
 
 .vote-badge {
   font-family: var(--mono);
