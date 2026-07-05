@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>italianparliament-mcp — Il cielo del Parlamento</title>
+<meta name="description" content="Il Parlamento italiano come dati aperti, interrogabili da terminale o da un assistente AI. Una pagina viva: ogni stella è un parlamentare in carica, ogni tappa una legislatura dal 1848 a oggi.">
+<meta property="og:title" content="italianparliament-mcp — Il cielo del Parlamento">
+<meta property="og:description" content="40 strumenti per interrogare i dati aperti di Camera e Senato. Questa pagina è viva: interroga il server MCP in tempo reale.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============ HERO: il cielo ============ -->
+<header class="hero" id="hero">
+  <canvas id="sky"></canvas>
+  <div class="sky-tooltip" id="sky-tooltip" hidden></div>
+
+  <div class="hero-copy">
+    <p class="kicker"><span class="live-dot" id="live-dot"></span> <span id="live-label">interrogazione del server MCP in corso…</span></p>
+    <h1>Il cielo del<br><em>Parlamento</em></h1>
+    <p class="lede">Ogni stella qui sopra è un parlamentare in carica, ogni costellazione un gruppo. Non è un'illustrazione: questa pagina sta interrogando <strong>adesso</strong> i dati aperti di Camera e Senato, attraverso lo stesso server che puoi usare tu — da terminale o dal tuo assistente&nbsp;AI.</p>
+    <div class="hero-counters" id="hero-counters">
+      <div class="counter"><span class="num" data-count id="c-deputati">—</span><span class="cap">deputati</span></div>
+      <div class="counter"><span class="num" data-count id="c-senatori">—</span><span class="cap">senatori</span></div>
+      <div class="counter"><span class="num" data-count id="c-gruppi">—</span><span class="cap">gruppi</span></div>
+      <div class="counter"><span class="num" data-count id="c-tools">—</span><span class="cap">strumenti</span></div>
+    </div>
+    <div class="hero-actions">
+      <a class="btn btn-gold" href="#strumenti">Esplora gli strumenti</a>
+      <a class="btn btn-ghost" href="https://github.com/aborruso/italianparliament-mcp">GitHub&nbsp;↗</a>
+    </div>
+  </div>
+
+  <div class="hero-legend mono" id="sky-legend" aria-hidden="true"></div>
+  <div class="scroll-hint mono" aria-hidden="true">↓ scendi verso terra</div>
+</header>
+
+<!-- ============ LA STRADA: le legislature ============ -->
+<section class="road-section" id="strada">
+  <div class="section-head">
+    <p class="overline mono">dati live · <code>legislatures list</code></p>
+    <h2>La strada, dal <em>1848</em></h2>
+    <p class="section-lede">Dal primo Parlamento subalpino alla legislatura in corso: la serie completa arriva dall'endpoint SPARQL della Camera, ogni volta che apri questa pagina. Scendi lungo la strada.</p>
+  </div>
+  <div class="road-wrap" id="road-wrap">
+    <div class="road-fallback mono" id="road-fallback" hidden>endpoint non raggiungibile in questo momento — riprova più tardi</div>
+  </div>
+</section>
+
+<!-- ============ IN DIRETTA: votazioni ============ -->
+<section class="votes-section" id="aula">
+  <div class="section-head">
+    <p class="overline mono">dati live · <code>votes list --date-from …</code></p>
+    <h2>In diretta dall'<em>Aula</em></h2>
+    <p class="section-lede">Le ultime votazioni elettroniche della Camera, con i contatori reali: favorevoli, contrari, astenuti. È la stessa domanda che un giornalista può fare al server con una riga di comando.</p>
+  </div>
+  <div class="votes-grid" id="votes-grid">
+    <div class="votes-fallback mono" id="votes-fallback" hidden>endpoint non raggiungibile in questo momento</div>
+  </div>
+</section>
+
+<!-- ============ GLI STRUMENTI ============ -->
+<section class="tools-section" id="strumenti">
+  <div class="section-head">
+    <p class="overline mono">dati live · <code>tools/list</code> — questa lista si aggiorna da sola a ogni release</p>
+    <h2>Gli <em>strumenti</em></h2>
+    <p class="section-lede">Parlamentari, disegni di legge, votazioni, emendamenti, interventi, commissioni, interrogazioni: ogni strumento è insieme un comando CLI e un tool MCP. L'elenco qui sotto è letto in tempo reale dal server.</p>
+  </div>
+  <div class="tools-groups" id="tools-groups"></div>
+</section>
+
+<!-- ============ TRE MODI ============ -->
+<section class="use-section" id="usalo">
+  <div class="section-head">
+    <h2>Tre modi di <em>usarlo</em></h2>
+    <p class="section-lede">Stessi dati, tre porte d'ingresso. La CLI per pipeline ed export, il server MCP per parlare coi dati in linguaggio naturale, le skill per insegnare a un agente il mestiere.</p>
+  </div>
+
+  <div class="use-grid">
+    <article class="use-card">
+      <h3 class="mono">01 · Da terminale</h3>
+      <p>CSV e JSONL pronti per l'analisi. Filtri per legislatura, date, parole chiave.</p>
+      <pre class="code"><code>npm install -g @aborruso/italianparliament-mcp
+italianparliament guide</code></pre>
+      <div class="terminal" id="terminal">
+        <div class="term-bar"><span></span><span></span><span></span></div>
+        <pre class="term-body mono" id="term-body"></pre>
+      </div>
+    </article>
+
+    <article class="use-card">
+      <h3 class="mono">02 · Da Claude (MCP)</h3>
+      <p>Server remoto già in piedi su Cloudflare: nessuna installazione, si aggiunge l'endpoint e si comincia a fare domande.</p>
+      <pre class="code"><code>{
+  "mcpServers": {
+    "italianparliament": {
+      "url": "https://italianparliament-mcp
+            .andy-pr.workers.dev/mcp"
+    }
+  }
+}</code></pre>
+      <p class="note mono">— lo stesso endpoint che sta alimentando questa pagina</p>
+    </article>
+
+    <article class="use-card">
+      <h3 class="mono">03 · Con le skill</h3>
+      <p>Due Agent Skill incluse nel repo insegnano all'agente il flusso di lavoro: scoperta → URI → dettaglio, catene tra comandi.</p>
+      <pre class="code"><code>npx skills add aborruso/italianparliament-mcp \
+  --skill italian-parliament-cli
+npx skills add aborruso/italianparliament-mcp \
+  --skill italian-parliament-mcp</code></pre>
+    </article>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <div class="footer-inner">
+    <p class="footer-star">✦</p>
+    <p>Dati aperti di <a href="https://dati.camera.it">dati.camera.it</a> e <a href="https://dati.senato.it">dati.senato.it</a> (SPARQL / Linked Open Data), interrogati dal vivo via <a href="https://italianparliament-mcp.andy-pr.workers.dev">Cloudflare Worker MCP</a>.</p>
+    <p class="mono footer-links">
+      <a href="https://github.com/aborruso/italianparliament-mcp">github</a> ·
+      <a href="https://www.npmjs.com/package/@aborruso/italianparliament-mcp">npm</a> ·
+      <a href="https://github.com/aborruso/italianparliament-mcp#readme">documentazione</a>
+    </p>
+    <p class="footer-meta mono" id="footer-meta"></p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

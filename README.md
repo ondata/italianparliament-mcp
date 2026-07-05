@@ -4,6 +4,8 @@ Strumento per interrogare i dati aperti del Parlamento italiano — Camera dei D
 
 Pensato per giornalisti, ricercatori e analisti parlamentari: ogni comando restituisce dati strutturati (CSV o JSONL) pronti per l'analisi.
 
+> 🌌 **[Il cielo del Parlamento](https://aborruso.github.io/italianparliament-mcp/)** — la pagina che racconta il progetto: ogni stella è un parlamentare in carica, ogni tappa una legislatura dal 1848. I dati arrivano in tempo reale dal server MCP, a ogni visita.
+
 Usabile in tre modi:
 
 - **Da terminale** — `italianparliament <risorsa> <azione>` (CLI installabile via npm)

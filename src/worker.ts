@@ -60,7 +60,14 @@ export default {
         });
 
         await server.connect(transport);
-        return await transport.handleRequest(request);
+        const response = await transport.handleRequest(request);
+        const headers = new Headers(response.headers);
+        headers.set("Access-Control-Allow-Origin", "*");
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers,
+        });
       } catch (err) {
         return new Response(
           JSON.stringify({
