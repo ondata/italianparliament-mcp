@@ -22,6 +22,7 @@ import { billProgressTool } from "./bill-progress.js";
 import { billSignatoriesTool } from "./bill-signatories.js";
 import { billRapporteursTool } from "./bill-rapporteurs.js";
 import { amendmentsTool } from "./amendments.js";
+import { cameraAmendmentsTool } from "./camera-amendments.js";
 import { documentsTool } from "./documents.js";
 import { sparqlTool } from "./sparql.js";
 import { rankTool } from "./rank.js";
@@ -64,6 +65,7 @@ export const tools: Tool[] = [
   billSignatoriesTool,
   billRapporteursTool,
   amendmentsTool,
+  cameraAmendmentsTool,
   documentsTool,
   sparqlTool,
   rankTool,
@@ -110,6 +112,7 @@ export {
   billSignatoriesTool,
   billRapporteursTool,
   amendmentsTool,
+  cameraAmendmentsTool,
   documentsTool,
   sparqlTool,
   rankTool,

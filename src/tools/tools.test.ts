@@ -22,6 +22,7 @@ import { committeesTool } from "./committees.js";
 import { billProgressTool } from "./bill-progress.js";
 import { billSignatoriesTool } from "./bill-signatories.js";
 import { amendmentsTool } from "./amendments.js";
+import { cameraAmendmentsTool } from "./camera-amendments.js";
 import { documentsTool } from "./documents.js";
 
 // Integration tests — hit real SPARQL endpoints.
@@ -295,6 +296,39 @@ describe("Senato tools", () => {
         offset: 0,
       }),
     ).rejects.toThrow(/solo-Senato/);
+  });
+
+  it("camera-amendments: scrapes counts per sede (sentinel: AC 2696 ref=37/ass=25)", async () => {
+    const result = await cameraAmendmentsTool.execute({
+      billUri: "http://dati.camera.it/ocd/attocamera.rdf/ac19_2696",
+      countOnly: true,
+      limit: 2000,
+    });
+    const bySede = Object.fromEntries(result.rows.map((r) => [r.sede, Number(r.count)]));
+    expect(bySede["referente"]).toBe(37);
+    expect(bySede["assemblea"]).toBe(25);
+  }, 30000);
+
+  it("camera-amendments: lists amendments with number and signatory (AC 2696)", async () => {
+    const result = await cameraAmendmentsTool.execute({
+      billUri: "http://dati.camera.it/ocd/attocamera.rdf/ac19_2696",
+      countOnly: false,
+      limit: 2000,
+    });
+    expect(result.rows.length).toBe(62);
+    expect(result.rows[0]).toHaveProperty("number");
+    expect(result.rows[0]).toHaveProperty("first_signatory");
+    expect(result.rows[0].text_url).toMatch(/getPropostaEmendativa\.aspx/);
+  }, 30000);
+
+  it("camera-amendments: rejects a Senato URI (offline guard)", async () => {
+    await expect(
+      cameraAmendmentsTool.execute({
+        billUri: "http://dati.senato.it/ddl/60131",
+        countOnly: false,
+        limit: 2000,
+      }),
+    ).rejects.toThrow(/atto Camera/);
   });
 
   it("documents: returns documents for legislature 19", async () => {

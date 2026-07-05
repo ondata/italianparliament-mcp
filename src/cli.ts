@@ -21,6 +21,7 @@ import { govMembersTool } from "./tools/gov-members.js";
 import { committeesTool } from "./tools/committees.js";
 import { billProgressTool } from "./tools/bill-progress.js";
 import { billSignatoriesTool } from "./tools/bill-signatories.js";
+import { cameraAmendmentsTool } from "./tools/camera-amendments.js";
 import { billRapporteursTool } from "./tools/bill-rapporteurs.js";
 import { amendmentsTool } from "./tools/amendments.js";
 import { documentsTool } from "./tools/documents.js";
@@ -888,6 +889,34 @@ const amendmentsList = defineCommand({
   },
 });
 
+const cameraAmendmentsList = defineCommand({
+  meta: {
+    name: "list",
+    description: withExamples(
+      "List Camera amendments (proposte emendative) for an atto, by sede. Source: documenti.camera.it HTML app (not LOD).",
+      cameraAmendmentsTool.examples,
+    ),
+  },
+  args: {
+    "bill-uri": {
+      type: "string",
+      description: "Full URI of a Camera atto (es. http://dati.camera.it/ocd/attocamera.rdf/ac19_2696)",
+      required: true,
+    },
+    "count-only": { type: "boolean", description: "Return only the amendment count per sede" },
+    limit: { type: "string", default: "2000" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await runTool(cameraAmendmentsTool, {
+      billUri: args["bill-uri"] as string,
+      countOnly: Boolean(args["count-only"]),
+      limit: parseIntFlag(args.limit as string, "limit") ?? 2000,
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
 const rankList = defineCommand({
   meta: {
     name: "list",
@@ -1581,6 +1610,10 @@ const main = defineCommand({
     amendments: defineCommand({
       meta: { name: "amendments", description: "Senato amendments" },
       subCommands: { list: amendmentsList },
+    }),
+    "camera-amendments": defineCommand({
+      meta: { name: "camera-amendments", description: "Camera amendments (proposte emendative, via HTML app)" },
+      subCommands: { list: cameraAmendmentsList },
     }),
     documents: defineCommand({
       meta: { name: "documents", description: "Senato parliamentary documents" },

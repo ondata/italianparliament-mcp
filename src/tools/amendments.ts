@@ -56,10 +56,9 @@ export const amendmentsTool: Tool<typeof inputSchema> = {
     if (input.ddlUri && !input.ddlUri.includes("dati.senato.it")) {
       throw new Error(
         `amendments è un tool solo-Senato: l'URI "${input.ddlUri}" non è del Senato ` +
-          `(atteso http://dati.senato.it/ddl/...). Gli emendamenti della Camera NON sono ` +
-          `pubblicati nel LOD come entità: l'unica traccia è testuale nelle descrizioni ` +
-          `delle votazioni (usa il tool votes e filtra la descrizione). Un risultato vuoto ` +
-          `qui non significa assenza di emendamenti alla Camera.`,
+          `(atteso http://dati.senato.it/ddl/...). Per gli emendamenti della Camera usa il ` +
+          `tool 'camera-amendments' (fonte: app HTML documenti.camera.it, non LOD). Un ` +
+          `risultato vuoto qui non significa assenza di emendamenti alla Camera.`,
       );
     }
     const legFilter = input.legislature

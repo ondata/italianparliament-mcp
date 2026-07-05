@@ -23,6 +23,7 @@ import { billProgressTool } from "./tools/bill-progress.js";
 import { billSignatoriesTool } from "./tools/bill-signatories.js";
 import { billRapporteursTool } from "./tools/bill-rapporteurs.js";
 import { amendmentsTool } from "./tools/amendments.js";
+import { cameraAmendmentsTool } from "./tools/camera-amendments.js";
 import { documentsTool } from "./tools/documents.js";
 import { sparqlTool } from "./tools/sparql.js";
 import { rankTool } from "./tools/rank.js";
@@ -108,6 +109,7 @@ export function registerAll(server: McpServer): void {
     billSignatoriesTool,
     billRapporteursTool,
     amendmentsTool,
+    cameraAmendmentsTool,
     documentsTool,
     sparqlTool,
     rankTool,
