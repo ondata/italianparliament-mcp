@@ -18,6 +18,17 @@ Gli **emendamenti della Camera non sono modellati nel LOD OCD**. Verificato il 2
 
 **Conseguenza operativa**: il tool `amendments` (oggi `osr:Emendamento`, solo Senato) non è estendibile alla Camera via SPARQL — non c'è dato da interrogare. Vedi issue #19. Per gli emendamenti *votati* si può risalire dal testo delle votazioni collegate all'atto.
 
+## Il dato esiste fuori dal LOD: l'app HTML `getProposteEmendative`
+
+Verificato il 2026-07-05 (browser + curl): pur **assenti dal LOD**, gli emendamenti Camera sono pubblicati integralmente dall'app HTML `https://documenti.camera.it/apps/emendamenti/getProposteEmendative.aspx`, **attiva anche per la legislatura 19**, per singolo atto e per sede (referente/Assemblea), con articolo, numero, primo firmatario e link al testo del singolo emendamento.
+
+- **Nessuna API**: la pagina è HTML renderizzato lato server (traffico ispezionato: solo il documento `.aspx` + asset statici, zero XHR/JSON). Fruibile solo via **scraping**. Il conteggio "(N)" nell'intestazione è invece calcolato lato client (JS): via `curl` risulta vuoto — non affidabile.
+- **URL non costruibile a mano**: i codici sede/lettura dell'URN (`tipoSeduta`, `sedeEsame`, il ramo `A`, il codice commissione `com:NN`) non sono derivabili dal solo numero d'atto. L'URL corretto va **estratto dalla scheda atto** (`www.camera.it/leg{leg}/126?idDocumento={num}` → pulsante EMENDAMENTI → sezioni "in sede referente"/"in Assemblea" → link `getProposteEmendative.aspx`). La scheda espone quei link **lato server** (recuperabili via curl).
+- **Àncore stabili per il parsing**: intestazione articolo `tr.rigaArticoloNormale` con `id="cmd.art..<ART>.<n>"`; singolo emendamento `tr.normale` con `id="tr.id...."`, link numero `a[href*="idPropostaEmendativa="]`, firmatario `a[href*="idPersona="]`. Contare `idPropostaEmendativa` = conteggio esatto (verificato: AC 2696 → referente 37, Assemblea 25, coincide col numero mostrato dal browser).
+- **Esito**: non presente nelle liste cumulative "in ordine di pubblicazione" (cella vuota); vive nella vista per-seduta `getProposteEmendativeSeduta.aspx?...&dataSeduta=YYYYMMDD`.
+
+Il tool `camera-amendments` (dalla v0.14.0) implementa questa pipeline (cheerio/slim). Advocacy verso il gestore: il dato strutturato esiste già a monte per generare quelle pagine, esporlo come LOD (o endpoint JSON/XML per-atto) avrebbe costo marginale e colmerebbe l'asimmetria con il Senato (`osr:Emendamento`).
+
 Nota Senato: l'emendamento esiste come `osr:Emendamento`, ma il dataset appare non popolato per i DDL 2026 (solo inizio legislatura). Da tracciare a parte.
 
 # Citations

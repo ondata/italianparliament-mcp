@@ -1,5 +1,9 @@
 # LOD wiki — log
 
+## 2026-07-05
+
+* **Update**: [Emendamenti (assenti dal LOD)](/camera/assenti.md) — aggiunta la sezione "Il dato esiste fuori dal LOD: l'app HTML `getProposteEmendative`". Verificato (browser + curl) che gli emendamenti Camera, pur assenti dal LOD OCD, sono pubblicati integralmente dall'app HTML `documenti.camera.it/apps/emendamenti` (attiva leg. 19), per atto e per sede, con articolo/numero/firmatario/link testo. **Nessuna API** (HTML server-rendered, il conteggio "(N)" è JS → vuoto via curl); URL non costruibile a mano (URN con sede/lettura/`com:NN` → estrarre dalla scheda atto); àncore di parsing stabili (`tr.rigaArticoloNormale`, `tr.normale`, `idPropostaEmendativa`, `idPersona`); conteggio esatto contando `idPropostaEmendativa` (AC 2696: referente 37, Assemblea 25). Esito solo nella vista per-seduta. Implementato nel tool `camera-amendments` (v0.14.0, cheerio/slim).
+
 ## 2026-07-02
 
 * **Creation**: [Freschezza del dato e cosa fa fede sull'approvazione](/freschezza-e-autorevolezza.md) (Gotcha, trasversale) — sondato il segnale di freschezza sui due endpoint (2026-07-02): Camera espone `dcterms:modified` sui `void:Dataset` ma **congelato a feb 2024** su dataset vivi fino a metà 2026; Senato **non ha** metadati di freschezza (le 926 triple `dcterms:modified` sono interni Virtuoso del 2012). Conseguenza: un "non trovato" su dato recente è ambiguo (non caricato / assente / non avvenuto). Documentata la gerarchia di autorevolezza sull'esito (resoconto stenografico → scheda iter → GU) e la distinzione critica "approvato da un ramo" ≠ "legge".

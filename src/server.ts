@@ -38,6 +38,7 @@ import { groupRankTool } from "./tools/group-rank.js";
 import { committeeSessionsTool } from "./tools/committee-sessions.js";
 import { personCareerTool } from "./tools/person-career.js";
 import { peopleTool } from "./tools/people.js";
+import { audizioniTool } from "./tools/audizioni.js";
 import type { Tool, ToolResult } from "./tools/types.js";
 import { toJsonl } from "./core/format.js";
 import { SparqlError } from "./core/client.js";
@@ -79,7 +80,7 @@ function makeHandler(tool: { execute(input: any): Promise<ToolResult> }) {
 export function createServer(): McpServer {
   return new McpServer({
     name: "italianparliament-mcp",
-    version: "0.13.1",
+    version: "0.14.0",
   });
 }
 
@@ -124,6 +125,7 @@ export function registerAll(server: McpServer): void {
     committeeSessionsTool,
     personCareerTool,
     peopleTool,
+    audizioniTool,
   ];
 
   for (const tool of allTools) {
