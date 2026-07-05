@@ -1,5 +1,11 @@
 # italianparliament-mcp
 
+[![npm version](https://img.shields.io/npm/v/@aborruso/italianparliament-mcp)](https://www.npmjs.com/package/@aborruso/italianparliament-mcp)
+[![GitHub](https://img.shields.io/badge/github-aborruso%2Fitalianparliament--mcp-blue?logo=github)](https://github.com/aborruso/italianparliament-mcp)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/aborruso/italianparliament-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Newsletter](https://img.shields.io/badge/newsletter-ondata-FF6719?logo=substack)](https://ondata.substack.com/)
+
 Strumento per interrogare i dati aperti del Parlamento italiano — Camera dei Deputati (`dati.camera.it`) e Senato della Repubblica (`dati.senato.it`).
 
 Pensato per giornalisti, ricercatori e analisti parlamentari: ogni comando restituisce dati strutturati (CSV o JSONL) pronti per l'analisi.
