@@ -13,7 +13,9 @@ Gli atti di sindacato ispettivo (`ocd:aic`: interrogazioni, interpellanze, mozio
 
 `dc:date` è la data di **presentazione** in formato `AAAAMMGG`. Sugli atti modificati dopo la presentazione diventa **composta**: `AAAAMMGG-AAAAMMGG` (presentazione-modifica). Es. l'interrogazione a risposta immediata 3/02760 (question time del 1 luglio 2026) ha `dc:date = "20260630-20260701"`: presentata il 30 giugno, trattata in Aula il 1 luglio.
 
-Trappola: un filtro sull'intera stringa si rompe sui record compositi (~62% degli aic leg. 19). Isolare la presentazione con `SUBSTR(STR(?date),1,8)`. Ma così si filtra **solo la presentazione**: un `--date-to 2026-07-01` NON trova gli atti *trattati* il 1 luglio ma presentati il giorno prima.
+Trappola: un filtro sull'intera stringa si rompe sui record compositi (~62% degli aic leg. 19). Isolare le due date con funzioni stringa: presentazione = `SUBSTR(STR(?date),1,8)`; modifica = secondo gruppo del composto, estratto con `REPLACE(STR(?date),"^([0-9]{8})-([0-9]{8}).*$","$2")` (sui formati semplici resta la presentazione). Un filtro sulla **sola** presentazione NON trova gli atti *trattati* il 1 luglio ma presentati il giorno prima: per il question time serve matchare **anche** la modifica.
+
+Attenzione a due trappole Virtuoso su queste espressioni (vedi [Trappole Virtuoso — funzioni stringa](../trappole-virtuoso-funzioni-stringa.md)): (1) `SUBSTR` con range oltre la lunghezza **aborta** la query (niente short-circuit nell'`&&`) → estrarre la modifica con `REPLACE`, non con `SUBSTR(...,10,8)`; (2) `>=`/`<=` sul risultato di `SUBSTR`/`REPLACE` fa un confronto **numerico** che dà 0 righe → va forzato lessicografico con `STR(...)` attorno all'espressione.
 
 # `ocd:endDate`: conclusione/trattazione (strutturata, filtrabile)
 
@@ -27,8 +29,8 @@ Sull'`ocd:aic` **non esiste** un `ocd:rif_seduta` (né analogo) verso la seduta 
 
 # Regola per il tooling
 
-- `--date-from/--date-to` filtra la **presentazione** (`SUBSTR(dc:date,1,8)`): documentarlo in `--help`.
-- Per "cosa è stato trattato/concluso" usare `ocd:endDate` (colonna + filtro dedicato). Buona approssimazione, non esatta per singola seduta.
+- `--date-from/--date-to` combacia se cade nell'intervallo la **presentazione** (`SUBSTR(dc:date,1,8)`) **oppure** la **modifica** (secondo gruppo del composto, via `REPLACE`). Così il question time cercato per la sua data d'Aula (= modifica) viene trovato, senza aggiungere un flag dedicato. Implementato in `src/tools/aic.ts`.
+- `ocd:endDate` (= conclusione/risoluzione) resta un'alternativa più **grossolana** (aggrega tipi eterogenei chiusi nella stessa finestra, traccia a più sedute): la data di modifica dentro `dc:date` è più precisa per la singola trattazione d'Aula, quindi preferita.
 - Il filtro per singola seduta non è fattibile in modo pulito: numero seduta solo in `dc:description`.
 
 # Citations

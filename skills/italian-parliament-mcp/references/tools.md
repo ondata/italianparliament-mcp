@@ -67,6 +67,7 @@ Atti di indirizzo e controllo (interrogazioni, interpellanze, mozioni). Il testo
 - `deputyUri`: filtra per deputato
 - `keyword`: cerca nel testo (label/titolo/description) a confini di parola, es. un tema ("CETA" non matcha "Acetamiprid")
 - `type`: filtra per tipo (match parziale su `dc:type`, fallback sul label — "immediata" trova le interrogazioni a risposta immediata/question time anche quando `dc:type` le etichetta genericamente "orale")
+- `dateFrom`/`dateTo`: intervallo data. Combacia sia sulla presentazione sia sulla modifica: per i question time (a risposta immediata) la modifica è la data di **trattazione in Aula**, quindi filtra per quel giorno per ricostruirli (es. `type: "immediata"`, `dateFrom`/`dateTo` = giorno d'Aula).
 - `limit`: max risultati
 
 ### `votes`

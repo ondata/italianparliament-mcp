@@ -19,6 +19,7 @@ Quirk noti dell'endpoint Senato (`dati.senato.it/sparql`, triplestore Virtuoso) 
 | **Legislatura come integer nudo** | Filtrare con `FILTER(?leg = 19)` (integer), non stringa né URI. |
 | **Subquery aggregate fragili** | Alcune subquery con `COUNT` funzionano, altre no o danno risultati vuoti/inaffidabili a seconda della forma. Non fare affidamento su subquery aggregate complesse: preferire `GROUP BY` + `MIN`/`MAX`/`COUNT` al livello esterno quando possibile. |
 | **`osr:dataPresentazione` è `xsd:date` tipizzato** | I `FILTER` sulle date Senato richiedono `"AAAA-MM-GG"^^xsd:date` (la Camera usa stringhe `AAAAMMGG` plain). |
+| **`SUBSTR` fuori range aborta; `>=`/`<=` su funzioni stringa è numerico** | Trappole del motore Virtuoso comuni a entrambi gli endpoint: vedi [Trappole Virtuoso — funzioni stringa](../trappole-virtuoso-funzioni-stringa.md). |
 
 # Matching nomi parlamentari
 

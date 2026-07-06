@@ -59,9 +59,9 @@ const columns = [
 export const senatoVotesTool: Tool<typeof inputSchema> = {
   name: "senato-votes",
   description:
-    "[SENATO] Lista votazioni dell'Assemblea del Senato con esito, contatori (favorevoli, contrari, astenuti, presenti, votanti), tipo, data seduta e DDL collegato. Filtrabile per legislatura, data e DDL. Per il voto del singolo senatore usare senato-vote-detail. ATTENZIONE alle votazioni di FIDUCIA: hanno ddl_uri VUOTO, quindi --ddl-uri NON le restituisce — il DDL è solo nel campo label (es. 'Disegno di legge n.1933. Votazione questione di fiducia'); per trovarle filtra per data seduta e cerca nel label. Verifica sempre il ddl_uri di una 'Votazione finale' trovata per data: può appartenere a un atto diverso (testo unificato). Riporta solo i contatori restituiti, non stimarli.",
+    "[SENATO] Lista votazioni dell'Assemblea del Senato con esito, contatori (favorevoli, contrari, astenuti, presenti, votanti), tipo, data seduta e DDL collegato. Filtrabile per legislatura, data e DDL. Per il voto del singolo senatore usare senato-vote-detail. Le votazioni di FIDUCIA hanno ddl_uri vuoto alla fonte (il DDL è solo nel label, es. 'Disegno di legge n.1933. Votazione questione di fiducia'), ma --ddl-uri le include comunque: risolve le sedute del DDL e ricollega la fiducia votata quel giorno. Verifica sempre il ddl_uri di una 'Votazione finale' trovata per data: può appartenere a un atto diverso (testo unificato). Riporta solo i contatori restituiti, non stimarli.",
   emptyHint:
-    "Nessuna votazione trovata. Se filtravi per --ddl-uri e cercavi una FIDUCIA, ricorda che le fiducie hanno ddl_uri vuoto: filtra invece per --date-from/--date-to (intorno alla data di approvazione) e riconosci il DDL dal campo label. Non inventare l'esito o i contatori del voto.",
+    "Nessuna votazione trovata. Con --ddl-uri significa che nel LOD non risulta alcuna votazione d'Assemblea collegata a quel DDL (fiducie incluse): verifica l'URI del DDL, oppure il voto potrebbe essere solo in Commissione. Caso limite: se cerchi una fiducia e il DDL non ha nessun altro voto d'Assemblea che lo cita, prova per data (--date-from/--date-to intorno all'approvazione) e riconosci il DDL dal label. Non inventare l'esito o i contatori del voto.",
   inputSchema,
   examples: [
     "italianparliament senato-votes list --legislature 19 --limit 50",
@@ -69,9 +69,6 @@ export const senatoVotesTool: Tool<typeof inputSchema> = {
     "italianparliament senato-votes list --ddl-uri http://dati.senato.it/ddl/58039 --format jsonl",
   ],
   async execute(input) {
-    const ddlPattern = input.ddlUri
-      ? `?v osr:oggetto ?oggetto . ?oggetto osr:relativoA <${input.ddlUri}> .`
-      : `OPTIONAL { ?v osr:oggetto ?oggetto . OPTIONAL { ?oggetto osr:relativoA ?ddl } }`;
     const dateFromFilter = input.dateFrom
       ? `FILTER(?date >= "${input.dateFrom}"^^xsd:date)`
       : "";
@@ -79,6 +76,56 @@ export const senatoVotesTool: Tool<typeof inputSchema> = {
       ? `FILTER(?date <= "${input.dateTo}"^^xsd:date)`
       : "";
 
+    // --ddl-uri: le votazioni di FIDUCIA non hanno osr:oggetto, quindi il filtro
+    // diretto osr:relativoA le esclude a monte. Ma sono nella stessa seduta
+    // (stessa data) del voto procedurale/finale che invece cita il DDL. Perciò
+    // risolviamo prima le DATE delle sedute in cui il DDL è stato votato, poi
+    // interroghiamo per quelle date e ricolleghiamo il DDL con i fallback
+    // esistenti (come già avviene per le query per data). Il set di date è
+    // piccolo (poche sedute): niente rischio timeout.
+    let ddlDateFilter = "";
+    if (input.ddlUri) {
+      const datesQuery = `${OSR_PREFIXES}
+SELECT DISTINCT ?date WHERE {
+  ?v a osr:Votazione ; osr:legislatura ${input.legislature} ; osr:seduta ?s .
+  ?s osr:dataSeduta ?date .
+  ?v osr:oggetto ?o . ?o osr:relativoA <${input.ddlUri}> .
+}`;
+      const ddlDates = [
+        ...new Set(
+          flattenBindings(await snQuery(datesQuery))
+            .map((r) => r.date)
+            .filter(Boolean),
+        ),
+      ];
+      if (ddlDates.length === 0) {
+        return input.countOnly
+          ? { rows: [{ count: "0" }], columns: ["count"] }
+          : { rows: [], columns };
+      }
+      ddlDateFilter = `FILTER(?date IN (${ddlDates
+        .map((d) => `"${d}"^^xsd:date`)
+        .join(", ")}))`;
+    }
+
+    // Count minimale (solo pattern vincolanti): il wrap dell'intero SELECT con
+    // gli OPTIONAL su ~64k votazioni manda Virtuoso in timeout. Non applicabile
+    // a --ddl-uri, che richiede la risoluzione via fallback: in quel caso il
+    // conteggio è la cardinalità del result-set filtrato (calcolata sotto).
+    if (input.countOnly && !input.ddlUri) {
+      const countWhere = [`?v a osr:Votazione ; osr:legislatura ${input.legislature} .`];
+      if (input.dateFrom || input.dateTo)
+        countWhere.push(`?v osr:seduta ?sed . ?sed osr:dataSeduta ?date . ${dateFromFilter} ${dateToFilter}`);
+      const q = `${OSR_PREFIXES}\nSELECT (COUNT(DISTINCT ?v) AS ?count) WHERE {\n${countWhere.join("\n  ")}\n}`;
+      const c = flattenBindings(await snQuery(q))[0]?.count ?? "0";
+      return { rows: [{ count: c }], columns: ["count"] };
+    }
+
+    // Il DDL è sempre in forma OPTIONAL: con --ddl-uri il filtro effettivo è per
+    // data (ddlDateFilter) + post-filtro sull'esito risolto. Con --ddl-uri il
+    // set è piccolo: niente LIMIT/OFFSET server, paginiamo in TS dopo il
+    // post-filtro (altrimenti il LIMIT taglierebbe prima del filtro).
+    const paginate = input.ddlUri ? "" : `LIMIT ${input.limit}\nOFFSET ${input.offset}`;
     const coreSelect = `SELECT DISTINCT ?v ?date ?numero ?tipo ?label ?esito
                 ?favorevoli ?contrari ?astenuti ?presenti ?votanti ?maggioranza
                 ?ddl ?oggetto
@@ -95,29 +142,22 @@ WHERE {
   OPTIONAL { ?v osr:presenti ?presenti }
   OPTIONAL { ?v osr:votanti ?votanti }
   OPTIONAL { ?v osr:maggioranza ?maggioranza }
-  ${ddlPattern}
+  OPTIONAL { ?v osr:oggetto ?oggetto . OPTIONAL { ?oggetto osr:relativoA ?ddl } }
+  ${ddlDateFilter}
   ${dateFromFilter}
   ${dateToFilter}
 }`;
 
-    // Count minimale (solo pattern vincolanti): il wrap dell'intero SELECT con
-    // gli OPTIONAL su ~64k votazioni manda Virtuoso in timeout.
-    const countWhere = [`?v a osr:Votazione ; osr:legislatura ${input.legislature} .`];
-    if (input.ddlUri)
-      countWhere.push(`?v osr:oggetto ?oggetto . ?oggetto osr:relativoA ?ddl . FILTER(?ddl = <${input.ddlUri}>)`);
-    if (input.dateFrom || input.dateTo)
-      countWhere.push(`?v osr:seduta ?sed . ?sed osr:dataSeduta ?date . ${dateFromFilter} ${dateToFilter}`);
-
-    const query = input.countOnly
-      ? `${OSR_PREFIXES}\nSELECT (COUNT(DISTINCT ?v) AS ?count) WHERE {\n${countWhere.join("\n  ")}\n}`
-      : `${OSR_PREFIXES}\n${coreSelect}\nORDER BY DESC(?date) DESC(?numero)\nLIMIT ${input.limit}\nOFFSET ${input.offset}`;
+    const query = `${OSR_PREFIXES}\n${coreSelect}\nORDER BY DESC(?date) DESC(?numero)\n${paginate}`;
 
     const results = await snQuery(query);
-    if (input.countOnly) {
-      const c = flattenBindings(results)[0]?.count ?? "0";
-      return { rows: [{ count: c }], columns: ["count"] };
-    }
     const raw = flattenBindings(results);
+    // Post-filtro --ddl-uri: teniamo i voti FORTEMENTE collegati al DDL — link
+    // diretto osr:relativoA (raccolto qui) o risoluzione via numero nel label
+    // (Fallback 1, sotto) — più le sole FIDUCIE. Il Fallback 2 (propagazione
+    // per data) aggancia al DDL anche voti estranei votati la stessa seduta
+    // (es. una risoluzione su comunicazioni del governo): quelli vanno esclusi.
+    const strong = new Set<string>();
     // Un voto su DDL unificati è collegato a più ddl via osr:relativoA:
     // il join moltiplica le righe. Collassiamo per URI votazione e
     // concateniamo i DDL distinti.
@@ -125,6 +165,7 @@ WHERE {
     for (const r of raw) {
       const uri = r.v ?? "";
       const ddl = r.ddl ?? "";
+      if (input.ddlUri && ddl === input.ddlUri) strong.add(uri);
       const existing = byUri.get(uri);
       if (existing) {
         if (ddl && !existing.ddl_uri.split(" | ").includes(ddl)) {
@@ -171,7 +212,10 @@ SELECT ?ddl ?f WHERE {
       }
       for (const v of needing) {
         const ddl = byFase.get(v.bill_number);
-        if (ddl) v.ddl_uri = ddl;
+        if (ddl) {
+          v.ddl_uri = ddl;
+          if (input.ddlUri && ddl === input.ddlUri) strong.add(v.uri);
+        }
         // Difesa: il numero citato nel label non corrisponde ad alcun DDL della
         // legislatura (es. refuso nella fonte, "DDL n. 1994" per S.1944). Non
         // esporlo come identificativo interrogabile: il testo grezzo resta in
@@ -215,7 +259,26 @@ SELECT ?ddl ?f WHERE {
         .map((u) => fn(u.trim()))
         .filter(Boolean)
         .join(" | ");
-    const rows = [...byUri.values()].map((v) => ({
+    let values = [...byUri.values()];
+    if (input.ddlUri) {
+      const target = input.ddlUri;
+      // Post-filtro: solo i voti FORTEMENTE collegati al DDL (link diretto o
+      // Fallback 1) più le sole FIDUCIE; scartiamo i voti agganciati per sola
+      // propagazione-data (Fallback 2) che fiducie non sono (es. risoluzioni).
+      values = values.filter(
+        (v) =>
+          v.ddl_uri
+            .split(" | ")
+            .map((u) => u.trim())
+            .includes(target) &&
+          (strong.has(v.uri) || /fiducia/i.test(v.label)),
+      );
+      // ORDER BY server già applicato; paginiamo in TS dopo il post-filtro.
+      if (input.countOnly)
+        return { rows: [{ count: String(values.length) }], columns: ["count"] };
+      values = values.slice(input.offset, input.offset + input.limit);
+    }
+    const rows = values.map((v) => ({
       ...v,
       ddl_html_url: joinMap(v.ddl_uri, actHtmlUrl),
       rss_url: joinMap(v.ddl_uri, (u) => ddlRssUrl(u, input.legislature)),

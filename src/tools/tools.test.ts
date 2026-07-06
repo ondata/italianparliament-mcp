@@ -22,6 +22,7 @@ import { committeesTool } from "./committees.js";
 import { billProgressTool } from "./bill-progress.js";
 import { billSignatoriesTool } from "./bill-signatories.js";
 import { amendmentsTool } from "./amendments.js";
+import { senatoVotesTool } from "./senato-votes.js";
 import { cameraAmendmentsTool } from "./camera-amendments.js";
 import { documentsTool } from "./documents.js";
 
@@ -129,6 +130,25 @@ describe("Camera tools", () => {
     expect(result.rows.length).toBe(3);
     expect(result.rows[0]).toHaveProperty("type");
     expect(result.rows[0]).toHaveProperty("identifier");
+  }, 30000);
+
+  it("aic: --date-from/--date-to matches the aula (modification) date, not just presentation (question time)", async () => {
+    // Question time del 2025-07-09: interrogazioni a risposta immediata
+    // presentate l'8/7 e trattate in Aula il 9/7 (dc:date="20250708-20250709").
+    // Filtrando per il 9/7 devono comparire, matchando la data di modifica.
+    const result = await aicTool.execute({
+      legislature: 19,
+      type: "immediata",
+      dateFrom: "2025-07-09",
+      dateTo: "2025-07-09",
+      primaryOnly: false,
+      limit: 100,
+      offset: 0,
+    });
+    expect(result.rows.length).toBeGreaterThan(0);
+    const qt = result.rows.find((r) => r.identifier === "3/02077");
+    expect(qt).toBeDefined();
+    expect(qt?.date).toBe("2025-07-08 (modificato 2025-07-09)");
   }, 30000);
 
   it("vote-detail: returns individual votes", async () => {
@@ -360,6 +380,26 @@ describe("Senato tools", () => {
       }),
     ).rejects.toThrow(/solo-Senato/);
   });
+
+  it("senato-votes: --ddl-uri includes the fiducia (no osr:oggetto) and excludes same-day extraneous votes", async () => {
+    // DDL 60233 "Piano Casa", seduta 2026-07-01: pregiudiziale (relativoA
+    // diretto) + fiducia (ddl_uri vuoto alla fonte, ricollegato per data) +
+    // una risoluzione estranea votata lo stesso giorno (da escludere).
+    const result = await senatoVotesTool.execute({
+      legislature: 19,
+      ddlUri: "http://dati.senato.it/ddl/60233",
+      limit: 100,
+      offset: 0,
+    });
+    const uris = result.rows.map((r) => r.uri);
+    expect(uris).toContain("http://dati.senato.it/votazione/19-434-2"); // fiducia
+    expect(uris).toContain("http://dati.senato.it/votazione/19-434-1"); // pregiudiziale
+    expect(uris).not.toContain("http://dati.senato.it/votazione/19-434-3"); // risoluzione estranea
+    const fiducia = result.rows.find((r) => r.uri.endsWith("19-434-2"));
+    expect(fiducia?.in_favour).toBe("106");
+    expect(fiducia?.against).toBe("62");
+    expect(fiducia?.ddl_uri).toBe("http://dati.senato.it/ddl/60233");
+  }, 30000);
 
   it("camera-amendments: scrapes counts per sede (sentinel: AC 2696 ref=37/ass=25)", async () => {
     const result = await cameraAmendmentsTool.execute({

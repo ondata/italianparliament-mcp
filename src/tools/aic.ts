@@ -67,7 +67,7 @@ const columns = [
 export const aicTool: Tool<typeof inputSchema> = {
   name: "aic",
   description:
-    "[CAMERA] Atti di indirizzo e controllo: interrogazioni (orali, scritte, in commissione), interpellanze, mozioni. Include il testo/oggetto dell'atto nel campo description. Filtrabile per legislatura, deputato (primo firmatario o cofirmatario).",
+    "[CAMERA] Atti di indirizzo e controllo: interrogazioni (orali, scritte, in commissione), interpellanze, mozioni. Include il testo/oggetto dell'atto nel campo description. Filtrabile per legislatura, deputato (primo firmatario o cofirmatario). Il filtro per data (--date-from/--date-to) combacia sia sulla data di presentazione sia su quella di modifica: per i question time (interrogazioni a risposta immediata) la modifica è la data di TRATTAZIONE IN AULA, quindi filtra per quel giorno per trovarli.",
   inputSchema,
   examples: [
     "italianparliament aic list --legislature 19 --limit 10",
@@ -101,14 +101,33 @@ export const aicTool: Tool<typeof inputSchema> = {
     // dc:date è per lo più "YYYYMMDD" ma sugli atti modificati dopo la
     // presentazione diventa composto "YYYYMMDD-YYYYMMDD" (presentazione-
     // modifica): confrontarlo per intero come stringa rompe il filtro su
-    // questi record (62% degli aic leg. 19). SUBSTR isola la data di
-    // presentazione (primi 8 caratteri), valida in entrambi i formati.
-    const dateFromFilter = input.dateFrom
-      ? `FILTER(SUBSTR(STR(?date), 1, 8) >= "${input.dateFrom.replace(/-/g, "")}")`
-      : "";
-    const dateToFilter = input.dateTo
-      ? `FILTER(SUBSTR(STR(?date), 1, 8) <= "${input.dateTo.replace(/-/g, "")}")`
-      : "";
+    // questi record (62% degli aic leg. 19). SUBSTR isola le due date:
+    // presentazione (car. 1-8) e modifica (car. 10-17, presente solo nei
+    // composti). Per le interrogazioni a risposta immediata (question time)
+    // la data di TRATTAZIONE IN AULA è la modifica, non la presentazione:
+    // l'atto è presentato la vigilia e discusso il giorno dopo. Perciò il
+    // filtro combacia se cade nell'intervallo la presentazione OPPURE la
+    // modifica (altrimenti un question time cercato per la sua data d'Aula
+    // darebbe 0 righe).
+    const dFrom = input.dateFrom?.replace(/-/g, "");
+    const dTo = input.dateTo?.replace(/-/g, "");
+    // Il confronto va forzato lessicografico con STR(): su Virtuoso Camera
+    // SUBSTR/REPLACE restituiscono valori che con >=/<= verrebbero confrontati
+    // come numerici, dando 0 righe (l'uguaglianza = invece funziona). La data
+    // di presentazione sono i primi 8 caratteri; la modifica (question time =
+    // giorno d'Aula) è il secondo gruppo del composto "YYYYMMDD-YYYYMMDD",
+    // estratto con REPLACE (per i formati semplici resta la presentazione, così
+    // il ramo modifica non introduce falsi).
+    const pres = `STR(SUBSTR(STR(?date), 1, 8))`;
+    const modif = `STR(REPLACE(STR(?date), "^([0-9]{8})-([0-9]{8}).*$", "$2"))`;
+    const rangeCond = (expr: string): string =>
+      [dFrom ? `${expr} >= "${dFrom}"` : "", dTo ? `${expr} <= "${dTo}"` : ""]
+        .filter(Boolean)
+        .join(" && ");
+    const dateFilter =
+      dFrom || dTo
+        ? `FILTER((${rangeCond(pres)}) || (${rangeCond(modif)}))`
+        : "";
     // Escape per REGEX a confini di parola: i metacaratteri regex vanno protetti
     // con DOPPIO backslash nel testo sorgente SPARQL, perché il parsing della
     // stringa Turtle consuma un livello ("\\." -> "\.") prima che REGEX() veda
@@ -146,8 +165,7 @@ WHERE {
   OPTIONAL { ?s dc:description ?description }
   OPTIONAL { ?s dcterms:isReferencedBy ?url }
   ${legFilter}
-  ${dateFromFilter}
-  ${dateToFilter}
+  ${dateFilter}
   ${keywordFilter}
   ${typeFilter}
 }`;

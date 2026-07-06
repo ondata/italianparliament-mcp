@@ -118,7 +118,7 @@ Non generare la timeline a memoria: costruiscila dai tool, passo per passo. `bil
 **Obiettivi giornalistici derivabili senza tool dedicato**
 Alcune analisi ricorrenti (es. i **dissidenti/ribelli** che votano contro la linea del proprio gruppo) non hanno un tool dedicato ma si ricavano combinando i tool esistenti. Vedi [obiettivi giornalistici](references/obiettivi-giornalistici.md) per le ricette (ingredienti, passi, scelte analitiche, limiti).
 
-> **Confidence votes caveat:** `senato-votes list --ddlUri <uri>` does **not** return a *fiducia* — the `ddlUri` field is empty for confidence votes; the bill link is only in the `label` text (e.g. "Disegno di legge n.1933. Votazione questione di fiducia."). Filter by **seduta date** (`--dateFrom`/`--dateTo`), then match the DDL via `label`. Also verify `ddlUri` on any "final" vote found by date: it may belong to a different act (unified text).
+> **Confidence votes:** at the source a *fiducia* has an empty `ddlUri` (the bill link is only in the `label` text, e.g. "Disegno di legge n.1933. Votazione questione di fiducia."), but `senato-votes list --ddlUri <uri>` **now includes it anyway**: it resolves the DDL's seduta dates and re-links the fiducia voted that day. Still verify `ddlUri` on any "final" vote found by date: it may belong to a different act (unified text).
 
 **Read the actual text of a bill (articolato)**
 
