@@ -4,6 +4,7 @@ import { flattenBindings } from "../core/flatten.js";
 import { OCD_PREFIXES, OSR_PREFIXES } from "../core/prefixes.js";
 import { personHtmlUrl } from "../core/html-url.js";
 import { toTitleCase, normalizeGender } from "../core/normalize.js";
+import { currentLegislature } from "../core/current-legislature.js";
 import type { Tool } from "./types.js";
 
 const SENATO_LEG_BASE = "http://dati.senato.it/legislatura/";
@@ -146,7 +147,7 @@ LIMIT ${limit}`;
 export const searchTool: Tool<typeof inputSchema> = {
   name: "search",
   description:
-    "[CAMERA+SENATO] Cerca parlamentari per nome/cognome in Camera, Senato o entrambi. Utile come primo passo per trovare l'URI di un parlamentare.",
+    "[CAMERA+SENATO] Cerca parlamentari per nome/cognome in Camera, Senato o entrambi. Utile come primo passo per trovare l'URI di un parlamentare. Ranking dei risultati: match esatto sul cognome/token finale e preferenza per la legislatura corrente (19) portano in cima il parlamentare più pertinente (es. 'boschi' → Maria Elena Boschi leg.19 prima degli omonimi storici e delle sottostringhe come 'Tiraboschi').",
   inputSchema,
   examples: [
     'italianparliament search find --name "rossi"',
@@ -170,6 +171,65 @@ export const searchTool: Tool<typeof inputSchema> = {
         )),
       );
     }
+    // Ranking lato TS: match esatto cognome/token finale + preferenza per la
+    // legislatura corrente (risolta dinamicamente dall'endpoint Camera).
+    // Porta in cima il parlamentare più pertinente anche quando la query per
+    // cognome matcha omonimi storici o sottostringhe
+    // (es. 'boschi' → Maria Elena Boschi leg. corrente prima di 'Tiraboschi').
+    const currentLeg = await currentLegislature();
+    rows.sort(
+      (a, b) => scoreRow(b, input.name, currentLeg) - scoreRow(a, input.name, currentLeg),
+    );
     return { rows, columns };
   },
 };
+
+/**
+ * Score per il ranking dei risultati di ricerca.
+ * - match esatto sul cognome (token finale della query): batte le sottostringhe
+ *   ('Boschi' batte 'Tiraboschi')
+ * - match esatto su nome completo quando la query è multi-token
+ * - preferenza per la legislatura corrente
+ * - tie-break: Camera prima di Senato
+ */
+function scoreRow(
+  row: {
+    chamber: string;
+    first_name: string;
+    last_name: string;
+    legislature_uri: string;
+  },
+  query: string,
+  currentLeg: number,
+): number {
+  const q = tokenize(query).map((t) => t.toLowerCase());
+  const last = toTitleCase(row.last_name ?? "").toLowerCase().trim();
+  const first = toTitleCase(row.first_name ?? "").toLowerCase().trim();
+  let score = 0;
+
+  if (q.length === 1) {
+    // query singolo token: valuta come cognome
+    const token = q[0];
+    if (last === token) score += 100;
+    else if (last.includes(token)) score += 50;
+    if (first === token) score += 80;
+  } else {
+    // query multi-token: match esatto cognome sull'ultimo token
+    // (es. 'Maria Elena Boschi' → 'Boschi') + nome completo
+    const lastToken = q[q.length - 1];
+    if (last === lastToken) score += 100;
+    else if (last.includes(lastToken)) score += 50;
+    const allLast = q.every((t) => last.includes(t));
+    const allFirst = q.every((t) => first.includes(t));
+    if (allLast && allFirst) score += 80;
+  }
+
+  // preferenza legislatura corrente
+  const leg = row.legislature_uri ?? "";
+  if (leg.endsWith(`_${currentLeg}`) || leg.endsWith(`/${currentLeg}`)) score += 30;
+
+  // tie-break: Camera prima di Senato (ramo di default per ricerche d'aula)
+  if (row.chamber === "camera") score += 5;
+
+  return score;
+}

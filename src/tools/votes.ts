@@ -67,6 +67,8 @@ const columns = [
   "session_uri",
   "bill_number",
   "bill_uri",
+  "aic_code",
+  "aic_link",
   "url",
 ];
 
@@ -247,7 +249,20 @@ ORDER BY DESC(?date)`;
       return true;
     });
     // bill_number dal testo della descrizione ("DDL 2920-A - VOTO FINALE" → "2920-A").
-    for (const r of deduped) r.bill_number = extractBillNumber(r.description);
+    for (const r of deduped) {
+      r.bill_number = extractBillNumber(r.description);
+      // Estrai codice mozione/risoluzione AIC da description (es. "MOZ 1-586" → 1/00586).
+      // Anche label/title per le risoluzioni ("Risoluzione 6_00266" → 6/00266).
+      const aic = extractAicCode(r.description) ?? extractAicCode(r.title) ?? extractAicCode(r.label);
+      if (aic) {
+        const legNum = r.legislature_uri?.match(/repubblica_(\d+)/)?.[1] ?? "19";
+        r.aic_code = aic.code;
+        r.aic_link = `https://aic.camera.it/aic/scheda.html?core=aic&numero=${aic.code}&ramo=CAMERA&leg=${legNum}`;
+      } else {
+        r.aic_code = "";
+        r.aic_link = "";
+      }
+    }
     // Fallback: alcune votazioni non hanno rif_attoCamera ma citano il DDL nella
     // descrizione. Risolviamo il numero base → URI atto (ac<leg>_<num>)
     // verificandone l'esistenza via dc:identifier — niente URI fabbricati. La
@@ -286,3 +301,28 @@ SELECT ?a ?id WHERE {
     return { rows: deduped, columns };
   },
 };
+
+/**
+ * Estrai codice mozione/risoluzione AIC dal testo.
+ * Pattern: "MOZ 1-586" → { code: "1/00586" }
+ *          "RIS 6-263" → { code: "6/00263" }
+ *          "Risoluzione 6_00266" → { code: "6/00266" }
+ */
+function extractAicCode(text: string): { code: string } | null {
+  if (!text) return null;
+  // MOZ 1-586 / RIS 6-263
+  let m = text.match(/\b(MOZ|RIS)\s+(\d+)-(\d+)/i);
+  if (m) {
+    const prefix = m[2];
+    const num = m[3].padStart(5, "0");
+    return { code: `${prefix}/${num}` };
+  }
+  // Risoluzione 6_00266 (da title)
+  m = text.match(/\bRisoluzione\s+(\d+)[_](\d+)/i);
+  if (m) {
+    const prefix = m[1];
+    const num = m[2];
+    return { code: `${prefix}/${num}` };
+  }
+  return null;
+}

@@ -77,7 +77,7 @@ In alternativa, copia la cartella `skills/<nome>/` e registrala secondo la docum
 |---------|---------|
 | `deputies list` | Lista deputati Camera, filtrabile per legislatura, circoscrizione, genere, data e luogo di nascita (comune/provincia/regione) |
 | `senators list` | Lista senatori, filtrabile per legislatura, genere, data e città di nascita |
-| `search find` | Cerca un parlamentare per nome in Camera, Senato o entrambi |
+| `search find` | Cerca un parlamentare per nome in Camera, Senato o entrambi. Ranking automatico: match esatto sul cognome e preferenza per la legislatura corrente portano in cima il risultato più pertinente |
 | `deputy show` | Scheda di un deputato: nome, genere, data/luogo nascita, lista elezione, data elezione, convalida, commissioni |
 | `senator show` | Scheda di un senatore: nome, genere, data/luogo nascita, regione elezione, tipo elezione, data mandato |
 | `person-career show` | Carriera unificata di una persona: tutti i mandati da deputato (per legislatura) e gli incarichi di governo, con link Wikidata. Risolve doppio incarico parlamento+governo e carriera multi-legislatura |
@@ -91,7 +91,7 @@ In alternativa, copia la cartella `skills/<nome>/` e registrala secondo la docum
 | `bill show` | Scheda di un atto Camera (titolo, tipo, data, iniziativa, primo firmatario, cofirmatari) |
 | `member-bills list` | DDL presentati come primo firmatario da un deputato o senatore (Camera e Senato) |
 | `aic list` | Atti di indirizzo e controllo (interrogazioni, interpellanze, mozioni), filtrabile per data, tipo (`--type`, es. `immediata` per question time) e parola chiave a confini di parola (`--keyword`) |
-| `votes list` | Votazioni Camera con contatori (favorevoli, contrari, astenuti), filtrabile per data, tipo fiducia (`--confidence-vote`), DDL collegato (`--bill-code`) |
+| `votes list` | Votazioni Camera con contatori (favorevoli, contrari, astenuti), filtrabile per data, tipo fiducia (`--confidence-vote`), DDL collegato (`--bill-code`). Per mozioni e risoluzioni espone il codice AIC (`aic_code`) e il link alla scheda (`aic_link`) |
 | `vote-detail show` | Come ha votato ogni singolo deputato in una votazione, con nome e gruppo |
 | `bill-rapporteurs list` | Relatori di un DDL (Camera o Senato, riconosciuti dall'URL): nome, tipo (Relatore / f.f.), commissione/organo e data |
 | `bill-committees list` | Commissioni a cui un DDL/atto è assegnato (Camera o Senato, dall'URL): nome, sede/ruolo (Referente, Consultiva, …), tipo, data di assegnazione, URI organo |
@@ -102,8 +102,8 @@ In alternativa, copia la cartella `skills/<nome>/` e registrala secondo la docum
 
 | Comando | Cosa fa |
 |---------|---------|
-| `bill-progress list` | Iter dei DDL: al Senato stato/date/iniziativa/natura (lista, per `--ddl-uri`, o per numero con `--number <n>` + `--branch S\|C`); con `--uri <atto Camera>` restituisce la timeline completa dell'iter alla Camera (tutti gli stati attraversati, con data) |
-| `bill-signatories show` | Firmatari di un DDL (Camera o Senato): primo firmatario e cofirmatari |
+| `bill-progress list` | Iter dei DDL: al Senato stato/date/iniziativa/natura (lista, per `--ddl-uri`, o per numero con `--number <n>` + `--branch S\|C` — senza `--legislature` usa la legislatura corrente risolta dinamicamente); con `--uri <atto Camera>` restituisce la timeline completa dell'iter alla Camera (tutti gli stati attraversati, con data) |
+| `bill-signatories show` | Firmatari di un DDL (Camera o Senato): primo firmatario e cofirmatari. Per gli atti di iniziativa governativa il ruolo è "Governo (proponente)" |
 | `amendments list` | Emendamenti al Senato con numero, tipo, DDL collegato e link al testo. Filtrabile per legislatura e per DDL (`--ddl-uri`) |
 | `documents list` | Documenti parlamentari: atti del governo, atti UE, relazioni Corte dei Conti |
 | `sindacato-ispettivo list` | Atti di sindacato ispettivo Senato (interrogazioni, interpellanze, mozioni), filtrabile per data |
@@ -411,7 +411,7 @@ I dati provengono dagli endpoint SPARQL ufficiali di Camera e Senato. Alcune lim
 - **Gruppi** (`groups`): l'acronimo viene dal campo `dcterms:alternative` dell'endpoint (es. `AVS`, `PD-IDP`); per i rari casi senza quel campo si ricava dalla label.
 - **Documenti Camera**: l'endpoint Camera non espone documenti parlamentari via SPARQL. Il tool `documents` usa i dati del Senato.
 - **Emendamenti Camera** (`camera-amendments`): a differenza del Senato (`amendments`, da SPARQL), gli emendamenti della Camera non sono nel LOD. Questo tool li ricava dall'app HTML `documenti.camera.it/apps/emendamenti` tramite scraping: la fonte è HTML, quindi il tool dipende dalla struttura delle pagine (test-sentinella fissano i conteggi noti per intercettare cambi di markup). L'esito del voto sul singolo emendamento non è incluso (vive nella vista per-seduta della fonte).
-- **Voti di fiducia al Senato** (`senato-votes`): nei dati il legame col DDL (`osr:oggetto`) **manca** per le fiducie — il numero è scritto solo nel testo della `label` (es. "Disegno di legge n.1933. Votazione questione di fiducia."). Da **v0.8.0** i tool colmano il vuoto: la colonna `bill_number` riporta il numero e `ddl_uri` viene **risolto in fallback** dal numero (via `osr:fase`), così le fiducie tornano linkate al DDL. Nota: `senato-votes list --ddl-uri <uri>` filtra ancora sul legame diretto e quindi **non** restituisce le fiducie — per quelle usare `bill_number`/`ddl_uri` in output o filtrare per data seduta. Attenzione alle votazioni "finali" trovate per data: possono appartenere a un atto diverso (testo unificato) — verificare `bill_number`/`ddl_uri`. Analogo alla Camera per i voti senza `rif_attoCamera` (colonne `bill_number`/`bill_uri`).
+- **Voti di fiducia al Senato** (`senato-votes`): nei dati il legame col DDL (`osr:oggetto`) **manca** per le fiducie — il numero è scritto solo nel testo della `label` (es. "Disegno di legge n.1933. Votazione questione di fiducia."). Da **v0.8.0** i tool colmano il vuoto: la colonna `bill_number` riporta il numero e `ddl_uri` viene **risolto in fallback** dal numero (via `osr:fase`). Da **v0.17.0** un secondo fallback **intra-seduta** copre anche i refusi della fonte (es. "DDL n. 1994" per S.1944): se un voto senza DDL condivide la data con altri voti che hanno `ddl_uri` noto, lo eredita. Nota: `senato-votes list --ddl-uri <uri>` filtra ancora sul legame diretto e quindi **non** restituisce le fiducie — per quelle usare `--date-from`/`--date-to` o leggere `ddl_uri` in output. Attenzione alle votazioni "finali" trovate per data: possono appartenere a un atto diverso (testo unificato) — verificare `bill_number`/`ddl_uri`. Analogo alla Camera per i voti senza `rif_attoCamera` (colonne `bill_number`/`bill_uri`).
 
 ## Riferimento
 

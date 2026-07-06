@@ -59,7 +59,7 @@ function cleanCameraName(firstName: string, surname: string, label: string): str
 export const billSignatoriesTool: Tool<typeof inputSchema> = {
   name: "bill-signatories",
   description:
-    "[CAMERA/SENATO] Firmatari di un DDL: primo firmatario e cofirmatari con nome e link al profilo. Il ramo è rilevato automaticamente dall'URI del DDL (ottenibile da bill-progress).",
+    "[CAMERA/SENATO] Firmatari di un DDL: primo firmatario e cofirmatari con nome e link al profilo. Per gli atti di iniziativa governativa (Senato), il ruolo è 'Governo (proponente)' invece di 'primo firmatario' — non c'è un singolo parlamentare proponente ma il Governo nel suo insieme. Il ramo è rilevato automaticamente dall'URI del DDL (ottenibile da bill-progress).",
   inputSchema,
   examples: [
     "italianparliament bill-signatories show --bill-uri http://dati.camera.it/ocd/attocamera.rdf/ac19_2696",
@@ -70,13 +70,30 @@ export const billSignatoriesTool: Tool<typeof inputSchema> = {
 
     if (isSenato) {
       const raw = flattenBindings(await snQuery(senatoQuery(input.billUri, input.limit)));
-      const rows = raw.map((r) => ({
-        name: r.presentatore ?? "",
-        role: r.primoFirmatario === "1" ? "primo firmatario" : "cofirmatario",
-        is_primary: r.primoFirmatario === "1" ? "true" : "false",
-        person_uri: r.senatore ?? "",
-        html_url: personHtmlUrl(r.senatore),
-      }));
+      // Riconosci gli atti governativi: se osr:senatore è vuoto, il
+      // presentatore è un membro del governo (stringa, non URI).
+      const isGov = raw.some((r) => !r.senatore && r.presentatore);
+      const rows = raw.map((r) => {
+        if (!r.senatore && r.presentatore) {
+          // Atto governativo: presentatore è una stringa tipo
+          // "Pres. Consiglio  Giorgia Meloni (Gov. Meloni-I)".
+          // Non c'è un URI persona → niente html_url.
+          return {
+            name: r.presentatore,
+            role: isGov ? "Governo (proponente)" : "primo firmatario",
+            is_primary: isGov ? "false" : "true",
+            person_uri: "",
+            html_url: "",
+          };
+        }
+        return {
+          name: r.presentatore ?? "",
+          role: r.primoFirmatario === "1" ? "primo firmatario" : "cofirmatario",
+          is_primary: r.primoFirmatario === "1" ? "true" : "false",
+          person_uri: r.senatore ?? "",
+          html_url: personHtmlUrl(r.senatore),
+        };
+      });
       return { rows, columns };
     }
 

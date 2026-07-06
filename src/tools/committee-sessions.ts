@@ -2,6 +2,7 @@ import { z } from "zod";
 import { cdQuery, snQuery } from "../core/client.js";
 import { OCD_PREFIXES, OSR_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
+import { currentLegislature } from "../core/current-legislature.js";
 import type { Tool } from "./types.js";
 
 const RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
@@ -393,7 +394,7 @@ export const committeeSessionsTool: Tool<typeof inputSchema> = {
       );
     }
 
-    const legislature = input.legislature ?? 19;
+    const legislature = input.legislature ?? (await currentLegislature());
     const chamber = input.chamber;
     let rows: SessionRow[] = [];
 

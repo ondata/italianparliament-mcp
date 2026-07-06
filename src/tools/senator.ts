@@ -2,6 +2,7 @@ import { z } from "zod";
 import { snQuery } from "../core/client.js";
 import { OSR_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
+import { currentLegislature } from "../core/current-legislature.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -11,7 +12,7 @@ const inputSchema = z.object({
     .int()
     .positive()
     .optional()
-    .describe("Numero legislatura (default: 19 corrente)"),
+    .describe("Numero legislatura (default: legislatura corrente, risolta dinamicamente)"),
 });
 
 const columns = [
@@ -40,7 +41,7 @@ export const senatorTool: Tool<typeof inputSchema> = {
     "italianparliament senator show --uri http://dati.senato.it/senatore/29110 --format jsonl",
   ],
   async execute(input) {
-    const leg = input.legislature ?? 19;
+    const leg = input.legislature ?? (await currentLegislature());
     const query = `${OSR_PREFIXES}
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX dc: <http://purl.org/dc/elements/1.1/>
@@ -77,7 +78,7 @@ LIMIT 1`;
     const idMatch = input.uri.match(/\/senatore\/(\d+)$/);
     const senId = idMatch ? idMatch[1] : "";
     const html_url = senId
-      ? leg === 19
+      ? leg === (await currentLegislature())
         ? `https://www.senato.it/composizione/senatori/elenco-alfabetico/scheda-attivita?did=${senId.padStart(8, "0")}`
         : `https://www.senato.it/legislature/${leg}/composizione/senatori/elenco-alfabetico/scheda-attivita?did=${senId}`
       : "";

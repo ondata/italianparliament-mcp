@@ -74,6 +74,7 @@ Votazioni Camera.
 - `legislature`: numero legislatura
 - `limit`: max risultati
 - Colonna `bill_number`: numero atto citato nella descrizione (es. `2920-A`). `bill_uri`: URI dell'atto Camera, popolato anche quando manca `rif_attoCamera` risolvendo il numero via `dc:identifier`.
+- Per mozioni e risoluzioni ("MOZ 1-586", "RIS 6-263"), colonne `aic_code` (es. `1/00586`) e `aic_link` (URL alla scheda AIC).
 
 ### `vote-detail`
 Come ha votato ogni deputato in una votazione.
@@ -94,13 +95,13 @@ Iter di un disegno di legge, Camera o Senato (stesse colonne in entrambi i casi)
   - `legislature`: numero legislatura
   - `ddlUri`: singolo DDL Senato
   - `keyword`: cerca nel titolo del DDL
-  - `number`: numero dell'atto (es. `1809` → S.1809), da abbinare a `branch`
-  - `branch`: ramo per `number`, `S` (Senato, default) o `C` (Camera) — lo stesso numero può esistere in entrambi (C.1809 e S.1809)
+  - `number`: numero dell'atto (es. `1809` → S.1809), da abbinare a `branch`. Se ometti `legislature`, usa la legislatura corrente (risolta dinamicamente). Lo stesso numero può esistere in entrambi i rami (C.1809 e S.1809).
+  - `branch`: ramo per `number`, `S` (Senato, default) o `C` (Camera)
   - `dateFrom`/`dateTo`: intervallo data presentazione
 - **Camera** (`uri` = atto Camera `attocamera.rdf/...`): timeline completa di tutti gli stati attraversati, in ordine cronologico.
 
 ### `bill-signatories`
-Firmatari di un DDL, **Camera o Senato** (il ramo è riconosciuto dall'URI): primo firmatario e cofirmatari con nome e link al profilo.
+Firmatari di un DDL, **Camera o Senato** (il ramo è riconosciuto dall'URI): primo firmatario e cofirmatari con nome e link al profilo. Per gli atti di iniziativa governativa, il ruolo è "Governo (proponente)".
 - `billUri` (required): URI del DDL (Camera `attocamera.rdf/...` o Senato `ddl/...`)
 
 ### `bill-rapporteurs`

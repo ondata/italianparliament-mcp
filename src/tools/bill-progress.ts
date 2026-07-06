@@ -4,6 +4,7 @@ import { OSR_PREFIXES, OCD_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
 import { decodeHtml } from "../core/decode-html.js";
 import { ddlRssUrl } from "../core/html-url.js";
+import { currentLegislature } from "../core/current-legislature.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -28,7 +29,7 @@ const inputSchema = z.object({
     .regex(/^\d+$/)
     .optional()
     .describe(
-      "Numero dell'atto Senato (es. 1809 per S.1809). Da abbinare a --branch per il ramo. Lo stesso numero può esistere in entrambi i rami (C.1809 e S.1809).",
+      "Numero dell'atto Senato (es. 1809 per S.1809). Da abbinare a --branch per il ramo. Se ometti --legislature, con --number la CLI usa di default la legislatura corrente (risolta dinamicamente dall'endpoint Camera) per evitare omonimi storici. Lo stesso numero può esistere in entrambi i rami (C.1809 e S.1809).",
     ),
   branch: z
     .enum(["S", "C"])
@@ -72,12 +73,13 @@ const columns = [
 export const billProgressTool: Tool<typeof inputSchema> = {
   name: "bill-progress",
   description:
-    "Iter legislativo di un disegno di legge. È la SPINA DORSALE per ricostruire l'iter completo di una legge: usalo per le date reali di ogni fase, non generare la timeline a memoria. [SENATO] senza --uri: lista DDL al Senato con stato corrente dell'iter (assegnato, esame in commissione, approvato, ecc.), filtrabile per legislatura, numero atto (--number, es. 1809 per S.1809, con --branch S|C), parola chiave nel titolo e intervallo date. [CAMERA] con --uri <atto Camera>: cronologia completa (timeline) di tutti gli stati attraversati dall'atto, in ordine cronologico. Stesse colonne in entrambi i casi. Per collegare un atto Camera al suo DDL Senato usa --number (il numero letto dalla timeline Camera) + --branch S: MAI per keyword, per non pescare un atto omonimo diverso.",
+    "Iter legislativo di un disegno di legge. È la SPINA DORSALE per ricostruire l'iter completo di una legge: usalo per le date reali di ogni fase, non generare la timeline a memoria. [SENATO] senza --uri: lista DDL al Senato con stato corrente dell'iter (assegnato, esame in commissione, approvato, ecc.), filtrabile per legislatura, numero atto (--number, es. 1809 per S.1809, con --branch S|C), parola chiave nel titolo e intervallo date. Con --number ma senza --legislature, il default è la legislatura 19 per evitare omonimi storici rumorosi. [CAMERA] con --uri <atto Camera>: cronologia completa (timeline) di tutti gli stati attraversati dall'atto, in ordine cronologico. Stesse colonne in entrambi i casi. Per collegare un atto Camera al suo DDL Senato usa --number (il numero letto dalla timeline Camera) + --branch S: MAI per keyword, per non pescare un atto omonimo diverso.",
   emptyHint:
     "Nessun DDL trovato. Se cercavi il DDL Senato di un atto Camera, aggancialo PER NUMERO (--number <n> --branch S), non per keyword. Se usavi --keyword, prova il termine normativo o una radice più corta. Non dedurre l'iter: se non torna, non inventare fasi, date o esiti.",
   inputSchema,
   examples: [
     "italianparliament bill-progress list --legislature 19 --limit 20",
+    "italianparliament bill-progress list --number 1809 --branch S",
     "italianparliament bill-progress list --number 1809 --branch S --legislature 19",
     "italianparliament bill-progress list --ddl-uri http://dati.senato.it/ddl/25597",
     "italianparliament bill-progress list --legislature 19 --keyword autonomia --limit 20",
@@ -120,8 +122,10 @@ export const billProgressTool: Tool<typeof inputSchema> = {
       filters.push(`FILTER(STR(?numeroFase) = "${input.number}")`);
       filters.push(`?s osr:ramo ?ramoFiltro . FILTER(STR(?ramoFiltro) = "${branch}")`);
     }
-    if (input.legislature) {
-      filters.push(`?s osr:legislatura ${input.legislature} .`);
+    const effectiveLegislature =
+      input.legislature ?? (input.number ? await currentLegislature() : undefined);
+    if (effectiveLegislature) {
+      filters.push(`?s osr:legislatura ${effectiveLegislature} .`);
     }
     if (input.dateFrom) {
       filters.push(`FILTER(STR(?dataPresentazione) >= "${input.dateFrom}")`);

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { cdQuery, snQuery } from "../core/client.js";
 import { OCD_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
+import { currentLegislature } from "../core/current-legislature.js";
 import type { Row } from "../core/types.js";
 import type { Tool } from "./types.js";
 
@@ -27,7 +28,7 @@ SELECT ?legislatura ?testo WHERE {
 } LIMIT 1`;
   const r = flattenBindings(await snQuery(query))[0];
   if (!r) throw new Error(`Nessun DDL Senato trovato per URI: ${uri}`);
-  const leg = r.legislatura ?? "19";
+  const leg = r.legislatura ?? String(await currentLegislature());
   const rows: Row[] = [
     {
       chamber: "senato",

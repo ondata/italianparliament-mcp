@@ -2,6 +2,7 @@ import { z } from "zod";
 import { cdQuery, snQuery } from "../core/client.js";
 import { OCD_PREFIXES, OSR_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
+import { currentLegislature } from "../core/current-legislature.js";
 import type { Tool } from "./types.js";
 
 const RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
@@ -121,7 +122,7 @@ LIMIT ${limit}`;
 export const committeesTool: Tool<typeof inputSchema> = {
   name: "committees",
   description:
-    "[CAMERA+SENATO] Commissioni parlamentari (permanenti, speciali, d'inchiesta, bicamerali, comitati). " +
+    "[CAMERA+SENATO] Commissioni parlamentari (permanenti, speciali, d'inchiesta monocamerali e bicamerali, giunte, comitati). " +
     "Camera: filtrata per legislatura (default 19; le commissioni sono istanze per-legislatura), con dc:type come categoria. " +
     "Senato: senza --legislature mostra tutte le commissioni storiche (nessun session_count); con --legislature filtra le attive e aggiunge il numero di sedute.",
   inputSchema,
@@ -134,7 +135,12 @@ export const committeesTool: Tool<typeof inputSchema> = {
   async execute(input) {
     const rows: Row[] = [];
     if (input.chamber === "camera" || input.chamber === "both") {
-      rows.push(...(await queryCamera(input.legislature ?? 19, input.limit)));
+      rows.push(
+        ...(await queryCamera(
+          input.legislature ?? (await currentLegislature()),
+          input.limit,
+        )),
+      );
     }
     if (input.chamber === "senato" || input.chamber === "both") {
       rows.push(...(await querySenato(input.legislature, input.limit)));

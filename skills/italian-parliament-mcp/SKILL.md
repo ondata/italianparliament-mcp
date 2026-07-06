@@ -76,6 +76,7 @@ Use `search` first to resolve a name to a URI before calling `deputy` or `senato
 - Use the **normative term**: `elezione` not `elettorale`; `disabilità`/`portatori di handicap` not `fuorisede`.
 - Try **several synonyms and word roots** (e.g. `elett` → elettorale/elettori/elezione) before concluding. An empty result ≠ absent data — reformulate 2-3 times first.
 - **`sindacato-ispettivo` (Senato) is not searchable by topic**: the Senato LOD exposes no subject/text for these acts (only type, number, date, signatories). Don't promise thematic searches on it.
+- **`audizioni --committeeName` is literal**: it matches a substring against the official `rdfs:label` of the committee, which is the full formal name. "Covid" finds nothing — use "emergenza sanitaria" or "SARS-CoV-2". If a lookup returns empty, first inspect the actual labels with `committees list --chamber camera` + grep, then retry with the exact name.
 
 ### 5. Output format
 

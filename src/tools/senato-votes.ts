@@ -150,12 +150,12 @@ WHERE {
         object_uri: r.oggetto ?? "",
       });
     }
-    // Fallback: alcuni voti (tipicamente le fiducie) non hanno osr:oggetto e
+    // Fallback 1: alcuni voti (tipicamente le fiducie) non hanno osr:oggetto e
     // quindi nessun ddl_uri via grafo, ma citano il DDL nel label. Risolviamo il
     // numero → URI in un'unica query via osr:fase="S.<num>" (univoco intra-leg;
     // niente VALUES batch su Virtuoso → OR-chain). Solo per i label che citano
     // davvero un DDL (bill_number non vuoto).
-    const needing = [...byUri.values()].filter((v) => !v.ddl_uri && v.bill_number);
+    let needing = [...byUri.values()].filter((v) => !v.ddl_uri && v.bill_number);
     const nums = [...new Set(needing.map((v) => v.bill_number))];
     if (nums.length) {
       const filter = nums.map((n) => `STR(?f) = "S.${n}"`).join(" || ");
@@ -177,6 +177,36 @@ SELECT ?ddl ?f WHERE {
         // esporlo come identificativo interrogabile: il testo grezzo resta in
         // `label`, ma `bill_number` deve solo contenere numeri verificati.
         else v.bill_number = "";
+      }
+    }
+    // Fallback 2: voti rimasti senza ddl_uri anche dopo Fallback 1
+    // (es. fiducie il cui bill_number è un refuso della fonte).
+    // Se lo stesso giorno ha altre votazioni con ddl_uri noto
+    // (la seduta d'Assemblea è unica per data), propaghiamo quel DDL.
+    // Attenzione: se la stessa data ha più DDL diversi, non propaghiamo.
+    needing = [...byUri.values()].filter((v) => !v.ddl_uri);
+    unlinked: if (needing.length > 0) {
+      const dateDdls = new Map<string, string>();
+      let ambiguous = false;
+      for (const v of byUri.values()) {
+        if (!v.date || !v.ddl_uri) continue;
+        const existing = dateDdls.get(v.date);
+        if (existing === undefined) {
+          dateDdls.set(v.date, v.ddl_uri);
+        } else if (existing !== v.ddl_uri) {
+          ambiguous = true;
+        }
+      }
+      if (!ambiguous) {
+        for (const v of needing) {
+          if (v.ddl_uri || !v.date) continue;
+          const ddl = dateDdls.get(v.date);
+          if (ddl) {
+            v.ddl_uri = ddl;
+            // Non modifichiamo bill_number: il numero nel label è un refuso,
+            // meglio tenerlo vuoto (già azzerato).
+          }
+        }
       }
     }
     const joinMap = (ddl: string, fn: (u: string) => string): string =>
