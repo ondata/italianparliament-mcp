@@ -184,8 +184,11 @@ Votazioni d'Assemblea del Senato con esito e contatori.
 italianparliament senato-votes list --legislature 19 --limit 20
 italianparliament senato-votes list --ddl-uri http://dati.senato.it/ddl/58039 --format jsonl
 italianparliament senato-votes list --date-from 2026-01-01 --date-to 2026-03-31
+italianparliament senato-votes list --legislature 19 --confidence-vote true
+italianparliament senato-votes list --legislature 19 --final-vote true --date-from 2026-06-01
+italianparliament senato-votes list --legislature 19 --keyword bilancio
 ```
-Colonne `bill_number` (numero DDL dal label, es. `562-B`) e `ddl_uri` (URI DDL, popolato anche per le fiducie prive di `osr:oggetto` risolvendo il numero via `osr:fase`).
+Colonne `bill_number` (numero DDL dal label, es. `562-B`) e `ddl_uri` (URI DDL, popolato anche per le fiducie prive di `osr:oggetto` risolvendo il numero via `osr:fase`). Filtri label-based (il tipo semantico vive nel `rdfs:label`, non in `osr:tipoVotazione`): `--keyword` (cerca nel label), `--confidence-vote true|false` (fiducia, esclude le mozioni di sfiducia), `--final-vote true|false` (`Votazione finale`). Il tema del decreto NON è nel label: `--keyword caccia` torna vuoto — usare `--ddl-uri` + `bill-progress`.
 
 ### `senato-vote-detail show`
 Voto del singolo senatore in una votazione (URI da `senato-votes`); include il gruppo alla data del voto (`group_label`) → voto per gruppo.

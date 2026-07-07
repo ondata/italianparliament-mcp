@@ -18,6 +18,18 @@ const inputSchema = z.object({
     .url()
     .optional()
     .describe("Filtra le votazioni collegate a un DDL (es. http://dati.senato.it/ddl/58039)"),
+  keyword: z
+    .string()
+    .optional()
+    .describe("Cerca nel label della votazione (case-insensitive). Es. 'caccia', 'bilancio', 'piano casa'. Nota: il tema del decreto vive spesso nel label (es. 'Votazione finale') e non sempre è presente — in caso di vuoto filtra per data"),
+  confidenceVote: z
+    .boolean()
+    .optional()
+    .describe("Filtra le votazioni di fiducia governativa (label contiene 'fiducia', escluse le mozioni di 'sfiducia')"),
+  finalVote: z
+    .boolean()
+    .optional()
+    .describe("Filtra le votazioni finali (label contiene 'Votazione finale')"),
   dateFrom: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -59,16 +71,46 @@ const columns = [
 export const senatoVotesTool: Tool<typeof inputSchema> = {
   name: "senato-votes",
   description:
-    "[SENATO] Lista votazioni dell'Assemblea del Senato con esito, contatori (favorevoli, contrari, astenuti, presenti, votanti), tipo, data seduta e DDL collegato. Filtrabile per legislatura, data e DDL. Per il voto del singolo senatore usare senato-vote-detail. Le votazioni di FIDUCIA hanno ddl_uri vuoto alla fonte (il DDL è solo nel label, es. 'Disegno di legge n.1933. Votazione questione di fiducia'), ma --ddl-uri le include comunque: risolve le sedute del DDL e ricollega la fiducia votata quel giorno. Verifica sempre il ddl_uri di una 'Votazione finale' trovata per data: può appartenere a un atto diverso (testo unificato). Riporta solo i contatori restituiti, non stimarli.",
+    "[SENATO] Lista votazioni dell'Assemblea del Senato con esito, contatori (favorevoli, contrari, astenuti, presenti, votanti), tipo, data seduta e DDL collegato. Filtrabile per legislatura, data, DDL, parola chiave (label), voti di fiducia (--confidence-vote) e voti finali (--final-vote). Per il voto del singolo senatore usare senato-vote-detail. Le votazioni di FIDUCIA hanno ddl_uri vuoto alla fonte (il DDL è solo nel label, es. 'Disegno di legge n.1933. Votazione questione di fiducia'), ma --ddl-uri le include comunque: risolve le sedute del DDL e ricollega la fiducia votata quel giorno. Verifica sempre il ddl_uri di una 'Votazione finale' trovata per data: può appartenere a un atto diverso (testo unificato). Riporta solo i contatori restituiti, non stimarli.",
   emptyHint:
-    "Nessuna votazione trovata. Con --ddl-uri significa che nel LOD non risulta alcuna votazione d'Assemblea collegata a quel DDL (fiducie incluse): verifica l'URI del DDL, oppure il voto potrebbe essere solo in Commissione. Caso limite: se cerchi una fiducia e il DDL non ha nessun altro voto d'Assemblea che lo cita, prova per data (--date-from/--date-to intorno all'approvazione) e riconosci il DDL dal label. Non inventare l'esito o i contatori del voto.",
+    "Nessuna votazione trovata. Con --ddl-uri significa che nel LOD non risulta alcuna votazione d'Assemblea collegata a quel DDL (fiducie incluse): verifica l'URI del DDL, oppure il voto potrebbe essere solo in Commissione. Con --keyword/--confidence-vote/--final-vote: il tema/tipo non compare in tutti i label — riprova filtrando per data (--date-from/--date-to intorno all'evento) e riconosci il voto dal label. Caso limite: se cerchi una fiducia e il DDL non ha nessun altro voto d'Assemblea che lo cita, prova per data e riconosci il DDL dal label. Non inventare l'esito o i contatori del voto.",
   inputSchema,
   examples: [
     "italianparliament senato-votes list --legislature 19 --limit 50",
     "italianparliament senato-votes list --legislature 19 --date-from 2026-01-01 --date-to 2026-03-31",
     "italianparliament senato-votes list --ddl-uri http://dati.senato.it/ddl/58039 --format jsonl",
+    "italianparliament senato-votes list --legislature 19 --confidence-vote true",
+    "italianparliament senato-votes list --legislature 19 --final-vote true --date-from 2026-06-01",
+    "italianparliament senato-votes list --legislature 19 --keyword bilancio",
   ],
   async execute(input) {
+    // Filtro label-based: keyword (CONTAINS), confidence ('fiducia' ma non
+    // 'sfiducia' che indica mozioni di sfiducia), final ('votazione finale').
+    // Il tipo semantico (finale/fiducia) non è in osr:tipoVotazione (che è la
+    // modalità: elettronica/nominale/segreta), ma nel label.
+    const keywordEsc = input.keyword
+      ? input.keyword.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
+      : "";
+    const labelFilters: string[] = [];
+    if (input.keyword)
+      labelFilters.push(`CONTAINS(LCASE(STR(?label)), LCASE("${keywordEsc}"))`);
+    if (input.confidenceVote !== undefined)
+      // 'fiducia' copre 'questione di fiducia' / 'questione fiducia' / 'fiducia governo';
+      // esclude 'sfiducia' (mozioni di sfiducia individuale).
+      labelFilters.push(
+        input.confidenceVote
+          ? `CONTAINS(LCASE(STR(?label)), "fiducia") && !CONTAINS(LCASE(STR(?label)), "sfiducia")`
+          : `!CONTAINS(LCASE(STR(?label)), "fiducia")`,
+      );
+    if (input.finalVote !== undefined)
+      labelFilters.push(
+        input.finalVote
+          ? `CONTAINS(LCASE(STR(?label)), "votazione finale")`
+          : `!CONTAINS(LCASE(STR(?label)), "votazione finale")`,
+      );
+    const needsLabel = labelFilters.length > 0;
+    const labelFilter = needsLabel ? `FILTER(${labelFilters.join(" && ")})` : "";
+
     const dateFromFilter = input.dateFrom
       ? `FILTER(?date >= "${input.dateFrom}"^^xsd:date)`
       : "";
@@ -114,6 +156,7 @@ SELECT DISTINCT ?date WHERE {
     // conteggio è la cardinalità del result-set filtrato (calcolata sotto).
     if (input.countOnly && !input.ddlUri) {
       const countWhere = [`?v a osr:Votazione ; osr:legislatura ${input.legislature} .`];
+      if (needsLabel) countWhere.push(`?v rdfs:label ?label . ${labelFilter}`);
       if (input.dateFrom || input.dateTo)
         countWhere.push(`?v osr:seduta ?sed . ?sed osr:dataSeduta ?date . ${dateFromFilter} ${dateToFilter}`);
       const q = `${OSR_PREFIXES}\nSELECT (COUNT(DISTINCT ?v) AS ?count) WHERE {\n${countWhere.join("\n  ")}\n}`;
@@ -132,7 +175,7 @@ SELECT DISTINCT ?date WHERE {
 WHERE {
   ?v a osr:Votazione ; osr:legislatura ${input.legislature} ; osr:seduta ?s .
   OPTIONAL { ?s osr:dataSeduta ?date }
-  OPTIONAL { ?v rdfs:label ?label }
+  ${needsLabel ? `?v rdfs:label ?label . ${labelFilter}` : "OPTIONAL { ?v rdfs:label ?label }"}
   OPTIONAL { ?v osr:numero ?numero }
   OPTIONAL { ?v osr:tipoVotazione ?tipo }
   OPTIONAL { ?v osr:esito ?esito }

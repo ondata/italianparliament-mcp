@@ -100,7 +100,7 @@ const BOOL_COLS = new Set([
 export const votesTool: Tool<typeof inputSchema> = {
   name: "votes",
   description:
-    "[CAMERA] Lista votazioni della Camera dei Deputati con contatori (favorevoli, contrari, astenuti), esito, tipo, seduta, atto collegato. Filtrabile per parola chiave nel titolo. Nota: la keyword matcha la descrizione della votazione, che spesso è generica; se non trovi il VOTO FINALE o la FIDUCIA di un atto, filtra per intervallo di date (attorno alla data di trasmissione/approvazione dall'iter) e leggi il dettaglio con vote-detail, invece di dedurre il conteggio.",
+    "[CAMERA] Lista votazioni della Camera dei Deputati con contatori (favorevoli, contrari, astenuti), esito, tipo, seduta, atto collegato. Filtrabile per parola chiave (cerca in label, title e description: es. 'bilancio' trova le votazioni sul DDL Bilancio). Nota: alcune votazioni hanno description povera (es. solo 'DDL.n. 2920-A' senza il tema del decreto): in quel caso filtra per intervallo di date (attorno alla data di trasmissione/approvazione dall'iter) e leggi il dettaglio con vote-detail, invece di dedurre il conteggio.",
   emptyHint:
     "Nessuna votazione trovata. La ricerca per keyword sulle votazioni Camera spesso manca il voto finale/fiducia: riprova filtrando per intervallo di date (dalla timeline di bill-progress) e usa vote-detail per il dettaglio. Non inventare numeri, date o esiti del voto.",
   inputSchema,
@@ -126,7 +126,7 @@ export const votesTool: Tool<typeof inputSchema> = {
       : "";
     const keywordFilter =
       input.keyword !== undefined
-        ? `FILTER(CONTAINS(LCASE(STR(?label)), LCASE("${keywordEsc}")) || CONTAINS(LCASE(STR(?title)), LCASE("${keywordEsc}")))`
+        ? `FILTER(CONTAINS(LCASE(STR(?label)), LCASE("${keywordEsc}")) || CONTAINS(LCASE(STR(?title)), LCASE("${keywordEsc}")) || CONTAINS(LCASE(STR(?description)), LCASE("${keywordEsc}")))`
         : "";
     // STR() obbligatorio: Virtuoso non confronta il dc:date Camera (literal
     // YYYYMMDD) come stringa lessicografica senza STR() — con confronto nudo il
@@ -166,7 +166,7 @@ export const votesTool: Tool<typeof inputSchema> = {
     }
     if (approvedFilter) inner.push(`?s <${V}/approvato> ?approvato . ${approvedFilter}`);
     if (confidenceFilter) inner.push(`?s <${V}/richiestaFiducia> ?richiestaFiducia . ${confidenceFilter}`);
-    if (keywordFilter) inner.push(`?s rdfs:label ?label . OPTIONAL { ?s dc:title ?title } ${keywordFilter}`);
+    if (keywordFilter) inner.push(`?s rdfs:label ?label . ?s dc:description ?description . OPTIONAL { ?s dc:title ?title } ${keywordFilter}`);
     if (billCodeFilter) inner.push(`?s dc:description ?description . ${billCodeFilter}`);
 
     const coreSelect = `SELECT DISTINCT ?s ?label ?title ?description ?type ?date

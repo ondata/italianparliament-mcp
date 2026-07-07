@@ -98,6 +98,18 @@ function parseIntFlag(raw: string | undefined, name: string): number | undefined
   return n;
 }
 
+function parseBoolFlag(
+  raw: string | boolean | undefined,
+  name: string,
+): boolean | undefined {
+  if (raw === undefined || raw === "") return undefined;
+  if (raw === true || raw === "true") return true;
+  if (raw === false || raw === "false") return false;
+  throw new Error(
+    `Invalid --${name} value "${raw}". Expected: true or false.`,
+  );
+}
+
 const deputiesList = defineCommand({
   meta: {
     name: "list",
@@ -1357,6 +1369,9 @@ const senatoVotesList = defineCommand({
   args: {
     legislature: { type: "string", description: "Legislature number (default 19)", default: "19" },
     "ddl-uri": { type: "string", description: "Filter votes linked to a bill (Senato ddl URI)" },
+    keyword: { type: "string", description: "Search in vote label (case-insensitive), e.g. 'caccia', 'bilancio'" },
+    "confidence-vote": { type: "string", description: "Filter confidence votes: true or false" },
+    "final-vote": { type: "string", description: "Filter final votes (label 'Votazione finale'): true or false" },
     "date-from": { type: "string", description: "Session date from (YYYY-MM-DD)" },
     "date-to": { type: "string", description: "Session date to (YYYY-MM-DD)" },
     "count-only": { type: "boolean", description: "Return only the total count (column count)" },
@@ -1369,6 +1384,9 @@ const senatoVotesList = defineCommand({
       countOnly: args["count-only"] === true,
       legislature: parseIntFlag(args.legislature as string, "legislature") ?? 19,
       ddlUri: (args["ddl-uri"] as string) || undefined,
+      keyword: (args.keyword as string) || undefined,
+      confidenceVote: parseBoolFlag(args["confidence-vote"] as string, "confidence-vote"),
+      finalVote: parseBoolFlag(args["final-vote"] as string, "final-vote"),
       dateFrom: (args["date-from"] as string) || undefined,
       dateTo: (args["date-to"] as string) || undefined,
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,

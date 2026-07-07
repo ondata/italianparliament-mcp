@@ -33,3 +33,4 @@ docs/news-agent/
 .agents/
 .claude/skills/
 skills-lock.json
+.firecrawl/
