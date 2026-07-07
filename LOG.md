@@ -1,5 +1,9 @@
 # LOG
 
+## 2026-07-07
+
+- **v0.17.2 — fix vuoto silenzioso dei filtri data Camera** (bug #1 dal report news-agent `docs/news-agent/2026-07-07_09-03.md`). Root cause: `FILTER(?date >= "AAAAMMGG")` sulla variabile **nuda** legata a `dc:date` (literal `AAAAMMGG`) faceva un confronto **numerico** su Virtuoso → range errati o **0 righe mute**. Es.: `votes list --legislature 19 --date-from 2025-02-01 --date-to 2025-02-28` restituiva 0 pur essendoci 436 votazioni, e gennaio ne "catturava" 7378 (conteggi assurdi); riprodotto su leg.18 (marzo 2020: 2 invece di 35). Un giornalista non poteva distinguere «nessun voto» da «query rotta». Fix: avvolti in `STR(...)` tutti i confronti data Camera in **5 tool** — `votes`, `bills`, `sessions`, `committee-sessions`, `audizioni` (le date Senato tipizzate `^^xsd:date` restano invariate). Verificato: votes leg.19 gen/feb/mar 2025 → 313/436/464 (coerente con `STRSTARTS`); bills feb 2025 → 60; sessions feb 2025 → 18; votes leg.18 marzo 2020 → 35. Nessun tool aggiunto (**41 tool**). Test Camera invariati (i 13 fallimenti sono tutti Senato 403, quirk endpoint). Wiki `trappole-virtuoso-funzioni-stringa.md` generalizzato: la trappola #2 vale anche sulle variabili `dc:date` nude, non solo sui risultati di `SUBSTR`/`REPLACE`.
+
 ## 2026-07-06
 
 - **v0.17.1 — 2 fix da stress-test news-driven** (report `docs/news-agent/2026-07-06_18-51.md`). Nessun tool aggiunto (**41 tool**). Dettaglio nelle due voci sotto.

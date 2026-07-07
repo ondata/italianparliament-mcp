@@ -1,5 +1,9 @@
 # LOD wiki — log
 
+## 2026-07-07
+
+* **Update**: [Trappole Virtuoso — funzioni stringa e confronti](/trappole-virtuoso-funzioni-stringa.md) — generalizzata la trappola #2. Non riguarda **solo** il risultato di `SUBSTR`/`REPLACE`: il confronto numerico spurio di `>=`/`<=` colpisce anche una **variabile legata direttamente a `dc:date`** (Camera, literal `AAAAMMGG`), senza alcuna funzione di mezzo. Verificato 2026-07-07: `FILTER(?date >= "20250201") FILTER(?date <= "20250228")` → 0 righe, con `STR(?date)` → 436 (coerente con `STRSTARTS`); gennaio senza `STR()` → 7378 (falso). Aggiunta la regola opposta per le date **tipizzate del Senato** (`xsd:date` → confrontare con literal tipizzato, non `STR()`). Nuovo caso reale: filtro `--date-from/--date-to` di `votes`/`bills`/`sessions`/`committee-sessions`/`audizioni` che dava vuoti silenziosi. Emerso dalla gap analysis news-driven del 2026-07-07.
+
 ## 2026-07-06
 
 * **Update**: [sedute commissione Senato](/senato/sedute-commissione.md) — aggiunta sezione "il dato manca dal LOD ma esiste fuori: liste JSON `listasommcomm`". Il Webmaster del Senato (email 2026-07-06) conferma che lo SPARQL su `osr:SedutaCommissione` **non** espone resoconto/OdG e indica le liste JSON statiche `senato.it/static/bgt/listasommcomm/<TIPO_COD_COMM>/<COD_COMM>/t/<LEG>/<ANNO>/index.json` come fonte con link ai resoconti. Schema verificato via agent-browser (WAF → `curl` HTTP 202 vuoto): per seduta espone `id_testo`, `num_sed_comm`, `ora_inizio/fine`, `descr_tipo_veste` (Plenaria/UdP/Comitato ristretto/Sottocommissione pareri), `diz_raggr` (sedute congiunte). Link al sommario dei lavori da `id_testo`: `show-doc?leg=<LEG>&tipodoc=SommComm&id=<id_testo>&idoggetto=0` (equivalente Senato del bollettino Camera). Restano assenti ovunque: presenti a ciascuna seduta e persone/enti auditi (chiesti nella stessa email, in attesa di riscontro sul limite di rate).

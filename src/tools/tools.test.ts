@@ -118,6 +118,22 @@ describe("Camera tools", () => {
     expect(result.rows[0]).toHaveProperty("approved");
   }, 30000);
 
+  it("votes: date range uses STR() so it is not a silent empty (feb 2025 ≈ 436)", async () => {
+    // Sentinella anti-regressione: il confronto data Camera va avvolto in STR().
+    // Senza STR() Virtuoso fa un confronto numerico spurio → 0 righe mute pur
+    // essendoci ~436 votazioni a febbraio 2025 (ground truth via STRSTARTS).
+    // Se qualcuno rimuove STR() dal filtro data, questo test torna a 0 e rompe.
+    const result = await votesTool.execute({
+      legislature: 19,
+      dateFrom: "2025-02-01",
+      dateTo: "2025-02-28",
+      countOnly: true,
+      limit: 1,
+      offset: 0,
+    });
+    expect(Number(result.rows[0].count)).toBeGreaterThan(400);
+  }, 30000);
+
   it("speeches: returns speeches for legislature 19", async () => {
     const result = await speechesTool.execute({ legislature: 19, limit: 3, offset: 0, chamber: "camera", countOnly: false });
     expect(result.rows.length).toBe(3);

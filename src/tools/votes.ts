@@ -128,11 +128,14 @@ export const votesTool: Tool<typeof inputSchema> = {
       input.keyword !== undefined
         ? `FILTER(CONTAINS(LCASE(STR(?label)), LCASE("${keywordEsc}")) || CONTAINS(LCASE(STR(?title)), LCASE("${keywordEsc}")))`
         : "";
+    // STR() obbligatorio: Virtuoso non confronta il dc:date Camera (literal
+    // YYYYMMDD) come stringa lessicografica senza STR() — con confronto nudo il
+    // range restituisce risultati errati o vuoti silenziosi (vedi bug notizie).
     const dateFromFilter = input.dateFrom
-      ? `FILTER(?date >= "${input.dateFrom.replace(/-/g, "")}")`
+      ? `FILTER(STR(?date) >= "${input.dateFrom.replace(/-/g, "")}")`
       : "";
     const dateToFilter = input.dateTo
-      ? `FILTER(?date <= "${input.dateTo.replace(/-/g, "")}")`
+      ? `FILTER(STR(?date) <= "${input.dateTo.replace(/-/g, "")}")`
       : "";
     const billCodeEsc = input.billCode !== undefined
       ? input.billCode.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
@@ -156,8 +159,8 @@ export const votesTool: Tool<typeof inputSchema> = {
       inner.push(`?s <${V}/rif_leg> <http://dati.camera.it/ocd/legislatura.rdf/repubblica_${input.legislature}> .`);
     if (input.dateFrom || input.dateTo) {
       inner.push(`?s dc:date ?vd .`);
-      if (input.dateFrom) inner.push(`FILTER(?vd >= "${input.dateFrom.replace(/-/g, "")}")`);
-      if (input.dateTo) inner.push(`FILTER(?vd <= "${input.dateTo.replace(/-/g, "")}")`);
+      if (input.dateFrom) inner.push(`FILTER(STR(?vd) >= "${input.dateFrom.replace(/-/g, "")}")`);
+      if (input.dateTo) inner.push(`FILTER(STR(?vd) <= "${input.dateTo.replace(/-/g, "")}")`);
     } else {
       inner.push(`OPTIONAL { ?s dc:date ?vd }`);
     }

@@ -143,8 +143,11 @@ async function queryCamera(
   const filters: string[] = [];
   const fromIso = toIso(opts.dateFrom);
   const toIso2 = toIso(opts.dateTo);
-  if (fromIso) filters.push(`FILTER(?date >= "${isoToCompact(fromIso)}")`);
-  if (toIso2) filters.push(`FILTER(?date <= "${isoToCompact(toIso2)}")`);
+  // STR() obbligatorio: Virtuoso non confronta il dc:date Camera (literal
+  // YYYYMMDD) come stringa lessicografica senza STR() — con confronto nudo il
+  // range restituisce risultati errati o vuoti silenziosi.
+  if (fromIso) filters.push(`FILTER(STR(?date) >= "${isoToCompact(fromIso)}")`);
+  if (toIso2) filters.push(`FILTER(STR(?date) <= "${isoToCompact(toIso2)}")`);
 
   const query = `${OCD_PREFIXES}
 SELECT ?seduta ?date (GROUP_CONCAT(DISTINCT ?rel; separator="|") AS ?bulletins)
@@ -187,8 +190,11 @@ async function countCamera(
   const filters: string[] = [];
   const fromIso = toIso(opts.dateFrom);
   const toIso2 = toIso(opts.dateTo);
-  if (fromIso) filters.push(`FILTER(?date >= "${isoToCompact(fromIso)}")`);
-  if (toIso2) filters.push(`FILTER(?date <= "${isoToCompact(toIso2)}")`);
+  // STR() obbligatorio: Virtuoso non confronta il dc:date Camera (literal
+  // YYYYMMDD) come stringa lessicografica senza STR() — con confronto nudo il
+  // range restituisce risultati errati o vuoti silenziosi.
+  if (fromIso) filters.push(`FILTER(STR(?date) >= "${isoToCompact(fromIso)}")`);
+  if (toIso2) filters.push(`FILTER(STR(?date) <= "${isoToCompact(toIso2)}")`);
 
   const query = `${OCD_PREFIXES}
 SELECT (COUNT(DISTINCT ?seduta) AS ?count)

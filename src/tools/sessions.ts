@@ -43,11 +43,14 @@ export const sessionsTool: Tool<typeof inputSchema> = {
       input.legislature !== undefined
         ? `FILTER(?rif_leg = <http://dati.camera.it/ocd/legislatura.rdf/repubblica_${input.legislature}>)`
         : "";
+    // STR() obbligatorio: Virtuoso non confronta il dc:date Camera (literal
+    // YYYYMMDD) come stringa lessicografica senza STR() — con confronto nudo il
+    // range restituisce risultati errati o vuoti silenziosi.
     const dateFromFilter = input.dateFrom
-      ? `FILTER(?date >= "${input.dateFrom.replace(/-/g, "")}")`
+      ? `FILTER(STR(?date) >= "${input.dateFrom.replace(/-/g, "")}")`
       : "";
     const dateToFilter = input.dateTo
-      ? `FILTER(?date <= "${input.dateTo.replace(/-/g, "")}")`
+      ? `FILTER(STR(?date) <= "${input.dateTo.replace(/-/g, "")}")`
       : "";
 
     const query = `${OCD_PREFIXES}

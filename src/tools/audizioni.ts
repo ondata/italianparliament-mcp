@@ -133,8 +133,11 @@ async function queryByDiscussion(
     filters.push(
       `FILTER(CONTAINS(LCASE(?title), LCASE("${sqlEscape(opts.keyword)}")))`,
     );
-  if (opts.dateFrom) filters.push(`FILTER(?date >= "${toCompact(toIso(opts.dateFrom))}")`);
-  if (opts.dateTo) filters.push(`FILTER(?date <= "${toCompact(toIso(opts.dateTo))}")`);
+  // STR() obbligatorio: Virtuoso non confronta il dc:date Camera (literal
+  // YYYYMMDD) come stringa lessicografica senza STR() — con confronto nudo il
+  // range restituisce risultati errati o vuoti silenziosi.
+  if (opts.dateFrom) filters.push(`FILTER(STR(?date) >= "${toCompact(toIso(opts.dateFrom))}")`);
+  if (opts.dateTo) filters.push(`FILTER(STR(?date) <= "${toCompact(toIso(opts.dateTo))}")`);
 
   const query = `${OCD_PREFIXES}
 SELECT ?dib ?d ?date ?committee ?title

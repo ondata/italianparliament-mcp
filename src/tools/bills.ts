@@ -95,11 +95,14 @@ export const billsTool: Tool<typeof inputSchema> = {
       input.initiative !== undefined
         ? `FILTER(CONTAINS(LCASE(STR(?initiative)), LCASE("${sparqlEscape(input.initiative)}")))`
         : "";
+    // STR() obbligatorio: Virtuoso non confronta il dc:date Camera (literal
+    // YYYYMMDD) come stringa lessicografica senza STR() — con confronto nudo il
+    // range restituisce risultati errati o vuoti silenziosi.
     const dateFromFilter = input.dateFrom
-      ? `FILTER(?date >= "${input.dateFrom.replace(/-/g, "")}")`
+      ? `FILTER(STR(?date) >= "${input.dateFrom.replace(/-/g, "")}")`
       : "";
     const dateToFilter = input.dateTo
-      ? `FILTER(?date <= "${input.dateTo.replace(/-/g, "")}")`
+      ? `FILTER(STR(?date) <= "${input.dateTo.replace(/-/g, "")}")`
       : "";
 
     const coreSelect = `SELECT DISTINCT ?s ?label ?title ?type ?date ?description
