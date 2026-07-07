@@ -49,6 +49,7 @@ See [tool reference](references/tools.md) for the full list with parameters and 
 | Interrogazioni, interpellanze, mozioni | `aic` (Camera) / `sindacato-ispettivo` (Senato) |
 | Votazioni Camera | `votes` / `vote-detail` |
 | Votazioni Senato | `senato-votes` / `senato-vote-detail` |
+| Presenze/assenze aggregate di un parlamentare per legislatura | `attendance` (Camera) / `senato-attendance` (Senato) |
 | Interventi in aula | `speeches` |
 | Emendamenti Senato | `amendments` |
 | Emendamenti Camera (proposte emendative) | `camera-amendments` |

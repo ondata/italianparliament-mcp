@@ -25,6 +25,8 @@ import { amendmentsTool } from "./amendments.js";
 import { senatoVotesTool } from "./senato-votes.js";
 import { cameraAmendmentsTool } from "./camera-amendments.js";
 import { documentsTool } from "./documents.js";
+import { attendanceTool } from "./attendance.js";
+import { senatoAttendanceTool } from "./senato-attendance.js";
 
 // Integration tests — hit real SPARQL endpoints.
 // Run with: npx vitest run src/tools/tools.test.ts
@@ -245,6 +247,22 @@ describe("Camera tools", () => {
     expect(result.rows.length).toBeGreaterThan(0);
     expect(result.rows[0].person_name).toContain("MELONI");
   }, 30000);
+
+  it("attendance: aggregates vote counts for Meloni (mostly non-voting as PM)", async () => {
+    const result = await attendanceTool.execute({ id: 302103, legislature: 19 });
+    expect(result.rows.length).toBe(1);
+    const r = result.rows[0];
+    expect(r.deputy_name).toBe("GIORGIA MELONI");
+    const total =
+      Number(r.favorevole) +
+      Number(r.contrario) +
+      Number(r.astensione) +
+      Number(r.non_ha_votato) +
+      Number(r.ha_votato) +
+      Number(r.altro);
+    expect(String(total)).toBe(r.totale);
+    expect(Number(r.non_ha_votato)).toBeGreaterThan(Number(r.favorevole));
+  }, 30000);
 });
 
 describe("Senato tools", () => {
@@ -456,5 +474,22 @@ describe("Senato tools", () => {
     expect(result.rows[0]).toHaveProperty("type");
     expect(result.rows[0]).toHaveProperty("title");
     expect(result.rows[0]).toHaveProperty("status");
+  }, 30000);
+
+  it("senato-attendance: aggregates vote counts for a senator in legislature 19", async () => {
+    const result = await senatoAttendanceTool.execute({
+      senatorUri: "http://dati.senato.it/senatore/3900",
+      legislature: 19,
+    });
+    expect(result.rows.length).toBe(1);
+    const r = result.rows[0];
+    const total =
+      Number(r.favorevole) +
+      Number(r.contrario) +
+      Number(r.astenuto) +
+      Number(r.presente_non_votante) +
+      Number(r.in_congedo_missione);
+    expect(String(total)).toBe(r.totale);
+    expect(Number(r.totale)).toBeGreaterThan(0);
   }, 30000);
 });

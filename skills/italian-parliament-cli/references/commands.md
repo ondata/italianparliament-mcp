@@ -116,6 +116,13 @@ Interventi in aula (disponibili da leg. 17).
 italianparliament speeches list --legislature 19
 ```
 
+### `attendance show`
+Conteggio aggregato dei voti di un deputato su tutte le votazioni della sua legislatura (favorevole/contrario/astensione/non ha votato/ha votato in scrutinio segreto) — misura di attivismo/assenteismo.
+```bash
+italianparliament attendance show --id 302103 --legislature 19
+italianparliament attendance show --uri http://dati.camera.it/ocd/deputato.rdf/d306921_17
+```
+
 ---
 
 ## Attività legislativa — Senato
@@ -195,6 +202,12 @@ Voto del singolo senatore in una votazione (URI da `senato-votes`); include il g
 ```bash
 italianparliament senato-vote-detail show --vote-uri http://dati.senato.it/votazione/19-167-42
 italianparliament senato-vote-detail show --vote-uri http://dati.senato.it/votazione/19-167-42 --vote-type Contrario
+```
+
+### `senato-attendance show`
+Conteggio aggregato dei voti di un senatore su tutte le votazioni d'Assemblea di una legislatura (favorevole/contrario/astenuto/presente non votante/in congedo o missione). L'URI senatore non contiene la legislatura: `--legislature` è obbligatorio (default 19).
+```bash
+italianparliament senato-attendance show --senator-uri http://dati.senato.it/senatore/32 --legislature 19
 ```
 
 ### `committee-sessions list`

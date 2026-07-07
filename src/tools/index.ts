@@ -39,6 +39,8 @@ import { committeeSessionsTool } from "./committee-sessions.js";
 import { personCareerTool } from "./person-career.js";
 import { peopleTool } from "./people.js";
 import { audizioniTool } from "./audizioni.js";
+import { attendanceTool } from "./attendance.js";
+import { senatoAttendanceTool } from "./senato-attendance.js";
 import type { Tool } from "./types.js";
 
 export const tools: Tool[] = [
@@ -83,6 +85,8 @@ export const tools: Tool[] = [
   personCareerTool,
   peopleTool,
   audizioniTool,
+  attendanceTool,
+  senatoAttendanceTool,
 ];
 
 export const toolsByName: Record<string, Tool> = Object.fromEntries(
@@ -131,5 +135,7 @@ export {
   personCareerTool,
   peopleTool,
   audizioniTool,
+  attendanceTool,
+  senatoAttendanceTool,
 };
 export type { Tool, ToolResult } from "./types.js";

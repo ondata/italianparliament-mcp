@@ -88,6 +88,11 @@ Interventi in aula Camera.
 - `legislature`: numero legislatura (nota: dati disponibili da leg. 17)
 - `deputyUri`: filtra per deputato
 
+### `attendance`
+Conteggio aggregato dei voti di un deputato su tutte le votazioni della sua legislatura (misura di attivismo/assenteismo). L'URI del deputato è già specifico di una legislatura (`.../deputato.rdf/d<ID>_<LEG>`), quindi il conteggio è già delimitato senza filtro separato.
+- `uri` oppure `id`+`legislature`
+- Colonne: `favorevole`, `contrario`, `astensione`, `non_ha_votato`, `ha_votato` (scrutinio segreto), `altro`, `totale`
+
 ## Attività legislativa — Senato
 
 ### `bill-progress`
@@ -143,6 +148,13 @@ Votazioni d'Assemblea del Senato: esito, contatori, tipo, data seduta, DDL colle
 Voto del singolo senatore in una votazione, con il gruppo di appartenenza alla data del voto (colonna `group_label`) — consente il voto per gruppo.
 - `voteUri` (required): URI della votazione (da `senato-votes`)
 - `voteType`: filtro (Favorevole/Contrario/Astenuto/Presente non votante/In congedo/missione)
+
+### `senato-attendance`
+Conteggio aggregato dei voti di un senatore su tutte le votazioni d'Assemblea di una legislatura (misura di attivismo/assenteismo). L'URI senatore non contiene la legislatura, quindi va indicata a parte.
+- `senatorUri` (required): URI del senatore
+- `legislature`: numero legislatura (default 19)
+- Colonne: `favorevole`, `contrario`, `astenuto`, `presente_non_votante`, `in_congedo_missione`, `totale`
+- Per un senatore attivo tutta la legislatura, `totale` è prossimo (non sempre identico) al numero di votazioni della legislatura (`senato-votes` con `countOnly`); per un senatore a vita o subentrato, `totale` è naturalmente inferiore.
 
 ### `committee-sessions`
 Attività delle commissioni. Due modalità: (1) iter di un DDL (`ddlUri`, Senato): sedute in cui il provvedimento è stato trattato; (2) segui una commissione (`committeeUri` o `committeeName` + `chamber`): tutte le sedute, filtrabili per data.

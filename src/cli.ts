@@ -15,6 +15,8 @@ import { rolesTool } from "./tools/roles.js";
 import { speechesTool } from "./tools/speeches.js";
 import { aicTool } from "./tools/aic.js";
 import { voteDetailTool } from "./tools/vote-detail.js";
+import { attendanceTool } from "./tools/attendance.js";
+import { senatoAttendanceTool } from "./tools/senato-attendance.js";
 import { groupMembersTool } from "./tools/group-members.js";
 import { senatorGroupMembersTool } from "./tools/senator-group-members.js";
 import { govMembersTool } from "./tools/gov-members.js";
@@ -705,6 +707,52 @@ const voteDetailShow = defineCommand({
       groupAcronym: args["group-acronym"] as string | undefined,
       voteType: args["vote-type"] as "Favorevole" | "Contrario" | "Astensione" | "Non ha votato" | undefined,
       limit: parseIntFlag(args.limit as string, "limit") ?? 700,
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const attendanceShow = defineCommand({
+  meta: {
+    name: "show",
+    description: withExamples(
+      "Aggregate vote counts for a single deputy across a legislature.",
+      attendanceTool.examples,
+    ),
+  },
+  args: {
+    uri: { type: "string", description: "Full URI of the deputy" },
+    id: { type: "string", description: "Numeric deputy ID (use with --legislature)" },
+    legislature: { type: "string", description: "Legislature number (use with --id)" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await runTool(attendanceTool, {
+      uri: (args.uri as string) || undefined,
+      id: parseIntFlag(args.id as string, "id"),
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
+    });
+    emit(result, parseFormat(args.format as string));
+  },
+});
+
+const senatoAttendanceShow = defineCommand({
+  meta: {
+    name: "show",
+    description: withExamples(
+      "Aggregate vote counts for a single senator across a legislature.",
+      senatoAttendanceTool.examples,
+    ),
+  },
+  args: {
+    "senator-uri": { type: "string", description: "Full URI of the senator", required: true },
+    legislature: { type: "string", default: "19", description: "Legislature number (default 19)" },
+    format: { type: "string", default: "csv" },
+  },
+  async run({ args }) {
+    const result = await runTool(senatoAttendanceTool, {
+      senatorUri: args["senator-uri"] as string,
+      legislature: parseIntFlag(args.legislature as string, "legislature") ?? 19,
     });
     emit(result, parseFormat(args.format as string));
   },
@@ -1505,6 +1553,7 @@ FLUSSO TIPICO (le schede di dettaglio richiedono un URI, ottenuto da un comando 
   3. Catene utili:
      - votazioni Camera:  votes list ... → vote-detail show --vote-uri ...
      - votazioni Senato:  senato-votes list ... → senato-vote-detail show --vote-uri ...
+     - presenze/assenze:  attendance show --uri <deputato>  |  senato-attendance show --senator-uri ... --legislature ...
      - DDL Senato:        bill-progress list --keyword ... → amendments / committee-sessions / bill-text (--ddl-uri o ddl URI)
      - testo DDL:         bill-text links --uri <ddl> (poi, Senato dietro WAF: bill-text fetch --did <N>)
 
@@ -1532,6 +1581,8 @@ const CAPABILITIES: { cmd: string; terms: string[]; desc: string }[] = [
   { cmd: "committee-sessions list", terms: ["commissione", "sedute", "lavori commissione", "attività commissione", "follow commissione", "bollettini commissione"], desc: "Attività delle commissioni: iter di un DDL (--ddl-uri) o sedute di una commissione per data (--committee-uri/--committee-name + --chamber, Camera+Senato)" },
   { cmd: "votes list / vote-detail show", terms: ["votazione", "voto", "come ha votato", "fiducia", "camera"], desc: "Votazioni Camera e voto individuale" },
   { cmd: "senato-votes list / senato-vote-detail show", terms: ["votazione senato", "voto senatore", "ribelli senato"], desc: "Votazioni Senato e voto individuale" },
+  { cmd: "attendance show", terms: ["presenze", "assenze", "quante volte non ha votato", "attivismo deputato"], desc: "Conteggio aggregato voti di un deputato per legislatura" },
+  { cmd: "senato-attendance show", terms: ["presenze senato", "assenze senatore", "in missione", "attivismo senatore"], desc: "Conteggio aggregato voti di un senatore per legislatura" },
   { cmd: "aic list", terms: ["interrogazione", "interpellanza", "mozione", "sindacato ispettivo camera", "tema"], desc: "Atti di indirizzo e controllo Camera (--keyword)" },
   { cmd: "sindacato-ispettivo list", terms: ["interrogazione senato", "interpellanza senato"], desc: "Sindacato ispettivo Senato" },
   { cmd: "groups list / group-members list", terms: ["gruppo", "gruppi", "composizione gruppo"], desc: "Gruppi parlamentari Camera" },
@@ -1674,6 +1725,14 @@ const main = defineCommand({
     "vote-detail": defineCommand({
       meta: { name: "vote-detail", description: "Individual deputy votes in a votazione" },
       subCommands: { show: voteDetailShow },
+    }),
+    attendance: defineCommand({
+      meta: { name: "attendance", description: "Aggregate deputy vote counts across a legislature (Camera)" },
+      subCommands: { show: attendanceShow },
+    }),
+    "senato-attendance": defineCommand({
+      meta: { name: "senato-attendance", description: "Aggregate senator vote counts across a legislature (Senato)" },
+      subCommands: { show: senatoAttendanceShow },
     }),
     "group-members": defineCommand({
       meta: { name: "group-members", description: "Members of Camera parliamentary groups" },
