@@ -67,6 +67,8 @@ export const sindacatoIspettivoTool: Tool<typeof inputSchema> = {
     "[SENATO] Atti di sindacato ispettivo del Senato: interrogazioni (orali e scritte), " +
     "interpellanze, mozioni, risoluzioni. Equivalente Senato degli AIC Camera. " +
     "Filtrabile per legislatura, senatore firmatario, tipo di atto e keyword.",
+  emptyHint:
+    "Nessun atto trovato. Attenzione: il label contiene solo tipo e numero dell'atto (es. 'Interrogazione 3-02021'), NON l'oggetto/tema — quindi --keyword su un argomento (es. 'ius scholae') dà spesso vuoto anche se l'atto esiste. Il testo dell'atto vive solo nella pagina HTML esterna (colonna url). Per trovarlo, filtra per senatore e/o data invece che per keyword tematica.",
   inputSchema,
   examples: [
     "italianparliament sindacato-ispettivo list --legislature 19 --limit 10",
