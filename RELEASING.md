@@ -59,11 +59,14 @@ più server MCP HTTP su Cloudflare Worker, skill e pacchetto `.dxt`.
    prima di pubblicare: `npm pack --dry-run`.
 
    **Aggiorna la CLI locale** (l'install globale resta alla versione vecchia
-   finché non lo rifai):
+   finché non lo rifai). **Pinna la versione esatta e usa `--force`**: subito
+   dopo il publish npm può servire metadati stale dalla cache, e
+   `npm install -g <pkg>` senza versione reinstalla la precedente (visto con
+   0.19.0 → 0.20.0).
 
    ```bash
-   npm install -g @aborruso/italianparliament-mcp   # aggiorna il comando `italianparliament`
-   italianparliament --version 2>/dev/null || npm view @aborruso/italianparliament-mcp version  # verifica
+   npm install -g @aborruso/italianparliament-mcp@X.Y.Z --force   # pin versione + bypass cache
+   hash -r; italianparliament --version 2>/dev/null   # verifica (deve stampare X.Y.Z)
    ```
 
 8. **Deploy del Worker** su Cloudflare:
