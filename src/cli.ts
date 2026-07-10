@@ -1662,6 +1662,15 @@ const whichCmd = defineCommand({
   },
   run({ args }) {
     const q = String(args.capability ?? "").toLowerCase().trim();
+    // Query vuota (es. which "   "): la stringa vuota è contenuta in ogni
+    // term, quindi matcherebbe l'intero catalogo con exit 0 — fuorviante.
+    if (!q) {
+      process.stdout.write(
+        `Indicare una capacità da cercare, es.: italianparliament which "testo ddl". ` +
+          `Per il catalogo completo: italianparliament guide.\n`,
+      );
+      process.exit(2);
+    }
     const ranked = CAPABILITIES.map((c) => ({
       command: c.cmd,
       score: capabilityScore(c, q),
