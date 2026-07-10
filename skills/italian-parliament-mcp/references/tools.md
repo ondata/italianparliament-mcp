@@ -119,9 +119,12 @@ Commissioni a cui un DDL/atto è assegnato, **Camera o Senato** (il ramo è rico
 - `billUri` (required): URI del DDL/atto (Camera `attocamera.rdf/...` o Senato `ddl/...`)
 
 ### `amendments`
-Emendamenti Senato con DDL collegato.
+Emendamenti Senato con DDL collegato. Ogni riga espone `akn_xml_url` (testo AKN raw dal bulk GitHub del Senato, senza WAF). Se il LOD è indietro, con `ddlUri` il tool passa da solo al bulk AKN (`source=akn`).
 - `legislature`: numero legislatura
 - `ddlUri`: filtra gli emendamenti a un DDL specifico
+- `withProponents`: aggiunge primo firmatario e cofirmatari (nome + URI persona, colonne `first_proponent`/`first_proponent_uri`/`proponents`/`proponents_uri`) dal testo AKN (il proponente NON è nel LOD; un fetch per emendamento, più lento: richiede `limit<=100`, errore esplicito oltre). Popola anche la colonna `date` (data di presentazione) quando il LOD non ce l'ha.
+
+`type` (E/G/Q, dal LOD) e `sede` (commissione/assemblea, da entrambe le fonti) sono colonne distinte: `type` non è deducibile in modo affidabile dal solo bulk AKN e resta vuota nelle righe `source=akn`.
 
 ### `camera-amendments`
 Emendamenti (proposte emendative) a un atto **Camera**, per sede (referente/Assemblea). Fonte: app HTML `documenti.camera.it` (gli emendamenti Camera non sono nel LOD), via scraping. Output per emendamento: `sede`, `article`, `number`, `first_signatory`, `person_id`, `identical`, `text_url`.

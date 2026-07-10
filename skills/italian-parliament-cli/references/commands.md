@@ -161,10 +161,11 @@ italianparliament bill-committees list --bill-uri http://dati.camera.it/ocd/atto
 ```
 
 ### `amendments list`
-Emendamenti Senato; `--ddl-uri` per gli emendamenti a un DDL specifico.
+Emendamenti Senato; `--ddl-uri` per gli emendamenti a un DDL specifico. Ogni riga espone `akn_xml_url` (testo AKN raw dal bulk GitHub del Senato, senza WAF). Se il LOD è indietro, con `--ddl-uri` il tool passa da solo al bulk AKN (`source=akn`). `--with-proponents` aggiunge primo firmatario e cofirmatari (nome + URI persona, colonne `first_proponent`/`first_proponent_uri`/`proponents`/`proponents_uri`) dal testo AKN (il proponente NON è nel LOD; un fetch per emendamento, più lento: richiede `--limit<=100`, errore esplicito oltre). Popola anche la colonna `date` (data di presentazione) quando il LOD non ce l'ha. `type` (E/G/Q, dal LOD) e `sede` (commissione/assemblea) sono colonne distinte: `type` resta vuota sulle righe `source=akn`.
 ```bash
 italianparliament amendments list --legislature 19
 italianparliament amendments list --ddl-uri http://dati.senato.it/ddl/56260 --format jsonl
+italianparliament amendments list --ddl-uri http://dati.senato.it/ddl/60233 --with-proponents --limit 20
 ```
 
 ### `camera-amendments list`

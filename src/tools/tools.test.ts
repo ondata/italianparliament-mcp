@@ -21,7 +21,7 @@ import { govMembersTool } from "./gov-members.js";
 import { committeesTool } from "./committees.js";
 import { billProgressTool } from "./bill-progress.js";
 import { billSignatoriesTool } from "./bill-signatories.js";
-import { amendmentsTool } from "./amendments.js";
+import { amendmentsTool, enrichProponents, checkAknTruncation, aknEmptyHint } from "./amendments.js";
 import { senatoVotesTool } from "./senato-votes.js";
 import { cameraAmendmentsTool } from "./camera-amendments.js";
 import { documentsTool } from "./documents.js";
@@ -526,6 +526,132 @@ describe("Senato tools", () => {
     expect(result.rows[0]).toHaveProperty("url");
     expect(result.rows[0].legislature).toBe("19");
   }, 30000);
+
+  it("amendments: ogni riga espone akn_xml_url (testo raw senza WAF), da LOD o da fallback AKN", async () => {
+    // ddl/60233 (Piano Casa): la freschezza del LOD è intermittente (osservato
+    // riallinearsi tra il 7 e il 10 lug 2026, wiki senato/emendamenti-freschezza.md).
+    // Non si assume quale sorgente risponda in un dato momento: si accetta
+    // "lod" o "akn" e si verifica solo che akn_xml_url sia comunque coerente.
+    const result = await amendmentsTool.execute({
+      ddlUri: "http://dati.senato.it/ddl/60233",
+      limit: 5,
+      offset: 0,
+    });
+    expect(result.rows.length).toBe(5);
+    expect(["lod", "akn"]).toContain(result.rows[0].source);
+    expect(result.rows[0].akn_xml_url).toContain(
+      "raw.githubusercontent.com/SenatoDellaRepubblica/AkomaNtosoBulkData/master/Leg19/Atto00060233/",
+    );
+    expect(result.rows[0].ddl_uri).toBe("http://dati.senato.it/ddl/60233");
+  }, 30000);
+
+  it("amendments: fallback AKN attivo su LOD vuoto, con hint quando anche il bulk è vuoto", async () => {
+    // DDL inesistente: LOD vuoto → il fallback interroga il bulk AKN (404 →
+    // listing vuoto) e il vuoto è qualificato dall'hint doppia-fonte.
+    const result = await amendmentsTool.execute({
+      ddlUri: "http://dati.senato.it/ddl/99999999",
+      legislature: 19,
+      limit: 5,
+      offset: 0,
+    });
+    expect(result.rows.length).toBe(0);
+    expect(result.hint).toContain("bulk AKN");
+  }, 30000);
+
+  it("aknEmptyHint: vuoto genuino (entriesLength 0) vs pagina oltre la fine (entriesLength > 0)", () => {
+    // Vuoto genuino: nessuna fonte ha nulla per l'atto.
+    expect(aknEmptyHint(0, 0)).toContain("né nel LOD né nel bulk");
+    // Pagina oltre la fine: il bulk ha risultati, ma l'offset richiesto li supera —
+    // NON deve leggersi come "nessun emendamento" (bug segnalato da Copilot).
+    const pastEnd = aknEmptyHint(799, 900);
+    expect(pastEnd).not.toContain("né nel LOD né nel bulk");
+    expect(pastEnd).toContain("799");
+    expect(pastEnd).toContain("900");
+  });
+
+  it("amendments: withProponents estrae il primo firmatario dal testo AKN", async () => {
+    // Il bulk AKN contiene anche file stub vuoti (200 OK, zero contenuto —
+    // wiki senato/emendamenti-firmatario.md, es. odg G1.17 su questo stesso
+    // DDL): non si assume che la riga in posizione 0 sia per forza popolata,
+    // solo che ALMENO una riga della finestra lo sia.
+    const result = await amendmentsTool.execute({
+      ddlUri: "http://dati.senato.it/ddl/60233",
+      withProponents: true,
+      limit: 5,
+      offset: 0,
+    });
+    expect(result.rows.length).toBe(5);
+    const withProponent = result.rows.find((r) => r.first_proponent !== "");
+    expect(withProponent).toBeDefined();
+    expect(withProponent?.first_proponent_uri).toContain("dati.senato.it");
+    expect(withProponent?.number).not.toBe("");
+  }, 30000);
+
+  it("amendments: withProponents con limit oltre la soglia fallisce esplicito (offline guard)", async () => {
+    // withProponents fa un fetch per riga: senza cap, limit alto (fino a 1000
+    // da schema) rischierebbe centinaia/migliaia di richieste HTTP e timeout
+    // silenzioso, specie sul Worker.
+    await expect(
+      amendmentsTool.execute({
+        ddlUri: "http://dati.senato.it/ddl/60233",
+        withProponents: true,
+        limit: 101,
+        offset: 0,
+      }),
+    ).rejects.toThrow(/limit<=100/);
+  });
+
+  it("amendments: enrichProponents fallisce esplicito se TUTTI i fetch al bulk AKN falliscono", async () => {
+    // URL raw a percorsi inesistenti (404 reali): un outage/irraggiungibilità
+    // di GitHub non deve tradursi in righe silenziosamente vuote,
+    // indistinguibili dal caso legittimo "nessun proponente" (file stub).
+    const rows = [
+      {
+        akn_xml_url:
+          "https://raw.githubusercontent.com/SenatoDellaRepubblica/AkomaNtosoBulkData/master/Leg19/Atto00060233/emend/00000000-em.akn.xml",
+      },
+      {
+        akn_xml_url:
+          "https://raw.githubusercontent.com/SenatoDellaRepubblica/AkomaNtosoBulkData/master/Leg19/Atto00060233/emend/00000001-em.akn.xml",
+      },
+    ];
+    await expect(enrichProponents(rows)).rejects.toThrow(/tutti i 2 fetch/);
+  }, 30000);
+
+  it("checkAknTruncation: offset oltre il visibile ma dentro Assemblea troncata -> fallisce esplicito", () => {
+    // aula: 1500 reali, solo 1000 visibili (troncato); comm: 50, non troncato.
+    // offset 1000 punterebbe al primo elemento "comm" nell'array concatenato,
+    // ma potrebbe in realtà essere ancora un elemento di Assemblea non visibile.
+    const aula = { totalCount: 1500, names: new Array(1000).fill("x") };
+    const comm = { totalCount: 50, names: new Array(50).fill("y") };
+    expect(() =>
+      checkAknTruncation(aula, comm, 1050, 1000, 10, "Leg19/Atto00000001"),
+    ).toThrow(/emendamenti d'Assemblea/);
+  });
+
+  it("checkAknTruncation: finestra tutta dentro Assemblea visibile -> non fallisce anche se Assemblea è troncata", () => {
+    const aula = { totalCount: 1500, names: new Array(1000).fill("x") };
+    const comm = { totalCount: 50, names: new Array(50).fill("y") };
+    expect(() =>
+      checkAknTruncation(aula, comm, 1050, 990, 10, "Leg19/Atto00000001"),
+    ).not.toThrow();
+  });
+
+  it("checkAknTruncation: solo Commissione troncata, offset oltre il visibile -> fallisce esplicito", () => {
+    const aula = { totalCount: 400, names: new Array(400).fill("x") };
+    const comm = { totalCount: 1200, names: new Array(1000).fill("y") };
+    expect(() =>
+      checkAknTruncation(aula, comm, 1400, 1400, 10, "Leg19/Atto00000001"),
+    ).toThrow(/emendamenti di Commissione/);
+  });
+
+  it("checkAknTruncation: nessuna troncatura -> non fallisce mai", () => {
+    const aula = { totalCount: 400, names: new Array(400).fill("x") };
+    const comm = { totalCount: 399, names: new Array(399).fill("y") };
+    expect(() =>
+      checkAknTruncation(aula, comm, 799, 790, 100, "Leg19/Atto00000001"),
+    ).not.toThrow();
+  });
 
   it("amendments: rejects a Camera ddlUri instead of returning empty (offline guard)", async () => {
     await expect(
