@@ -41,4 +41,16 @@ describe("capabilityScore", () => {
     const cap = CAPABILITIES.find((c) => c.cmd === "search find")!;
     expect(capabilityScore(cap, "zzz-inesistente")).toBe(0);
   });
+
+  it("query vuota o di soli spazi dà 0 (la funzione si difende da sola, è esportata)", () => {
+    const cap = CAPABILITIES.find((c) => c.cmd === "search find")!;
+    expect(capabilityScore(cap, "")).toBe(0);
+    expect(capabilityScore(cap, "   ")).toBe(0);
+  });
+
+  it("match case-insensitive sui terms", () => {
+    const cap = CAPABILITIES.find((c) => c.cmd === "person-career show")!;
+    expect(capabilityScore(cap, "CARRIERA")).toBe(100);
+    expect(capabilityScore(cap, "  Carriera  ")).toBe(100);
+  });
 });

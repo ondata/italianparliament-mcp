@@ -1635,7 +1635,8 @@ const whichCmd = defineCommand({
     if (args.json) {
       process.stdout.write(JSON.stringify(ranked) + "\n");
     } else if (ranked.length === 0) {
-      process.stdout.write(
+      // Su stderr: stdout resta per risultati/JSON (pipeline-friendly).
+      process.stderr.write(
         `Nessun comando trovato per "${q}". Prova 'italianparliament guide' per il flusso completo, o '--help'.\n`,
       );
     } else {

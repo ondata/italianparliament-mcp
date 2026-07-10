@@ -42,9 +42,15 @@ export const CAPABILITIES: Capability[] = [
 ];
 
 
-export function capabilityScore(cap: Capability, q: string): number {
+// Normalizza e valida la query internamente: la funzione è esportata e deve
+// difendersi da sola — con q vuota `t.includes("")` sarebbe sempre vero e
+// ogni capability otterrebbe punteggio. Match case-insensitive sui terms.
+export function capabilityScore(cap: Capability, query: string): number {
+  const q = query.toLowerCase().trim();
+  if (!q) return 0;
   let s = 0;
-  for (const t of cap.terms) {
+  for (const term of cap.terms) {
+    const t = term.toLowerCase();
     if (t === q) s = Math.max(s, 100);
     else if (t.includes(q)) s = Math.max(s, 70);
     else if (q.includes(t)) s = Math.max(s, 60);
