@@ -132,6 +132,55 @@ Es. `id_testo=1512635` → `https://www.senato.it/show-doc?leg=19&tipodoc=SommCo
 
 **Restano assenti ovunque** (né SPARQL né JSON): senatori presenti a ciascuna seduta e persone/enti auditi (richiesti nella stessa email).
 
+## Mapping URI commissione → path JSON (confermato 2026-07-09)
+
+`<TIPO_COD_COMM>` e `<COD_COMM>` **coincidono** con i due segmenti dell'URI `osr:Commissione`: `commissione/<tipo_cod_comm>-<cod_comm>`. Es. `commissione/0-148` (Affari sociali, sanità) → `listasommcomm/0/148/t/19/2026/index.json`. Non serve una tabella di conversione separata: l'URI SPARQL della commissione dà già i due codici.
+
+## `descr_tipo_veste` — nessuna categoria "audizione" (verificato su 2 commissioni, 2026-07-09)
+
+Testato via agent-browser (WAF, `curl` bloccato) su 1ª (Affari Costituzionali, 149 sedute 2026) e 10ª (Affari sociali/sanità, 125 sedute 2026) — commissione scelta apposta perché tipicamente audizioni-intensiva. In **entrambe**, `descr_tipo_veste` ha solo gli stessi 4 valori (Commissione Plenaria, Ufficio di Presidenza integrato dai rappresentanti dei Gruppi, Sottocommissione per i pareri, Comitato Ristretto) e **zero occorrenze** di "audiz" in tutto il JSON (`grep -i audiz` su entrambi i file → 0 match). La classificazione JSON non distingue mai un'audizione come tipo di seduta.
+
+## Testo integrale del resoconto (`&part=doc_dc`) — scrapeable, ma nessun esempio positivo ancora trovato
+
+Il link `Documento completo` sulla pagina `show-doc` porta a `show-doc?...&part=doc_dc`, che espone il **testo integrale** del resoconto sommario: intestazioni di trattazione (`IN SEDE REFERENTE`, `IN SEDE CONSULTIVA`, `PROGRAMMAZIONE DEI LAVORI`, `SCONVOCAZIONE DI SEDUTA` — stessa logica del `dc:type`/fase procedurale della Camera) seguite dal testo libero degli interventi, con attribuzione per cognome + gruppo (es. "La senatrice CAMUSSO (PD-IDP) preannuncia...") e menzione esplicita di membri di Governo presenti ("Interviene il sottosegretario di Stato... Giuseppina Castiello"). Struttura confermata scrapeable e ricca quanto il bollettino Camera. **Non ancora verificato**: nei 2 resoconti campionati (10ª Commissione, 01/07/2026) non c'era un'audizione in agenda quel giorno, quindi non si è trovato un esempio positivo del testo "Audizione di..." — resta da campionare una seduta con indagine conoscitiva nota per confermare il pattern testuale.
+
+## SVOLTA (2026-07-09): pagina "Audizioni e documenti acquisiti" — gli auditi SONO pubblicati (correzione)
+
+**Correzione alla riga precedente** ("restano assenti ovunque... persone/enti auditi"): quell'affermazione vale solo per SPARQL e JSON `listasommcomm`. Esiste una **terza fonte web**, non esplorata prima, che pubblica esattamente ciò che mancava: chi è stato audito, su quale DDL, in quale seduta. Confermata dalla pagina "Lavori del Senato" (*"Ogni Commissione ha un'area dedicata dove sono elencati... composizione, competenze ed eventuali indagini conoscitive"*).
+
+### URL
+
+```
+https://www.senato.it/commissioni-e-giunte/commissioni-permanenti/<N>a-commissione-permanente/audizioni-e-documenti-acquisiti
+```
+
+`<N>` = numero commissione permanente (1–10 in leg. 19). Verificato per `2a` (Giustizia) e `10a` (Affari sociali/sanità). Paginato: `?page=0`, `?page=1`, ... La pagina di default mostra la legislatura corrente (XIX, "dal 13 ottobre 2022"); il menu laterale "Legislature" dà accesso alle legislature precedenti (XVIII, XVII, XVI...) sulla stessa struttura.
+
+### Contenuto per record (una card per audizione/documento)
+
+| Campo | Esempio | Note |
+|---|---|---|
+| Argomento | "AS 1715 e connessi - Modifica dell'articolo 609-bis..." | titolo del provvedimento/tema |
+| Atti o procedure | `A.S. 1715 e connessi` | **riferimento diretto al DDL** — incrociabile con i dati `bill`/`bill-progress` già coperti da SPARQL |
+| Titolo audizione | "AUDIZIONI, ANCHE IN VIDEOCONFERENZA, DEL PROFESSOR GIAN LUIGI GATTA, ORDINARIO DI DIRITTO PENALE... E DELL'AVVOCATO GUIDO CAMERA, ESPERTO" | **nome + ruolo/qualifica + ente dell'audito**, testo libero ma sempre presente |
+| Riferimento seduta | "Sed. n. 317 - 11 Giugno 2026 - Ufficio di Presidenza Integrato - 2ª Commissione permanente" | correlabile a `osr:SedutaCommissione` per data/commissione |
+| Comunicazione/Documentazione alla Commissione | "seduta n. 69 - 25 Luglio 2023 - 2ª Commissione permanente" | seduta in cui il materiale è stato comunicato in plenaria |
+| Documenti | link a video (WebTV) e/o PDF "memoria depositata dagli auditi" | non strutturati, ma linkabili |
+
+### Tassonomia — filtro "Tipologie di attività"
+
+```
+https://www.senato.it/commissioni-e-giunte/commissioni-permanenti/<N>a-commissione-permanente/audizioni-e-documenti-acquisiti/tipologia?type=<TYPE>
+```
+
+Categorie viste (link testuali, `type` numerico da ricavare per commissione — verificato `type=15` = Indagini Conoscitive per la 10ª): **Esami di Disegni di Legge**, **Altre audizioni**, **Esami di atti del Governo**, **Esami di atti di Legislazione Comunitaria**, **Indagini Conoscitive**. Quest'ultima elenca le indagini conoscitive **come inchieste nominate** (es. "Indagine conoscitiva sulla ristrutturazione edilizia e l'ammodernamento tecnologico del patrimonio sanitario pubblico, anche nel quadro della Missione 6 del PNRR") — presumibilmente ciascuna con una propria sotto-pagina di sedute/audizioni (non ancora aperta).
+
+### Implicazioni
+
+Un tool "audizioni Senato" è **fattibile via scraping HTML** (non SPARQL, non JSON) — pagina statica per commissione, paginata, nessun WAF riscontrato su queste pagine specifiche finora (a differenza di `listasommcomm` e `show-doc` — da riverificare comunque prima di costruirci sopra in produzione). Colma esattamente il gap segnalato al Webmaster (senatori presenti + auditi), limitatamente agli auditi esterni con nome/ruolo — i senatori presenti in seduta restano assenti anche qui.
+
+**Non ancora verificato**: quante pagine totali per commissione/legislatura; struttura HTML sottostante (tabella vs card, attributi/microdata utili allo scraping); mapping `type=N` per le altre categorie e per le altre commissioni; comportamento WAF su scraping massivo/ripetuto di queste pagine.
+
 # Assenti
 
 * **Commissioni bicamerali con sedute/interventi esposti**: la *Commissione parlamentare di inchiesta sul femminicidio* esiste come entità Senato (`commissione/0-141` storica leg. XVII–XVIII e `commissione/4-223` attuale XIX) con i suoi membri senatori (**24 afferenze** nella XIX), ma **non ha `SedutaCommissione`/`Intervento` collegati** nel LOD Senato (verificato 2026-07-01: 0 righe su entrambi gli URI per leg. 19). Le sedute/interventi sono pubblicati solo dalla Camera (`ocd:organo` `o19_3941`, 181 URI seduta / 157 date distinte fino a giu 2026). Vedi [[../camera/sedute-commissione]]. La composizione Senatori si ottiene con `committee-members list --committee-uri <commissione/4-223> --chamber senato`.

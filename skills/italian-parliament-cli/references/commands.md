@@ -83,6 +83,7 @@ italianparliament bills list --legislature 19 --format csv
 ```
 
 ### `bill show`
+Solo atti **Camera** (`dati.camera.it`): un URI Senato produce un errore instradante verso `bill-progress --ddl-uri` / `bill-signatories --bill-uri` / `bill-text --uri`.
 ```bash
 italianparliament bill show --uri <uri>
 ```
@@ -195,7 +196,7 @@ italianparliament senato-votes list --legislature 19 --confidence-vote true
 italianparliament senato-votes list --legislature 19 --final-vote true --date-from 2026-06-01
 italianparliament senato-votes list --legislature 19 --keyword bilancio
 ```
-Colonne `bill_number` (numero DDL dal label, es. `562-B`) e `ddl_uri` (URI DDL, popolato anche per le fiducie prive di `osr:oggetto` risolvendo il numero via `osr:fase`). Il tipo semantico vive nel `rdfs:label` (non in `osr:tipoVotazione`): `--confidence-vote true|false` (fiducia, esclude le mozioni di sfiducia) e `--final-vote true|false` (`Votazione finale`) sono label-based. `--keyword` cerca nel label del voto **e** (da v0.20.0) nel titolo del DDL collegato (`osr:oggetto`/`osr:relativoA`/`osr:titolo`), in OR: così un tema che sta solo nel titolo del provvedimento (es. `--keyword bilancio` → legge di bilancio) viene trovato anche quando il label del voto è generico (`Votazione finale`). Limite residuo: se il voto non ha DDL collegato (alcune fiducie/mozioni) il tema resta irraggiungibile per keyword — usare `--ddl-uri` + `bill-progress`.
+Colonne `bill_number` (numero DDL dal label, es. `562-B`; se il label è generico o col refuso, da v0.23.0 è backfillato dalla `osr:fase` del DDL risolto) e `ddl_uri` (URI DDL, popolato anche per le fiducie prive di `osr:oggetto` risolvendo il numero via `osr:fase`). Il tipo semantico vive nel `rdfs:label` (non in `osr:tipoVotazione`): `--confidence-vote true|false` (fiducia, esclude le mozioni di sfiducia) e `--final-vote true|false` (`Votazione finale`) sono label-based. `--keyword` cerca nel label del voto **e** (da v0.20.0) nel titolo del DDL collegato (`osr:oggetto`/`osr:relativoA`/`osr:titolo`), in OR; da v0.23.0 copre anche le **fiducie** (prive di `osr:oggetto`): il DDL citato per numero nel label viene risolto e il suo titolo concorre al match (es. `--keyword sicurezza` trova la fiducia sul decreto sicurezza). Limite residuo: fiducie con refuso nel numero del label e voti senza alcun DDL — usare `--ddl-uri` + `bill-progress`.
 
 ### `senato-vote-detail show`
 Voto del singolo senatore in una votazione (URI da `senato-votes`); include il gruppo alla data del voto (`group_label`) → voto per gruppo.
