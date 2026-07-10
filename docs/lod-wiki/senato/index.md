@@ -19,6 +19,10 @@ Endpoint SPARQL: `https://dati.senato.it/sparql`. Ontologia OSR (namespace `http
 * [Emendamenti — dataset fermo da agosto 2024](emendamenti-freschezza.md) - nessun DDL con `dataPresentazione` successiva al 9/8/2024 ha emendamenti collegati; vuoto su DDL recenti non è assenza del dato ma cutoff del dataset.
 * [Votazioni assenti 10/3–16/4/2020 (leg.18)](votazioni-covid-2020.md) - sedute d'Assemblea COVID con `osr:Intervento` ma zero `osr:Votazione` collegate, inclusa la fiducia sul Cura Italia; probabile voto per appello nominale a gruppi mai digitalizzato.
 
+# Fonti complementari
+
+* [Bulk data Akoma Ntoso su GitHub](akn-bulk-data.md) - repo ufficiale senza WAF, aggiornato quotidianamente, `AttoID` = id del `ddl` LOD; colma emendamenti post-2024, testi dietro WAF e (via parsing dei resoconti) le votazioni COVID 2020. Non copre le audizioni.
+
 # Corrispondenza gestori
 
 * [Corrispondenza con il Webmaster del Senato](corrispondenza-webmaster.md) - log delle segnalazioni inviate a `Webmaster@senato.it` e delle risposte ricevute (sedute di commissione/listasommcomm, emendamenti fermi da agosto 2024).
