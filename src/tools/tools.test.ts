@@ -189,6 +189,41 @@ describe("Camera tools", () => {
     expect(dayBefore.hint).toBeUndefined();
   }, 30000);
 
+  it("votes: --confidence-vote on a recent empty window surfaces the staleness hint, not gg-1 (review fix)", async () => {
+    // Su una finestra recente il vuoto è più probabilmente ritardo di
+    // pubblicazione del LOD Camera che "giorno sbagliato": lo staleness hint
+    // deve avere precedenza sul gg-1, altrimenti fuorvia sulla causa.
+    const soon = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
+    const result = await votesTool.execute({
+      legislature: 19,
+      dateFrom: soon,
+      dateTo: soon,
+      confidenceVote: true,
+      limit: 5,
+      offset: 0,
+    });
+    expect(result.rows.length).toBe(0);
+    expect(result.hint).toMatch(/LOD Camera/);
+    expect(result.hint).not.toMatch(/giorno PRIMA/);
+  }, 30000);
+
+  it("votes: --confidence-vote on a wide historical date range does not surface the gg-1 hint (review fix)", async () => {
+    // Il gg-1 è specifico del pattern "singolo giorno sbagliato": su un
+    // intervallo ampio "in questa data" e "riprova gg-1" sarebbero fuorvianti,
+    // quindi l'hint non deve comparire (nessuno staleness hint qui: intervallo
+    // storico, non recente).
+    const result = await votesTool.execute({
+      legislature: 18,
+      dateFrom: "2019-06-01",
+      dateTo: "2019-06-10",
+      confidenceVote: true,
+      limit: 5,
+      offset: 0,
+    });
+    expect(result.rows.length).toBe(0);
+    expect(result.hint).toBeUndefined();
+  }, 30000);
+
   it("speeches: returns speeches for legislature 19", async () => {
     const result = await speechesTool.execute({ legislature: 19, limit: 3, offset: 0, chamber: "camera", countOnly: false });
     expect(result.rows.length).toBe(3);
