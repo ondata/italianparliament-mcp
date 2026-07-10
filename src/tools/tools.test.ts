@@ -493,7 +493,33 @@ describe("Senato tools", () => {
     expect(fiducia?.in_favour).toBe("106");
     expect(fiducia?.against).toBe("62");
     expect(fiducia?.ddl_uri).toBe("http://dati.senato.it/ddl/60233");
+    // Il label ha un refuso ("DDL n. 1994" per S.1944): il numero viene
+    // backfillato dalla osr:fase del DDL risolto, non dal testo.
+    expect(fiducia?.bill_number).toBe("1944");
   }, 30000);
+
+  it("senato-votes: backfills bill_number from the resolved DDL on generic labels", async () => {
+    // 19-376-2 (Corte dei Conti): label "Votazione finale" senza numero, ma
+    // ddl_uri risolto via osr:relativoA → bill_number = fase S.1457.
+    const result = await senatoVotesTool.execute({
+      legislature: 19,
+      keyword: "corte dei conti",
+      dateFrom: "2025-12-20",
+      dateTo: "2025-12-31",
+      limit: 100,
+      offset: 0,
+    });
+    const finale = result.rows.find((r) => r.uri.endsWith("/19-376-2"));
+    expect(finale?.label).toBe("Votazione finale");
+    expect(finale?.bill_number).toBe("1457");
+    expect(finale?.ddl_uri).toBe("http://dati.senato.it/ddl/59070");
+  }, 45000);
+
+  it("bill: rejects Senato URIs with a routing message (solo-Camera)", async () => {
+    await expect(
+      billTool.execute({ uri: "http://dati.senato.it/ddl/59070" }),
+    ).rejects.toThrow(/solo-Camera.*bill-progress/s);
+  });
 
   it("senato-votes: --keyword matches the DDL title also for fiducie (no osr:oggetto)", async () => {
     // Fiducia decreto sicurezza (19-312-1): label "Disegno di legge n.1509.

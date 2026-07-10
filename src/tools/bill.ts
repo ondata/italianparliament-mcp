@@ -28,13 +28,24 @@ const columns = [
 export const billTool: Tool<typeof inputSchema> = {
   name: "bill",
   description:
-    "[CAMERA] Scheda di un singolo atto della Camera: titolo, tipo, data, iniziativa, firmatario, stato.",
+    "[CAMERA] Scheda di un singolo atto della Camera: titolo, tipo, data, iniziativa, firmatario, stato. Solo URI dati.camera.it: per i DDL del Senato usa bill-progress (iter), bill-signatories (firmatari) e bill-text (testi).",
   inputSchema,
   examples: [
     "italianparliament bill show --uri http://dati.camera.it/ocd/attocamera.rdf/ac19_1234",
     "italianparliament bill show --uri http://dati.camera.it/ocd/attocamera.rdf/ac19_1 --format jsonl",
   ],
   async execute(input) {
+    // Guardia instradante: un URI Senato qui produrrebbe "Nessun atto trovato",
+    // che l'utente (o un agente) leggerebbe come dato assente anziché come
+    // tool sbagliato.
+    if (input.uri.includes("dati.senato.it")) {
+      throw new Error(
+        `bill è un tool solo-Camera: l'URI "${input.uri}" è un DDL del Senato (il dato esiste, va letto con altri tool). ` +
+          `Usa: bill-progress list --ddl-uri <uri> (iter e stato), ` +
+          `bill-signatories show --bill-uri <uri> (firmatari), ` +
+          `bill-text links --uri <uri> (testi).`,
+      );
+    }
     const query = `${OCD_PREFIXES}
 SELECT ?label ?title ?type ?date ?description ?initiative
        ?identifier ?primo_firmatario ?rif_leg ?url

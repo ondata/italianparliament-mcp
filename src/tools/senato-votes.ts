@@ -451,6 +451,30 @@ SELECT ?ddl ?f WHERE {
         return { rows: [{ count: String(values.length) }], columns: ["count"] };
       values = values.slice(input.offset, input.offset + input.limit);
     }
+    // Backfill di bill_number dal DDL risolto: sui label generici ("Votazione
+    // finale") o coi refusi il numero non è estraibile dal testo, ma quando
+    // ddl_uri è stato risolto (link diretto o fallback) il numero è la
+    // osr:fase del DDL. Solo DDL singolo (multi = ambiguo) e solo fasi S.
+    // (bill_number è il numero Senato).
+    const missingNum = values.filter(
+      (v) => !v.bill_number && v.ddl_uri && !v.ddl_uri.includes(" | "),
+    );
+    if (missingNum.length > 0) {
+      const ddlUris = [...new Set(missingNum.map((v) => v.ddl_uri))];
+      const numQuery = `${OSR_PREFIXES}
+SELECT ?ddl ?f WHERE {
+  ?ddl a osr:Ddl ; osr:fase ?f .
+  FILTER(?ddl IN (${ddlUris.map((u) => `<${u}>`).join(", ")}))
+}`;
+      const faseByDdl = new Map<string, string>();
+      for (const r of flattenBindings(await snQuery(numQuery))) {
+        if (r.ddl && /^S\./.test(r.f ?? "") && !faseByDdl.has(r.ddl))
+          faseByDdl.set(r.ddl, r.f.replace(/^S\./, ""));
+      }
+      for (const v of missingNum) {
+        v.bill_number = faseByDdl.get(v.ddl_uri) ?? "";
+      }
+    }
     const rows = values.map((v) => {
       const ddlUris = splitMulti(v.ddl_uri);
       const ddlHtmlUrls = ddlUris.map((u) => actHtmlUrl(u)).filter(Boolean);
