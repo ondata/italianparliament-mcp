@@ -1024,6 +1024,12 @@ const amendmentsList = defineCommand({
   args: {
     legislature: { type: "string", description: "Legislature number" },
     "ddl-uri": { type: "string", description: "Filter amendments to a specific bill (Senato ddl URI)" },
+    "with-proponents": {
+      type: "boolean",
+      default: false,
+      description:
+        "Enrich rows with proponents from the Senato AKN bulk data (one fetch per amendment, slower)",
+    },
     limit: { type: "string", default: "100" },
     offset: { type: "string", default: "0" },
     format: { type: "string", default: "csv" },
@@ -1032,6 +1038,7 @@ const amendmentsList = defineCommand({
     const result = await runTool(amendmentsTool, {
       legislature: parseIntFlag(args.legislature as string, "legislature"),
       ddlUri: (args["ddl-uri"] as string) || undefined,
+      withProponents: Boolean(args["with-proponents"]),
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,
       offset: Number(args.offset ?? 0),
     });

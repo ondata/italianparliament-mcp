@@ -527,6 +527,48 @@ describe("Senato tools", () => {
     expect(result.rows[0].legislature).toBe("19");
   }, 30000);
 
+  it("amendments: le righe LOD espongono akn_xml_url (testo raw senza WAF)", async () => {
+    // ddl/60233 (Piano Casa): il LOD è tornato fresco (refresh tra il 7 e il
+    // 10 lug 2026), quindi le righe arrivano dal LOD; la conversione
+    // osr:URLTestoXml → URL raw del bulk AKN deve comunque esserci.
+    const result = await amendmentsTool.execute({
+      ddlUri: "http://dati.senato.it/ddl/60233",
+      limit: 5,
+      offset: 0,
+    });
+    expect(result.rows.length).toBe(5);
+    expect(result.rows[0].source).toBe("lod");
+    expect(result.rows[0].akn_xml_url).toContain(
+      "raw.githubusercontent.com/SenatoDellaRepubblica/AkomaNtosoBulkData/master/Leg19/Atto00060233/",
+    );
+    expect(result.rows[0].ddl_uri).toBe("http://dati.senato.it/ddl/60233");
+  }, 30000);
+
+  it("amendments: fallback AKN attivo su LOD vuoto, con hint quando anche il bulk è vuoto", async () => {
+    // DDL inesistente: LOD vuoto → il fallback interroga il bulk AKN (404 →
+    // listing vuoto) e il vuoto è qualificato dall'hint doppia-fonte.
+    const result = await amendmentsTool.execute({
+      ddlUri: "http://dati.senato.it/ddl/99999999",
+      legislature: 19,
+      limit: 5,
+      offset: 0,
+    });
+    expect(result.rows.length).toBe(0);
+    expect(result.hint).toContain("bulk AKN");
+  }, 30000);
+
+  it("amendments: withProponents estrae il primo firmatario dal testo AKN", async () => {
+    const result = await amendmentsTool.execute({
+      ddlUri: "http://dati.senato.it/ddl/60233",
+      withProponents: true,
+      limit: 2,
+      offset: 0,
+    });
+    expect(result.rows.length).toBe(2);
+    expect(result.rows[0].first_proponent).not.toBe("");
+    expect(result.rows[0].number).not.toBe("");
+  }, 30000);
+
   it("amendments: rejects a Camera ddlUri instead of returning empty (offline guard)", async () => {
     await expect(
       amendmentsTool.execute({

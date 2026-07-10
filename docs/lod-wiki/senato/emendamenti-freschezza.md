@@ -1,13 +1,28 @@
 ---
 type: Gotcha
-title: Emendamenti al Senato — dataset fermo da agosto 2024
-description: osr:Emendamento non ha alcun collegamento (via osr:oggetto/osr:relativoA) a DDL presentati dopo il 9 agosto 2024; il tool amendments restituisce vuoto per qualunque provvedimento più recente, a prescindere dal DDL usato.
+title: Emendamenti al Senato — freschezza intermittente (fermo ago 2024 → refresh lug 2026)
+description: osr:Emendamento è rimasto ~2 anni senza collegamenti a DDL presentati dopo il 9 agosto 2024, poi un refresh (rilevato 2026-07-10) lo ha riallineato. La freschezza non è garantita nel tempo; il tool amendments ha un fallback sul bulk AKN GitHub.
 resource: https://dati.senato.it/sparql
 tags: [senato, osr, emendamenti, freschezza, assenti]
-timestamp: 2026-07-07
+timestamp: 2026-07-10
 ---
 
-Il tool `amendments` (Senato) restituisce **sempre vuoto** sui DDL più recenti — verificato su DL Sicurezza 2025 (`ddl/59201`) e Piano Casa 2026 (`ddl/60233`) — mentre funziona su provvedimenti anche molto vecchi (Cura Italia 2020, `ddl/52873`, 3.827 emendamenti; DL Dic. 2022, `ddl/56260`, 119 emendamenti).
+# AGGIORNAMENTO 2026-07-10: il dataset è stato aggiornato (refresh tra il 7 e il 10 luglio)
+
+La verifica del 2026-07-07 (sotto, mantenuta come storia) trovava **0** emendamenti per il Piano Casa (`ddl/60233`). Il 2026-07-10 lo stesso conteggio dà **799** (682 tipo `E`, 114 `G`, 3 `Q`) — che combacia esattamente col bulk AKN GitHub (400 in `emend/` + 399 in `emendc/`). Il dataset `osr:Emendamento` è quindi tornato vivo dopo ~2 anni di stallo.
+
+Due conseguenze operative:
+
+1. **La freschezza è intermittente, non garantita**: il dataset è rimasto fermo per quasi due anni ed è ripartito senza alcun segnale di versioning (vedi [freschezza e autorevolezza](../freschezza-e-autorevolezza.md)). Non assumere né che sia fermo né che sia aggiornato: verificare sul provvedimento.
+2. **Trappola nuova sulla query canonica del cutoff**: la query sotto (FILTER su `dataPresentazione` con literal `^^xsd:date`) oggi restituisce **9**, non 799+ — perché la `osr:dataPresentazione` dei DDL recenti (es. `ddl/60233`) è ora tipizzata **`xsd:string`**, non `xsd:date`, e il confronto tipizzato la esclude. La regola "date Senato = sempre xsd:date tipizzato" non vale più uniformemente: il refresh ha introdotto date string. Per conteggi affidabili confrontare con `STR(?data)`.
+
+Il tool `amendments` resta protetto in entrambe le direzioni: se il LOD è indietro, con `ddlUri` fa fallback sul bulk AKN GitHub ([[akn-bulk-data]]), che è aggiornato quotidianamente.
+
+---
+
+# Storia (verifica 2026-07-07): dataset fermo da agosto 2024
+
+Il tool `amendments` (Senato) restituiva **sempre vuoto** sui DDL più recenti — verificato su DL Sicurezza 2025 (`ddl/59201`) e Piano Casa 2026 (`ddl/60233`) — mentre funzionava su provvedimenti anche molto vecchi (Cura Italia 2020, `ddl/52873`, 3.827 emendamenti; DL Dic. 2022, `ddl/56260`, 119 emendamenti).
 
 # Non è un problema di lettura/ddl_uri sbagliato
 

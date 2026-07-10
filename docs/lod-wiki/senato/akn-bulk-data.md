@@ -30,7 +30,7 @@ I file si scaricano da `raw.githubusercontent.com` con un semplice `curl` — a 
 
 # Gap noti che colma (verificati 2026-07-10)
 
-- **Emendamenti fermi ad agosto 2024 nel LOD** ([[emendamenti-freschezza]]): `emend/` del Piano Casa (`Atto00060233`, DDL del 2026) contiene i file AKN degli emendamenti. Il bulk data è fresco dove `osr:Emendamento` è morto. Anche il **proponente** ([[emendamenti-firmatario]]) sta nei file `-em.akn.xml`, ora raggiungibili senza WAF.
+- **Emendamenti fermi ad agosto 2024 nel LOD** ([[emendamenti-freschezza]]): `emend/` del Piano Casa (`Atto00060233`, DDL del 2026) contiene i file AKN degli emendamenti. Il bulk data è fresco dove `osr:Emendamento` è morto. Anche il **proponente** ([[emendamenti-firmatario]]) sta nei file `-em.akn.xml`, ora raggiungibili senza WAF. *(Aggiornamento 2026-07-10: il LOD si è nel frattempo riallineato — Piano Casa 799 record, match esatto col bulk — ma la freschezza LOD resta intermittente, quindi il bulk resta il fallback; il proponente invece è SOLO qui.)*
 - **Votazioni COVID 2020 assenti dal LOD** ([[votazioni-covid-2020]]): `Leg18/Atto00052873/resaula/01150035-ra.akn.xml` è il resoconto d'Aula del **9/4/2020** e contiene la proclamazione della fiducia sul Cura Italia con i contatori (presenti 246, votanti 245, …). Il dato però è **testo narrativo** dentro `<an:p>` ("Proclamo il risultato della votazione nominale…"), non campi strutturati: recuperabile con parsing, non con query.
 - **Testi DDL dietro WAF**: `ddlpres/` dà il testo presentato in XML senza passare dal fascicolo PDF del sito.
 
@@ -42,6 +42,21 @@ Il **path della cartella** è interamente deducibile: `Leg<leg>/Atto<id ddl zero
 2. **Tutto il resto** (emendamenti post-2024 assenti dal LOD, resoconti, testi): l'endpoint JSON della web UI di GitHub — `GET https://github.com/SenatoDellaRepubblica/AkomaNtosoBulkData/tree/master/<path>` con header `Accept: application/json` — restituisce i nomi file in `.payload.codeViewTreeRoute.tree.items[]`, senza token e fuori dal rate limit dell'API REST (60/h anonimo). ⚠️ Endpoint non documentato: può cambiare senza preavviso, usarlo con throttle prudenziale. Fallback robusto per usi batch: partial clone git (`--filter=blob:none --sparse`).
 
 Nota: `osr:testoPresentato`/`osr:testoApprovato` del LOD sono URN NIR, **non** ID_TESTO — non aiutano a costruire i filename.
+
+# Implementato nel tool `amendments` (2026-07-10)
+
+Il tool `amendments` usa questo bulk in due modi (helper in `src/core/akn.ts`, Worker-compatible):
+
+1. **Colonna `akn_xml_url` su ogni riga LOD**: conversione `osr:URLTestoXml` → URL raw (via 1 sopra), con `osr:flagCommissione` a scegliere `emend/` vs `emendc/`.
+2. **Fallback automatico**: con `ddlUri` e LOD vuoto, listing di `emend/`+`emendc/` via endpoint JSON web-UI (via 2 sopra) e righe `source=akn`.
+3. **`withProponents`**: fetch puntuale dei singoli XML e parsing di `docProponent`/`TLCPerson` (primo = primo firmatario; dettagli markup in [[emendamenti-firmatario]]).
+
+Quirks verificati implementando:
+
+- Il listing web-UI **tronca a 1000 voci** per cartella; `totalCount` nel payload dà il totale reale (es. `Leg18/Atto00052873/emend`: items 1000, totalCount 1658). Da gestire esplicitamente, non silenziosamente.
+- Anche `emendc/` usa il suffisso `-em.akn.xml` (non un suffisso proprio).
+- Esistono **file stub vuoti** (~295 byte, solo `akomaNtoso` autochiuso): HTTP 200 ma zero contenuto (es. odg G1.17 del Piano Casa).
+- La forma del payload JSON del listing è `.payload.codeViewTreeRoute.tree.items[]` (endpoint non documentato: validare la forma e fallire esplicito se cambia).
 
 # Limiti
 
