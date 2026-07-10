@@ -34,6 +34,15 @@ I file si scaricano da `raw.githubusercontent.com` con un semplice `curl` — a 
 - **Votazioni COVID 2020 assenti dal LOD** ([[votazioni-covid-2020]]): `Leg18/Atto00052873/resaula/01150035-ra.akn.xml` è il resoconto d'Aula del **9/4/2020** e contiene la proclamazione della fiducia sul Cura Italia con i contatori (presenti 246, votanti 245, …). Il dato però è **testo narrativo** dentro `<an:p>` ("Proclamo il risultato della votazione nominale…"), non campi strutturati: recuperabile con parsing, non con query.
 - **Testi DDL dietro WAF**: `ddlpres/` dà il testo presentato in XML senza passare dal fascicolo PDF del sito.
 
+# Costruire gli URL senza API GitHub (verificato 2026-07-10)
+
+Il **path della cartella** è interamente deducibile: `Leg<leg>/Atto<id ddl zero-padded a 8 cifre>/<tipologia>/` (es. `ddl/60233`, leg. 19 → `Leg19/Atto00060233/emend/`). Il **nome file** usa l'ID_TESTO della BGT, che non è calcolabile a priori — ma ci sono due vie che evitano l'API REST:
+
+1. **Emendamenti presenti nel LOD**: il filename è l'ultimo segmento di `osr:URLTestoXml`. Verificato: emendamento `900011` (ddl/53429, leg. 18) ha `URLTestoXml = senato.it/leg/18/BGT/Testi/Emend/01186716/01181876.akn` e il bulk contiene `Leg18/Atto00053429/emend/01181876-em.akn.xml`. Quindi l'URL WAF-ato del LOD si converte in URL raw libero con una pura sostituzione di stringa: `https://raw.githubusercontent.com/SenatoDellaRepubblica/AkomaNtosoBulkData/master/Leg<leg>/Atto<8-digit ddl>/emend/<ultimo segmento URLTestoXml>-em.akn.xml`. Zero chiamate di listing.
+2. **Tutto il resto** (emendamenti post-2024 assenti dal LOD, resoconti, testi): l'endpoint JSON della web UI di GitHub — `GET https://github.com/SenatoDellaRepubblica/AkomaNtosoBulkData/tree/master/<path>` con header `Accept: application/json` — restituisce i nomi file in `.payload.codeViewTreeRoute.tree.items[]`, senza token e fuori dal rate limit dell'API REST (60/h anonimo). ⚠️ Endpoint non documentato: può cambiare senza preavviso, usarlo con throttle prudenziale. Fallback robusto per usi batch: partial clone git (`--filter=blob:none --sparse`).
+
+Nota: `osr:testoPresentato`/`osr:testoApprovato` del LOD sono URN NIR, **non** ID_TESTO — non aiutano a costruire i filename.
+
 # Limiti
 
 - Organizzato **per Atto Senato**: copre solo documenti legati a un DDL. Le **audizioni** (Ufficio di Presidenza, indagini conoscitive) NON ci sono — per quelle resta solo l'HTML "Audizioni e documenti acquisiti" ([[sedute-commissione]]).
