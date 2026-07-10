@@ -21,7 +21,7 @@ import { govMembersTool } from "./gov-members.js";
 import { committeesTool } from "./committees.js";
 import { billProgressTool } from "./bill-progress.js";
 import { billSignatoriesTool } from "./bill-signatories.js";
-import { amendmentsTool, enrichProponents } from "./amendments.js";
+import { amendmentsTool, enrichProponents, checkAknTruncation } from "./amendments.js";
 import { senatoVotesTool } from "./senato-votes.js";
 import { cameraAmendmentsTool } from "./camera-amendments.js";
 import { documentsTool } from "./documents.js";
@@ -592,6 +592,41 @@ describe("Senato tools", () => {
     ];
     await expect(enrichProponents(rows)).rejects.toThrow(/tutti i 2 fetch/);
   }, 30000);
+
+  it("checkAknTruncation: offset oltre il visibile ma dentro Assemblea troncata -> fallisce esplicito", () => {
+    // aula: 1500 reali, solo 1000 visibili (troncato); comm: 50, non troncato.
+    // offset 1000 punterebbe al primo elemento "comm" nell'array concatenato,
+    // ma potrebbe in realtà essere ancora un elemento di Assemblea non visibile.
+    const aula = { totalCount: 1500, names: new Array(1000).fill("x") };
+    const comm = { totalCount: 50, names: new Array(50).fill("y") };
+    expect(() =>
+      checkAknTruncation(aula, comm, 1050, 1000, 10, "Leg19/Atto00000001"),
+    ).toThrow(/emendamenti d'Assemblea/);
+  });
+
+  it("checkAknTruncation: finestra tutta dentro Assemblea visibile -> non fallisce anche se Assemblea è troncata", () => {
+    const aula = { totalCount: 1500, names: new Array(1000).fill("x") };
+    const comm = { totalCount: 50, names: new Array(50).fill("y") };
+    expect(() =>
+      checkAknTruncation(aula, comm, 1050, 990, 10, "Leg19/Atto00000001"),
+    ).not.toThrow();
+  });
+
+  it("checkAknTruncation: solo Commissione troncata, offset oltre il visibile -> fallisce esplicito", () => {
+    const aula = { totalCount: 400, names: new Array(400).fill("x") };
+    const comm = { totalCount: 1200, names: new Array(1000).fill("y") };
+    expect(() =>
+      checkAknTruncation(aula, comm, 1400, 1400, 10, "Leg19/Atto00000001"),
+    ).toThrow(/emendamenti di Commissione/);
+  });
+
+  it("checkAknTruncation: nessuna troncatura -> non fallisce mai", () => {
+    const aula = { totalCount: 400, names: new Array(400).fill("x") };
+    const comm = { totalCount: 399, names: new Array(399).fill("y") };
+    expect(() =>
+      checkAknTruncation(aula, comm, 799, 790, 100, "Leg19/Atto00000001"),
+    ).not.toThrow();
+  });
 
   it("amendments: rejects a Camera ddlUri instead of returning empty (offline guard)", async () => {
     await expect(

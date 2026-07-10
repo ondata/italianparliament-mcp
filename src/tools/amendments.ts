@@ -106,6 +106,44 @@ export async function enrichProponents(rows: Row[]): Promise<void> {
   }
 }
 
+// Il listing web UI tronca a 1000 voci per cartella. entries concatena aula
+// (Assemblea) e comm (Commissione): se SOLO aula è troncata, un offset che
+// sconfina oltre aula.names.length verrebbe letto come "Commissione", ma
+// potrebbe in realtà essere un elemento di Assemblea non visibile (la
+// posizione reale nel bucket troncato non è determinabile) — un bug di
+// correttezza, non solo di raggiungibilità. Le due troncature vanno quindi
+// guardate separatamente, non sommando i due bucket in un unico controllo.
+// export solo per test unitario mirato (offline, senza fetch live).
+export function checkAknTruncation(
+  aula: { totalCount: number; names: string[] },
+  comm: { totalCount: number; names: string[] },
+  entriesLength: number,
+  offset: number,
+  limit: number,
+  attoPath: string,
+): void {
+  const aulaTruncated = aula.totalCount > aula.names.length;
+  const commTruncated = comm.totalCount > comm.names.length;
+  if (aulaTruncated && offset + limit > aula.names.length) {
+    throw new Error(
+      `Il bulk AKN elenca ${aula.totalCount} emendamenti d'Assemblea per questo DDL ma il ` +
+        `listing è troncato a ${aula.names.length}: la finestra richiesta (offset ${offset}, ` +
+        `limit ${limit}) supera la parte visibile e la posizione degli elementi oltre non è ` +
+        `determinabile (potrebbero essere ancora d'Assemblea, non di Commissione). Restringere la ` +
+        `finestra a offset+limit <= ${aula.names.length}, oppure sfogliare ` +
+        `https://github.com/SenatoDellaRepubblica/AkomaNtosoBulkData/tree/master/${attoPath}`,
+    );
+  }
+  if (commTruncated && offset + limit > entriesLength) {
+    throw new Error(
+      `Il bulk AKN elenca ${comm.totalCount} emendamenti di Commissione per questo DDL ma il ` +
+        `listing è troncato a ${comm.names.length}: la finestra richiesta (offset ${offset}, ` +
+        `limit ${limit}) non è raggiungibile. Restringere la finestra o sfogliare ` +
+        `https://github.com/SenatoDellaRepubblica/AkomaNtosoBulkData/tree/master/${attoPath}`,
+    );
+  }
+}
+
 export const amendmentsTool: Tool<typeof inputSchema> = {
   name: "amendments",
   description:
@@ -226,18 +264,7 @@ OFFSET ${input.offset}`;
       ...comm.names.map((file) => ({ file, committee: true })),
     ];
 
-    // Il listing web UI tronca a 1000 voci per cartella: se la finestra richiesta
-    // cade oltre il visibile, meglio fallire esplicito che paginare su dati sbagliati.
-    const truncated =
-      aula.totalCount > aula.names.length || comm.totalCount > comm.names.length;
-    if (truncated && input.offset + input.limit > entries.length) {
-      throw new Error(
-        `Il bulk AKN elenca ${aula.totalCount + comm.totalCount} emendamenti per questo DDL ma il ` +
-          `listing è troncato a ${entries.length}: la finestra richiesta (offset ${input.offset}, ` +
-          `limit ${input.limit}) non è raggiungibile. Restringere la finestra o sfogliare ` +
-          `https://github.com/SenatoDellaRepubblica/AkomaNtosoBulkData/tree/master/${attoPath}`,
-      );
-    }
+    checkAknTruncation(aula, comm, entries.length, input.offset, input.limit, attoPath);
 
     const page = entries.slice(input.offset, input.offset + input.limit);
     const aknRows: Row[] = page.map((e) => ({
