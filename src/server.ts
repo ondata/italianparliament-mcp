@@ -88,7 +88,7 @@ function makeHandler(tool: Tool) {
 export function createServer(): McpServer {
   return new McpServer({
     name: "italianparliament-mcp",
-    version: "0.23.0",
+    version: "0.24.0",
   });
 }
 

@@ -107,7 +107,7 @@ In alternativa, copia la cartella `skills/<nome>/` e registrala secondo la docum
 |---------|---------|
 | `bill-progress list` | Iter dei DDL: al Senato stato/date/iniziativa/natura (lista, per `--ddl-uri`, o per numero con `--number <n>` + `--branch S\|C` — senza `--legislature` usa la legislatura corrente risolta dinamicamente); con `--uri <atto Camera>` restituisce la timeline completa dell'iter alla Camera (tutti gli stati attraversati, con data) |
 | `bill-signatories show` | Firmatari di un DDL (Camera o Senato): primo firmatario e cofirmatari. Per gli atti di iniziativa governativa (decreti-legge, DDL del Governo) i proponenti sono i ministri, con ruolo "Governo — &lt;dicastero&gt;" (Camera) o "Governo (proponente)" (Senato) |
-| `amendments list` | Emendamenti al Senato con numero, tipo, DDL collegato e link al testo. Filtrabile per legislatura e per DDL (`--ddl-uri`) |
+| `amendments list` | Emendamenti al Senato con numero, tipo, sede, DDL collegato e link al testo. Filtrabile per legislatura e per DDL (`--ddl-uri`); se il LOD è indietro, passa da solo al bulk AKN GitHub del Senato (`source=akn`). `--with-proponents` aggiunge primo firmatario e cofirmatari (nome + URI persona) dal testo AKN, richiede `--limit<=100` |
 | `documents list` | Documenti parlamentari: atti del governo, atti UE, relazioni Corte dei Conti |
 | `sindacato-ispettivo list` | Atti di sindacato ispettivo Senato (interrogazioni, interpellanze, mozioni), filtrabile per data |
 | `senato-votes list` | Votazioni d'Assemblea del Senato con esito, contatori (favorevoli/contrari/astenuti), tipo, data e DDL collegato. Filtrabile per legislatura, data, DDL, parola chiave nel label (`--keyword`), voti di fiducia (`--confidence-vote`) e voti finali (`--final-vote`) |
