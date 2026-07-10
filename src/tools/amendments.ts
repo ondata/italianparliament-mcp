@@ -66,6 +66,10 @@ const columns = [
 // (wiki senato/emendamenti-freschezza.md): quando vuoto con ddlUri il fallback è il
 // bulk AKN su GitHub (wiki senato/akn-bulk-data.md, issue #45).
 const PROPONENT_CONCURRENCY = 4;
+// withProponents fa un fetch per riga: con limit fino a 1000 (max schema) sono
+// centinaia/migliaia di richieste HTTP, rischio concreto di timeout/rate-limit
+// specie sul Worker. Cap esplicito piuttosto che un timeout silenzioso a metà.
+const WITH_PROPONENTS_MAX_LIMIT = 100;
 
 type AknEntry = { file: string; committee: boolean };
 
@@ -175,6 +179,13 @@ export const amendmentsTool: Tool<typeof inputSchema> = {
           `(atteso http://dati.senato.it/ddl/...). Per gli emendamenti della Camera usa il ` +
           `tool 'camera-amendments' (fonte: app HTML documenti.camera.it, non LOD). Un ` +
           `risultato vuoto qui non significa assenza di emendamenti alla Camera.`,
+      );
+    }
+    if (input.withProponents && input.limit > WITH_PROPONENTS_MAX_LIMIT) {
+      throw new Error(
+        `withProponents fa un fetch HTTP per ogni emendamento: con limit=${input.limit} sarebbero ` +
+          `${input.limit} richieste, rischio concreto di timeout/rate-limit (specie dal Worker). ` +
+          `Ripetere con limit<=${WITH_PROPONENTS_MAX_LIMIT}, eventualmente paginando con offset.`,
       );
     }
     const legFilter = input.legislature

@@ -576,6 +576,20 @@ describe("Senato tools", () => {
     expect(withProponent?.number).not.toBe("");
   }, 30000);
 
+  it("amendments: withProponents con limit oltre la soglia fallisce esplicito (offline guard)", async () => {
+    // withProponents fa un fetch per riga: senza cap, limit alto (fino a 1000
+    // da schema) rischierebbe centinaia/migliaia di richieste HTTP e timeout
+    // silenzioso, specie sul Worker.
+    await expect(
+      amendmentsTool.execute({
+        ddlUri: "http://dati.senato.it/ddl/60233",
+        withProponents: true,
+        limit: 101,
+        offset: 0,
+      }),
+    ).rejects.toThrow(/limit<=100/);
+  });
+
   it("amendments: enrichProponents fallisce esplicito se TUTTI i fetch al bulk AKN falliscono", async () => {
     // URL raw a percorsi inesistenti (404 reali): un outage/irraggiungibilità
     // di GitHub non deve tradursi in righe silenziosamente vuote,
