@@ -1,7 +1,7 @@
 # italianparliament-mcp
 
 [![npm version](https://img.shields.io/npm/v/@aborruso/italianparliament-mcp)](https://www.npmjs.com/package/@aborruso/italianparliament-mcp)
-[![GitHub](https://img.shields.io/badge/github-aborruso%2Fitalianparliament--mcp-blue?logo=github)](https://github.com/aborruso/italianparliament-mcp)
+[![GitHub](https://img.shields.io/badge/github-ondata%2Fitalianparliament--mcp-blue?logo=github)](https://github.com/ondata/italianparliament-mcp)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ondata/italianparliament-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Newsletter](https://img.shields.io/badge/newsletter-ondata-FF6719?logo=substack)](https://ondata.substack.com/)
