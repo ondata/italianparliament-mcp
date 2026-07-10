@@ -50,7 +50,11 @@ Colonne emesse: `first_proponent`/`proponents` (nomi) **e** `first_proponent_uri
 
 ## File stub vuoti
 
-Alcuni file del bulk sono **stub vuoti** (solo l'elemento `akomaNtoso` autochiuso, ~295 byte): es. `Leg19/Atto00060233/emend/01511907-em.akn.xml` (odg G1.17). Il file esiste (HTTP 200) ma non ha numero né proponenti: gap della fonte, non dell'estrazione.
+Alcuni file del bulk sono **stub vuoti** (solo l'elemento `akomaNtoso` autochiuso, ~295 byte): es. `Leg19/Atto00060233/emend/01511907-em.akn.xml` (odg G1.17). Il file esiste (HTTP 200) ma non ha numero né proponenti: gap della fonte, non dell'estrazione. `parseAknAmendment` non lancia mai su questi file (torna solo campi vuoti) — per design, indistinguibile da un vero fallimento di fetch a livello di singola riga.
+
+## Outage sistematico vs vuoto legittimo
+
+`enrichProponents` (in `amendments.ts`) distingue i due casi a livello di finestra: un singolo fetch fallito (rete, 404) lascia la riga vuota senza bloccare le altre; se **tutti** i fetch della finestra falliscono, è quasi certamente un'irraggiungibilità di GitHub (es. dal Worker, cfr. [[akn-bulk-data]] "verifiche pendenti") e il tool lancia un errore esplicito invece di restituire righe silenziosamente vuote indistinguibili dal caso legittimo.
 
 # Citations
 

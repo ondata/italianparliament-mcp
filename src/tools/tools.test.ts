@@ -21,7 +21,7 @@ import { govMembersTool } from "./gov-members.js";
 import { committeesTool } from "./committees.js";
 import { billProgressTool } from "./bill-progress.js";
 import { billSignatoriesTool } from "./bill-signatories.js";
-import { amendmentsTool } from "./amendments.js";
+import { amendmentsTool, enrichProponents } from "./amendments.js";
 import { senatoVotesTool } from "./senato-votes.js";
 import { cameraAmendmentsTool } from "./camera-amendments.js";
 import { documentsTool } from "./documents.js";
@@ -574,6 +574,23 @@ describe("Senato tools", () => {
     expect(withProponent).toBeDefined();
     expect(withProponent?.first_proponent_uri).toContain("dati.senato.it");
     expect(withProponent?.number).not.toBe("");
+  }, 30000);
+
+  it("amendments: enrichProponents fallisce esplicito se TUTTI i fetch al bulk AKN falliscono", async () => {
+    // URL raw a percorsi inesistenti (404 reali): un outage/irraggiungibilità
+    // di GitHub non deve tradursi in righe silenziosamente vuote,
+    // indistinguibili dal caso legittimo "nessun proponente" (file stub).
+    const rows = [
+      {
+        akn_xml_url:
+          "https://raw.githubusercontent.com/SenatoDellaRepubblica/AkomaNtosoBulkData/master/Leg19/Atto00060233/emend/00000000-em.akn.xml",
+      },
+      {
+        akn_xml_url:
+          "https://raw.githubusercontent.com/SenatoDellaRepubblica/AkomaNtosoBulkData/master/Leg19/Atto00060233/emend/00000001-em.akn.xml",
+      },
+    ];
+    await expect(enrichProponents(rows)).rejects.toThrow(/tutti i 2 fetch/);
   }, 30000);
 
   it("amendments: rejects a Camera ddlUri instead of returning empty (offline guard)", async () => {

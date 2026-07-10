@@ -69,9 +69,17 @@ const PROPONENT_CONCURRENCY = 4;
 type AknEntry = { file: string; committee: boolean };
 
 // Arricchisce le righe con i proponenti dai file AKN (fetch puntuali, concorrenza
-// limitata). Un errore su un singolo file non affossa la lista: campi vuoti.
-async function enrichProponents(rows: Row[]): Promise<void> {
+// limitata). Un fetch fallito su un singolo file non affossa la lista: campi
+// vuoti (indistinguibile, per design, dai file stub della fonte che non hanno
+// docProponent — parseAknAmendment non lancia mai su quelli). Ma se TUTTI i
+// fetch della finestra falliscono, è quasi certamente un outage/irraggiungibilità
+// di GitHub (es. dal Worker), non "nessun proponente": va segnalato esplicito,
+// non restituito come un vuoto silenzioso indistinguibile dal caso legittimo.
+// export solo per test unitario mirato (fallimento totale dei fetch).
+export async function enrichProponents(rows: Row[]): Promise<void> {
   const targets = rows.filter((r) => r.akn_xml_url);
+  if (targets.length === 0) return;
+  let failures = 0;
   await mapLimit(targets, PROPONENT_CONCURRENCY, async (row) => {
     try {
       const xml = await fetchAknFile(String(row.akn_xml_url));
@@ -85,9 +93,16 @@ async function enrichProponents(rows: Row[]): Promise<void> {
         row.label = [parsed.name, parsed.number].filter(Boolean).join(" ");
       if (!row.date) row.date = parsed.date;
     } catch {
-      // file mancante o non parsabile: la riga resta senza proponenti
+      failures++; // file mancante/non raggiungibile: la riga resta senza proponenti
     }
   });
+  if (failures === targets.length) {
+    throw new Error(
+      `withProponents: tutti i ${targets.length} fetch al bulk AKN GitHub sono falliti ` +
+        `(rete o outage, non "nessun proponente presente"). Riprovare, oppure ripetere ` +
+        `senza --with-proponents per ottenere comunque le righe senza proponenti.`,
+    );
+  }
 }
 
 export const amendmentsTool: Tool<typeof inputSchema> = {
