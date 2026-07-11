@@ -29,13 +29,13 @@ const inputSchema = z.object({
     .regex(/^\d+$/)
     .optional()
     .describe(
-      "Numero dell'atto (es. 1809). Da abbinare a --branch per il ramo. Con --branch S interroga il repertorio Senato (S.1809); con --branch C risolve l'atto Camera C.1809 e ne restituisce la timeline degli stati. Per il ramo S include automaticamente le letture successive della navetta con suffisso (es. --number 1353 torna S.1353 E S.1353-B). Se ometti --legislature, con --number si usa di default la legislatura corrente (risolta dinamicamente dall'endpoint Camera) per evitare omonimi storici. Lo stesso numero può esistere in entrambi i rami (C.1809 e S.1809).",
+      "Numero dell'atto (es. 1809), da usare insieme al campo branch. Con branch=S interroga il repertorio Senato (S.1809); con branch=C risolve l'atto Camera C.1809 e ne restituisce la timeline degli stati. Per branch=S include automaticamente le letture successive della navetta con suffisso (es. number=1353 torna S.1353 e S.1353-B). Se legislature è assente, con number si usa di default la legislatura corrente (risolta dinamicamente dall'endpoint Camera) per ridurre omonimi storici. Lo stesso numero può esistere in entrambi i rami (C.1809 e S.1809).",
     ),
   branch: z
     .enum(["S", "C"])
     .optional()
     .describe(
-      "Ramo per --number. S (default): repertorio Senato, restituisce lo STATO CORRENTE del DDL (una riga). C: atto Camera, restituisce la TIMELINE COMPLETA degli stati attraversati (una riga per stato, con date). L'asimmetria riflette la fonte: la Camera pubblica lo storico degli stati, il Senato solo lo stato corrente (la sua timeline vive nel feed RSS).",
+      "Ramo usato insieme al campo number. S (default): repertorio Senato, restituisce lo stato corrente del DDL (una riga). C: atto Camera, restituisce la timeline completa degli stati attraversati (una riga per stato, con date). L'asimmetria riflette la fonte: la Camera pubblica lo storico degli stati, il Senato solo lo stato corrente (la sua timeline vive nel feed RSS).",
     ),
   dateFrom: z
     .string()
@@ -91,6 +91,9 @@ export const billProgressTool: Tool<typeof inputSchema> = {
     "italianparliament bill-progress list --uri http://dati.camera.it/ocd/attocamera.rdf/ac19_2822 --format jsonl",
   ],
   async execute(input) {
+    const cameraEmptyHint =
+      "Nessuno stato iter Camera trovato per l'atto richiesto. Verifica il pairing legislature+number (o l'URI) e non dedurre assenza di iter dal vuoto: senza evidenza non inventare stati, date o conclusioni.";
+
     // Routing per host: un URI Camera attiva il ramo "timeline iter".
     const isCamera = (u?: string): u is string =>
       !!u && u.includes("dati.camera.it");
@@ -100,7 +103,14 @@ export const billProgressTool: Tool<typeof inputSchema> = {
         ? input.ddlUri
         : undefined;
     if (cameraUri) {
-      return cameraIterTimeline(cameraUri, columns);
+      return cameraIterTimeline(cameraUri, columns, {
+        keyword: input.keyword,
+        dateFrom: input.dateFrom,
+        dateTo: input.dateTo,
+        limit: input.limit,
+        offset: input.offset,
+        emptyHint: cameraEmptyHint,
+      });
     }
 
     // --number con --branch C: l'utente vuole l'iter dell'atto Camera C.<num>,
@@ -111,7 +121,14 @@ export const billProgressTool: Tool<typeof inputSchema> = {
     if (input.number && input.branch === "C") {
       const leg = input.legislature ?? (await currentLegislature());
       const cUri = `http://dati.camera.it/ocd/attocamera.rdf/ac${leg}_${input.number}`;
-      return cameraIterTimeline(cUri, columns);
+      return cameraIterTimeline(cUri, columns, {
+        keyword: input.keyword,
+        dateFrom: input.dateFrom,
+        dateTo: input.dateTo,
+        limit: input.limit,
+        offset: input.offset,
+        emptyHint: cameraEmptyHint,
+      });
     }
 
     // Se un URI Senato è passato via --uri, trattalo come ddlUri.
@@ -203,15 +220,43 @@ OFFSET ${input.offset}`;
  * Una riga per stato attraversato, in ordine cronologico, mappata sullo
  * stesso schema colonne del ramo Senato (colonne non pertinenti vuote).
  */
-async function cameraIterTimeline(uri: string, cols: string[]) {
+async function cameraIterTimeline(
+  uri: string,
+  cols: string[],
+  opts: {
+    keyword?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    limit?: number;
+    offset?: number;
+    emptyHint?: string;
+  } = {},
+) {
+  const filters: string[] = [];
+  if (opts.keyword) {
+    const escaped = opts.keyword.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    filters.push(
+      `FILTER(BOUND(?titolo) && CONTAINS(LCASE(STR(?titolo)), LCASE("${escaped}")))`,
+    );
+  }
+  if (opts.dateFrom) {
+    filters.push(`FILTER(STR(?date) >= "${opts.dateFrom.replace(/-/g, "")}")`);
+  }
+  if (opts.dateTo) {
+    filters.push(`FILTER(STR(?date) <= "${opts.dateTo.replace(/-/g, "")}")`);
+  }
+
   const query = `${OCD_PREFIXES}
 SELECT DISTINCT ?titolo ?date ?stato WHERE {
   <${uri}> ocd:rif_statoIter ?st .
   OPTIONAL { <${uri}> dc:title ?titolo }
   ?st dc:date ?date .
   ?st dc:title ?stato .
+  ${filters.join("\n  ")}
 }
-ORDER BY ?date`;
+ORDER BY ?date
+LIMIT ${opts.limit ?? 100}
+OFFSET ${opts.offset ?? 0}`;
 
   const results = await cdQuery(query);
   const raw = flattenBindings(results);
@@ -242,5 +287,8 @@ ORDER BY ?date`;
     html_url,
     rss_url: "",
   }));
+  if (rows.length === 0 && opts.emptyHint) {
+    return { rows, columns: cols, hint: opts.emptyHint };
+  }
   return { rows, columns: cols };
 }

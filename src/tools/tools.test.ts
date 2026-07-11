@@ -575,6 +575,33 @@ describe("Senato tools", () => {
     expect(result.rows.some((r) => /Legge/.test(r.status))).toBe(true);
   }, 30000);
 
+  it("bill-progress: --number + --branch C honours pagination filters", async () => {
+    const result = await billProgressTool.execute({
+      number: "2617",
+      branch: "C",
+      legislature: 18,
+      limit: 1,
+      offset: 0,
+    });
+    expect(result.rows.length).toBe(1);
+    expect(result.rows[0].ddl_uri).toBe(
+      "http://dati.camera.it/ocd/attocamera.rdf/ac18_2617",
+    );
+  }, 30000);
+
+  it("bill-progress: empty Camera timeline surfaces a branch-C specific hint", async () => {
+    const result = await billProgressTool.execute({
+      number: "2617",
+      branch: "C",
+      legislature: 18,
+      dateFrom: "2035-01-01",
+      limit: 10,
+      offset: 0,
+    });
+    expect(result.rows.length).toBe(0);
+    expect(result.hint).toContain("iter Camera");
+  }, 30000);
+
   it("bill-signatories: returns signatories for a Senato DDL", async () => {
     const result = await billSignatoriesTool.execute({
       billUri: "http://dati.senato.it/ddl/25597",
