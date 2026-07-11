@@ -14,7 +14,7 @@ describe("formatZodError", () => {
     const schema = z.object({ voteType: z.enum(["finale", "emendamento"]) });
     const msg = formatZodError(zodErrorFrom(schema, { voteType: "x" }));
     expect(msg).toContain("voteType:");
-    expect(msg).toContain("finale | emendamento");
+    expect(msg).toContain('"finale" | "emendamento"');
     expect(msg).toContain('"x"');
   });
 

@@ -14,9 +14,12 @@ export function formatZodError(e: ZodError, flagStyle = false): string {
   return e.issues
     .map((i) => {
       const field = i.path.join(".") || "input";
-      return i.code === "invalid_enum_value"
-        ? `${label(field)}: valore non valido "${(i as { received?: string }).received ?? ""}". Ammessi: ${i.options.join(" | ")}.`
-        : `${label(field)}: ${i.message}`;
+      if (i.code === "invalid_enum_value") {
+        const received = JSON.stringify((i as { received?: unknown }).received);
+        const allowed = i.options.map((v) => JSON.stringify(v)).join(" | ");
+        return `${label(field)}: valore non valido ${received ?? "undefined"}. Ammessi: ${allowed}.`;
+      }
+      return `${label(field)}: ${i.message}`;
     })
     .join("\n");
 }

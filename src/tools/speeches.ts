@@ -34,7 +34,7 @@ const inputSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional()
-    .describe("Data fine (YYYY-MM-DD): vedi date-from."),
+    .describe("Data fine (YYYY-MM-DD): vedi dateFrom/--date-from."),
   countOnly: z
     .boolean()
     .optional()
