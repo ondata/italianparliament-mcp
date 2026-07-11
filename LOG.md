@@ -1,5 +1,9 @@
 # LOG
 
+## 2026-07-11
+
+- **v0.24.2** — release patch. Raccoglie i fix e i miglioramenti mergiati dopo la 0.24.1 (137/137 test verdi, tsc pulito, **43 tool** invariati): (1) **fix CLI emptyHint** (#49) — l'`emptyHint` statico dei tool ora arriva anche via CLI (prima cablato solo in `formatResult`/MCP), così i vuoti "legittimi" (es. gap COVID leg.18) hanno la spiegazione anche a riga di comando; via OpenSpec + `withEmptyHint`. (2) **anti-refuso `bill_number` blindato** (#52) — test di regressione sul Piano Casa (label "DDL n. 1994" → `bill_number` 1944, dal backfill `osr:fase`) e wiki `fiducia-fallback` allineata. (3) **`senato-vote-detail` — dettaglio per tipo di voto** (#53) — verificato che il dettaglio nominativo c'è per tutte le modalità; la scelta espressa (Favorevole/Contrario/Astenuto) manca solo su `segreta` e `verifica numero legale` (solo presenze). Description del tool, wiki `votazione-tipo-semantico` e skill aggiornate; segnale `roll_call_available` derivabile da `type`, niente campo nuovo. (4) **ricetta sede question time `aic`** — la sede (Aula/commissione) è già filtrabile via `--type "immediata in assemblea"/"in commissione"` (match sul label regolare), documentata in description/esempio + skill. (5) **fix agente** news-driven-cli-gap-analyzer che si auto-delegava (#50). Nessuna nuova capacità utente → patch.
+
 ## 2026-07-10
 
 - **v0.24.1** — release patch con i fix UX della PR #48 (merge commit `73ea81e`, 5 giri di review Copilot/Greptile, 10 commenti gestiti, tutti i thread risolti): `which` azionabile con esempi incollabili e catalogo testato (`src/core/capabilities.ts`), help completo su `--format`/`--limit`/`--offset`, messaggi d'uso/no-match su stderr, link repo a `ondata`, `repository`/`homepage`/`bugs` in package.json. Include anche la raccomandazione README "uso locale consigliato" (push diretto post-#28). 130/130 test verdi. npm + Worker deployati.
