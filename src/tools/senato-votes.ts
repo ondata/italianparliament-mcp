@@ -138,6 +138,24 @@ export const senatoVotesTool: Tool<typeof inputSchema> = {
       ? `FILTER(?date <= "${input.dateTo}"^^xsd:date)`
       : "";
 
+    // --ddl-uri identifica univocamente il provvedimento e quindi la sua
+    // legislatura. L'URI (dati.senato.it/ddl/{N}) non la codifica, ma la
+    // proprietà osr:legislatura del DDL sì. Senza risolverla, il filtro di
+    // legislatura di default (19) esclude in silenzio i DDL di altre
+    // legislature (falso negativo: "Nessuna votazione trovata" pur essendo
+    // l'URI già non ambiguo). La deriviamo dal DDL e la usiamo in tutte le
+    // query; fallback all'input se il DDL non la espone.
+    let effectiveLeg = input.legislature;
+    if (input.ddlUri) {
+      const legRows = flattenBindings(
+        await snQuery(
+          `${OSR_PREFIXES}\nSELECT ?leg WHERE { <${input.ddlUri}> osr:legislatura ?leg } LIMIT 1`,
+        ),
+      );
+      const resolved = Number(legRows[0]?.leg);
+      if (Number.isInteger(resolved) && resolved > 0) effectiveLeg = resolved;
+    }
+
     // Supplemento fiducie per --keyword: le fiducie non hanno osr:oggetto,
     // quindi ?ddlTitolo resta unbound e il filtro keyword in SPARQL le esclude
     // anche quando il tema cercato è nel titolo del DDL citato per numero nel
@@ -160,7 +178,7 @@ export const senatoVotesTool: Tool<typeof inputSchema> = {
 SELECT DISTINCT ?v ?date ?numero ?tipo ?label ?esito
                 ?favorevoli ?contrari ?astenuti ?presenti ?votanti ?maggioranza
 WHERE {
-  ?v a osr:Votazione ; osr:legislatura ${input.legislature} ; osr:seduta ?s .
+  ?v a osr:Votazione ; osr:legislatura ${effectiveLeg} ; osr:seduta ?s .
   OPTIONAL { ?s osr:dataSeduta ?date }
   ?v rdfs:label ?label .
   FILTER(CONTAINS(LCASE(STR(?label)), "fiducia") &&
@@ -202,7 +220,7 @@ WHERE {
       const filter = nums.map((n) => `STR(?f) = "S.${n}"`).join(" || ");
       const fq = `${OSR_PREFIXES}
 SELECT ?ddl ?f ?titolo WHERE {
-  ?ddl a osr:Ddl ; osr:legislatura ${input.legislature} ; osr:fase ?f .
+  ?ddl a osr:Ddl ; osr:legislatura ${effectiveLeg} ; osr:fase ?f .
   OPTIONAL { ?ddl osr:titolo ?titolo }
   FILTER(${filter})
 }`;
@@ -232,7 +250,7 @@ SELECT ?ddl ?f ?titolo WHERE {
     if (input.ddlUri) {
       const datesQuery = `${OSR_PREFIXES}
 SELECT DISTINCT ?date WHERE {
-  ?v a osr:Votazione ; osr:legislatura ${input.legislature} ; osr:seduta ?s .
+  ?v a osr:Votazione ; osr:legislatura ${effectiveLeg} ; osr:seduta ?s .
   ?s osr:dataSeduta ?date .
   ?v osr:oggetto ?o . ?o osr:relativoA <${input.ddlUri}> .
 }`;
@@ -258,7 +276,7 @@ SELECT DISTINCT ?date WHERE {
     // a --ddl-uri, che richiede la risoluzione via fallback: in quel caso il
     // conteggio è la cardinalità del result-set filtrato (calcolata sotto).
     if (input.countOnly && !input.ddlUri) {
-      const countWhere = [`?v a osr:Votazione ; osr:legislatura ${input.legislature} .`];
+      const countWhere = [`?v a osr:Votazione ; osr:legislatura ${effectiveLeg} .`];
       if (ddlTopicPattern) countWhere.push(ddlTopicPattern);
       if (needsLabel) countWhere.push(`?v rdfs:label ?label . ${labelFilter}`);
       if (input.dateFrom || input.dateTo)
@@ -281,7 +299,7 @@ SELECT DISTINCT ?date WHERE {
                 ?favorevoli ?contrari ?astenuti ?presenti ?votanti ?maggioranza
                 ?ddl ?oggetto
 WHERE {
-  ?v a osr:Votazione ; osr:legislatura ${input.legislature} ; osr:seduta ?s .
+  ?v a osr:Votazione ; osr:legislatura ${effectiveLeg} ; osr:seduta ?s .
   OPTIONAL { ?s osr:dataSeduta ?date }
   ${ddlTopicPattern}
   ${needsLabel ? `?v rdfs:label ?label . ${labelFilter}` : "OPTIONAL { ?v rdfs:label ?label }"}
@@ -354,7 +372,7 @@ WHERE {
       const filter = nums.map((n) => `STR(?f) = "S.${n}"`).join(" || ");
       const fbQuery = `${OSR_PREFIXES}
 SELECT ?ddl ?f WHERE {
-  ?ddl a osr:Ddl ; osr:legislatura ${input.legislature} ; osr:fase ?f .
+  ?ddl a osr:Ddl ; osr:legislatura ${effectiveLeg} ; osr:fase ?f .
   FILTER(${filter})
 }`;
       const byFase = new Map<string, string>();
@@ -478,7 +496,7 @@ SELECT ?ddl ?f WHERE {
     const rows = values.map((v) => {
       const ddlUris = splitMulti(v.ddl_uri);
       const ddlHtmlUrls = ddlUris.map((u) => actHtmlUrl(u)).filter(Boolean);
-      const rssUrls = ddlUris.map((u) => ddlRssUrl(u, input.legislature)).filter(Boolean);
+      const rssUrls = ddlUris.map((u) => ddlRssUrl(u, effectiveLeg)).filter(Boolean);
       return {
         ...v,
         ddl_count: String(ddlUris.length),

@@ -829,6 +829,24 @@ describe("Senato tools", () => {
     expect(fiducia!.bill_number).toBe("1944");
   }, 30000);
 
+  it("senato-votes: --ddl-uri resolves the legislature from the DDL, not the default 19", async () => {
+    // DDL 52988 = S.1811 (decreto lockdown DL 19/2020), legislatura 18. L'URI
+    // dati.senato.it/ddl/{N} non codifica la legislatura: senza risolverla dal
+    // DDL, il filtro di default (19) darebbe un falso negativo silenzioso.
+    // Nessun --legislature passato: deve comunque trovare il voto di leg.18.
+    const result = await senatoVotesTool.execute({
+      legislature: 19,
+      ddlUri: "http://dati.senato.it/ddl/52988",
+      limit: 100,
+      offset: 0,
+    });
+    const voto = result.rows.find((r) => r.uri.endsWith("/18-219-1"));
+    expect(voto).toBeDefined();
+    expect(voto!.ddl_uri).toBe("http://dati.senato.it/ddl/52988");
+    // rss_url deve puntare alla legislatura del DDL (18), non al default 19.
+    expect(voto!.rss_url).toContain("/52988/18");
+  }, 30000);
+
   it("senato-votes: backfills bill_number from the resolved DDL on generic labels", async () => {
     // 19-376-2 (Corte dei Conti): label "Votazione finale" senza numero, ma
     // ddl_uri risolto via osr:relativoA → bill_number = fase S.1457.
