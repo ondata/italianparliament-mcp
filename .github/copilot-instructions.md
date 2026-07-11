@@ -26,6 +26,11 @@ Server MCP + CLI in TypeScript per interrogare i dati aperti del Parlamento ital
 - **Prima i tool specifici, poi lo SPARQL generico**: il tool `sparql` è l'ultima risorsa per dati non coperti da un tool dedicato.
 - Prima di concludere che un dato è assente, verifica **entrambe le camere** sondando le proprietà da un'istanza nota su ciascun endpoint: il "non trovato" è spesso un gap di tooling, non del dataset.
 
+## Validazione e messaggi d'errore
+
+- **La validazione dell'input è del framework, non dell'handler.** Lo schema `zod` di ogni tool è l'unica sorgente di verità. A runtime lo applicano gli entrypoint: l'SDK MCP valida l'input contro lo schema (`validateToolInput` → `safeParseAsync`) **prima** di invocare l'handler (`src/server.ts:makeHandler`), e la CLI lo fa in `src/cli.ts:runTool`. Un input malformato non arriva mai a `execute()`: non ri-validare dentro `execute` né duplicare il parse nell'handler MCP. La formattazione compatta degli `ZodError` è centralizzata in `src/core/zod-error.ts` (usata dalla CLI; l'SDK ha il suo rendering).
+- **Le `describe()` dello schema devono essere neutre rispetto all'entrypoint.** Lo stesso testo è mostrato sia via MCP (parametri camelCase: `dateFrom`) sia via CLI (flag kebab-case: `--date-from`). Non hardcodare la grafia del flag CLI in una `describe()`: nomina il concetto o il campo dello schema, mai `--date-from`. La mappatura camelCase↔kebab vive in un solo posto (citty per il parse degli argomenti, `zod-error` per i nomi negli errori), non nelle stringhe di prosa.
+
 ## Workflow di contribuzione
 
 - Il repo è sotto l'organizzazione `ondata`. Le modifiche di **codice** passano sempre da **branch + Pull Request**, mai push diretto su `main`. Eccezioni: sola documentazione, o richiesta esplicita di push diretto.
