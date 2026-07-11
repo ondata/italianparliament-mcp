@@ -23,6 +23,20 @@ const inputSchema = z.object({
     .describe(
       "URI completo del parlamentare (Camera: http://dati.camera.it/ocd/deputato.rdf/..., Senato: http://dati.senato.it/senatore/...)",
     ),
+  dateFrom: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe(
+      "Data inizio (YYYY-MM-DD): filtra per data dell'intervento. Camera: data della seduta in cui è stato pronunciato; Senato: data della seduta.",
+    ),
+  dateTo: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe(
+      "Data fine (YYYY-MM-DD, estremo incluso): stesso significato di dateFrom (data della seduta).",
+    ),
   countOnly: z
     .boolean()
     .optional()
@@ -36,6 +50,7 @@ const cameraColumns = [
   "uri",
   "label",
   "deputy_uri",
+  "date",
   "document_url",
   "modified",
 ];
@@ -44,7 +59,7 @@ const senatoColumns = [
   "uri",
   "label",
   "senator_uri",
-  "session_date",
+  "date",
   "session_number",
   "topic_uri",
 ];
@@ -52,11 +67,13 @@ const senatoColumns = [
 export const speechesTool: Tool<typeof inputSchema> = {
   name: "speeches",
   description:
-    "[CAMERA+SENATO] Interventi in aula con link al documento ufficiale. Camera: stenografico/bollettino, Senato: seduta e argomento. Filtrabile per legislatura e parlamentare. Supporta conteggio rapido con countOnly.",
+    "[CAMERA+SENATO] Interventi in aula con link al documento ufficiale e data (campo `date`, formato YYYY-MM-DD). Camera: stenografico/bollettino, Senato: seduta e argomento. Filtrabile per legislatura, parlamentare e intervallo di date (dateFrom/dateTo, CLI --date-from/--date-to, sulla data della seduta). Supporta conteggio rapido con countOnly (il filtro data vale anche per il conteggio). Per la Camera il filtro data richiede il parametro legislature (CLI: --legislature) come àncora dell'indice: senza, la query è molto più lenta.",
   inputSchema,
   examples: [
     "italianparliament speeches list --legislature 19 --limit 10",
     "italianparliament speeches list --chamber senato --legislature 19 --limit 10",
+    "italianparliament speeches list --legislature 19 --date-from 2026-06-17 --date-to 2026-06-17",
+    "italianparliament speeches list --chamber senato --legislature 19 --date-from 2025-01-01 --date-to 2025-03-31 --format jsonl",
     "italianparliament speeches list --deputy-uri http://dati.camera.it/ocd/deputato.rdf/d306921_17",
     "italianparliament speeches list --deputy-uri http://dati.senato.it/senatore/32726 --chamber senato --count-only",
     "italianparliament speeches list --deputy-uri http://dati.camera.it/ocd/deputato.rdf/d306921_17 --count-only",
@@ -73,6 +90,16 @@ export const speechesTool: Tool<typeof inputSchema> = {
 /* ── Camera ─────────────────────────────────────────────────────────── */
 
 async function executeCamera(input: z.infer<typeof inputSchema>) {
+  // Il filtro data richiede la legislatura: senza il range filter sul soggetto
+  // (unico àncora d'indice, vedi sotto) il join sulla discussione con FILTER
+  // sulle date scansiona tutti gli interventi e può andare in timeout. Il
+  // contratto è documentato (description/help/skill/wiki); qui lo si impone con
+  // un errore chiaro invece di lasciar degradare la query.
+  if ((input.dateFrom || input.dateTo) && !input.legislature) {
+    throw new Error(
+      "Il filtro data per la Camera richiede il parametro legislature (CLI: --legislature): àncora l'indice sul soggetto. Specifica la legislatura.",
+    );
+  }
   // Gli interventi Camera non hanno ocd:rif_leg: la legislatura è solo nel
   // pattern URI. Filtrare con STRSTARTS impedisce a Virtuoso di usare l'indice
   // sul soggetto e forza la materializzazione/ordinamento di tutti gli interventi
@@ -89,6 +116,22 @@ async function executeCamera(input: z.infer<typeof inputSchema>) {
   if (input.deputyUri) {
     filters.push(`?s ocd:rif_deputato <${input.deputyUri}> .`);
   }
+  // La data reale dell'intervento non è sull'intervento (ods:modified è il
+  // timestamp di modifica del record). Vive sulla ocd:discussione che lo
+  // raggruppa: `?disc ocd:rif_intervento ?s ; dc:date ?date`, con dc:date plain
+  // "YYYYMMDD" (verificato: sia interventi d'Aula/stenografico sia di
+  // commissione/bollettino, cardinalità 1 per intervento). Confronto
+  // lessicografico (8 cifre fisse) forzato con STR(): su Virtuoso Camera i
+  // range su dc:date senza STR() rischiano il confronto numerico spurio →
+  // vuoti muti (stessa convenzione di votes/sessions/aic). Il join va DENTRO
+  // la subquery così il FILTER precede il LIMIT.
+  const dFrom = input.dateFrom?.replace(/-/g, "");
+  const dTo = input.dateTo?.replace(/-/g, "");
+  const dateJoin =
+    dFrom || dTo
+      ? `?disc ocd:rif_intervento ?s ; dc:date ?date .
+      FILTER(${[dFrom ? `STR(?date) >= "${dFrom}"` : "", dTo ? `STR(?date) <= "${dTo}"` : ""].filter(Boolean).join(" && ")})`
+      : "";
 
   if (input.countOnly) {
     const countQuery = `${OCD_PREFIXES}
@@ -96,6 +139,7 @@ SELECT (COUNT(DISTINCT ?s) AS ?n)
 WHERE {
   ?s a ocd:intervento .
   ${filters.join("\n  ")}
+  ${dateJoin}
 }`;
     const results = await cdQuery(countQuery);
     const raw = flattenBindings(results);
@@ -110,12 +154,13 @@ WHERE {
   // duplicata alla fonte (presente 2× per ogni intervento), quindi senza dedup
   // il LIMIT conterebbe doppioni; GROUP BY collassa ed è ~2× più veloce di DISTINCT.
   const query = `${OCD_PREFIXES}
-SELECT ?s ?label ?rif_deputato ?relation ?modified
+SELECT ?s ?label ?rif_deputato ?relation ?modified ?date
 WHERE {
   {
     SELECT ?s WHERE {
       ?s a ocd:intervento .
       ${filters.join("\n      ")}
+      ${dateJoin}
     }
     GROUP BY ?s
     ORDER BY DESC(?s)
@@ -126,6 +171,7 @@ WHERE {
   OPTIONAL { ?s ocd:rif_deputato ?rif_deputato }
   OPTIONAL { ?s dc:relation ?relation }
   OPTIONAL { ?s ods:modified ?modified }
+  OPTIONAL { ?discD ocd:rif_intervento ?s ; dc:date ?date }
 }
 ORDER BY DESC(?s)`;
 
@@ -137,10 +183,12 @@ ORDER BY DESC(?s)`;
     const uri = r.s ?? "";
     if (seen.has(uri)) continue;
     seen.add(uri);
+    const d = r.date ?? "";
     rows.push({
       uri,
       label: r.label ?? "",
       deputy_uri: r.rif_deputato ?? "",
+      date: d.length === 8 ? `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}` : d,
       document_url: r.relation ?? "",
       modified: r.modified ?? "",
     });
@@ -158,6 +206,14 @@ async function executeSenato(input: z.infer<typeof inputSchema>) {
   if (input.deputyUri) {
     filters.push(`<${input.deputyUri}> osr:interviene ?i .`);
   }
+  // osr:dataSeduta è xsd:date ISO (YYYY-MM-DD). Confronto via STR() così il
+  // filtro regge sia se tipizzato xsd:date sia xsd:string (evita la trappola
+  // del typed literal su Virtuoso): il formato ISO rende lessicografico =
+  // cronologico.
+  const senDateFilter =
+    input.dateFrom || input.dateTo
+      ? `FILTER(${[input.dateFrom ? `STR(?ds) >= "${input.dateFrom}"` : "", input.dateTo ? `STR(?ds) <= "${input.dateTo}"` : ""].filter(Boolean).join(" && ")})`
+      : "";
 
   if (input.countOnly) {
     const countQuery = `${OSR_PREFIXES}
@@ -165,6 +221,7 @@ SELECT (COUNT(DISTINCT ?i) AS ?n)
 WHERE {
   ?i a osr:Intervento .
   ?i osr:seduta ?sed .
+  ${senDateFilter ? `?sed osr:dataSeduta ?ds .\n  ${senDateFilter}` : ""}
   ${filters.join("\n  ")}
 }`;
     const results = await snQuery(countQuery);
@@ -173,8 +230,12 @@ WHERE {
     return { rows: [{ count }], columns: ["count"] };
   }
 
+  // ?sen osr:interviene ?i è la relazione INVERSA senatore→intervento (l'URI
+  // dell'intervento non contiene l'ID del senatore), 1:1. Selezionandola,
+  // senator_uri è valorizzata per riga anche senza --deputy-uri; quando il
+  // filtro c'è, ?sen coincide col senatore filtrato.
   const query = `${OSR_PREFIXES}
-SELECT DISTINCT ?i ?lbl ?ds ?ns ?obj
+SELECT DISTINCT ?i ?lbl ?ds ?ns ?obj ?sen
 WHERE {
   ?i a osr:Intervento .
   ?i rdfs:label ?lbl .
@@ -182,8 +243,10 @@ WHERE {
   ?sed osr:dataSeduta ?ds .
   ?sed osr:numeroSeduta ?ns .
   ${input.deputyUri ? `<${input.deputyUri}> osr:interviene ?i .` : ""}
+  OPTIONAL { ?sen osr:interviene ?i }
   OPTIONAL { ?i osr:oggetto ?obj }
   ${filters.filter((f) => !f.includes("osr:interviene")).join("\n  ")}
+  ${senDateFilter}
 }
 ORDER BY DESC(?ds) DESC(?ns)
 LIMIT ${input.limit}
@@ -194,8 +257,8 @@ OFFSET ${input.offset}`;
   const rows = raw.map((r) => ({
     uri: r.i ?? "",
     label: r.lbl ?? "",
-    senator_uri: input.deputyUri ?? "",
-    session_date: r.ds ?? "",
+    senator_uri: r.sen ?? input.deputyUri ?? "",
+    date: r.ds ?? "",
     session_number: r.ns ?? "",
     topic_uri: r.obj ?? "",
   }));

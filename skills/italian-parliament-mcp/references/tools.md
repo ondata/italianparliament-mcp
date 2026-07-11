@@ -84,9 +84,12 @@ Come ha votato ogni deputato in una votazione.
 - `voteType`: Favorevole | Contrario | Astenuto | Non ha votato
 
 ### `speeches`
-Interventi in aula Camera.
-- `legislature`: numero legislatura (nota: dati disponibili da leg. 17)
-- `deputyUri`: filtra per deputato
+Interventi in aula, Camera **e** Senato (`chamber`).
+- `chamber`: `camera` (default) o `senato`
+- `legislature`: numero legislatura (nota: dati Camera disponibili da leg. 17)
+- `deputyUri`: filtra per parlamentare
+- `dateFrom` / `dateTo` (YYYY-MM-DD): filtra per **data della seduta** dell'intervento. Camera: la data non è sull'intervento (`ods:modified` è il timestamp del record) ma sulla `ocd:discussione` che lo raggruppa — il tool la ricava per te. Per la Camera il filtro data richiede `legislature` (àncora l'indice; senza è molto più lento).
+- Colonna `date` (YYYY-MM-DD) in output per entrambe le camere.
 
 ### `attendance`
 Conteggio aggregato dei voti di un deputato su tutte le votazioni della sua legislatura (misura di attivismo/assenteismo). L'URI del deputato è già specifico di una legislatura (`.../deputato.rdf/d<ID>_<LEG>`), quindi il conteggio è già delimitato senza filtro separato.
