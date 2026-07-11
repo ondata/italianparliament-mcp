@@ -282,6 +282,19 @@ describe("Camera tools", () => {
     }
   }, 30000);
 
+  it("speeches: inputSchema rejects a malformed date (MCP path validation)", () => {
+    // Il path MCP valida l'input con questo schema (server.ts makeHandler),
+    // come la CLI: una data non YYYY-MM-DD non deve raggiungere executeCamera
+    // e finire interpolata nella query SPARQL.
+    expect(() =>
+      speechesTool.inputSchema.parse({
+        chamber: "camera",
+        legislature: 19,
+        dateFrom: '2026-06-17" injection',
+      }),
+    ).toThrow();
+  });
+
   it("speeches: countOnly honours the date filter (Camera)", async () => {
     // Sentinella sul ramo count: il filtro data deve applicarsi anche con
     // countOnly:true (dateJoin è dentro la count query). Un giorno con sedute

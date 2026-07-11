@@ -63,8 +63,13 @@ function formatResult(result: ToolResult, emptyHint?: string): string {
 function makeHandler(tool: Tool) {
   return async (input: unknown) => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await tool.execute(input as any);
+      // Valida l'input con lo schema Zod prima di eseguire, come fa la CLI
+      // (cli.ts). Le regex/limiti dello schema (es. il formato data YYYY-MM-DD
+      // di speeches) non devono dipendere dal solo dispatch dell'SDK: parseare
+      // qui è il chokepoint unico che protegge tutti i tool da input non
+      // conformi che finirebbero interpolati nelle query SPARQL.
+      const parsed = tool.inputSchema.parse(input);
+      const result = await tool.execute(parsed);
       return {
         content: [
           { type: "text" as const, text: formatResult(result, tool.emptyHint) },

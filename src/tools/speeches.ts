@@ -65,7 +65,7 @@ const senatoColumns = [
 export const speechesTool: Tool<typeof inputSchema> = {
   name: "speeches",
   description:
-    "[CAMERA+SENATO] Interventi in aula con link al documento ufficiale e data (colonna date, YYYY-MM-DD). Camera: stenografico/bollettino, Senato: seduta e argomento. Filtrabile per legislatura, parlamentare e intervallo di date (dateFrom/dateTo, CLI --date-from/--date-to, sulla data della seduta). Supporta conteggio rapido con countOnly (il filtro data vale anche per il conteggio). Per la Camera il filtro data richiede il parametro legislature (CLI: --legislature) come àncora dell'indice: senza, la query è molto più lenta.",
+    "[CAMERA+SENATO] Interventi in aula con link al documento ufficiale e data (campo `date`, formato YYYY-MM-DD). Camera: stenografico/bollettino, Senato: seduta e argomento. Filtrabile per legislatura, parlamentare e intervallo di date (dateFrom/dateTo, CLI --date-from/--date-to, sulla data della seduta). Supporta conteggio rapido con countOnly (il filtro data vale anche per il conteggio). Per la Camera il filtro data richiede il parametro legislature (CLI: --legislature) come àncora dell'indice: senza, la query è molto più lenta.",
   inputSchema,
   examples: [
     "italianparliament speeches list --legislature 19 --limit 10",
@@ -127,8 +127,8 @@ async function executeCamera(input: z.infer<typeof inputSchema>) {
   const dTo = input.dateTo?.replace(/-/g, "");
   const dateJoin =
     dFrom || dTo
-      ? `?disc ocd:rif_intervento ?s ; dc:date ?d .
-      FILTER(${[dFrom ? `STR(?d) >= "${dFrom}"` : "", dTo ? `STR(?d) <= "${dTo}"` : ""].filter(Boolean).join(" && ")})`
+      ? `?disc ocd:rif_intervento ?s ; dc:date ?date .
+      FILTER(${[dFrom ? `STR(?date) >= "${dFrom}"` : "", dTo ? `STR(?date) <= "${dTo}"` : ""].filter(Boolean).join(" && ")})`
       : "";
 
   if (input.countOnly) {
