@@ -48,6 +48,7 @@ import { formatRows, type Format } from "./core/format.js";
 import { SparqlError } from "./core/client.js";
 import { ZodError } from "zod";
 import type { ToolResult } from "./tools/types.js";
+import { withEmptyHint } from "./core/empty-hint.js";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json") as { version: string };
@@ -77,7 +78,7 @@ function emit(result: ToolResult, format: Format): void {
 // errati (--vote-type, --rank-by, ...) producono un ZodError con i valori validi
 // invece di scivolare nella query come stringa.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function runTool(tool: { inputSchema: { parse(i: unknown): any }; execute(i: any): Promise<ToolResult> }, input: unknown): Promise<ToolResult> {
+async function runTool(tool: { inputSchema: { parse(i: unknown): any }; execute(i: any): Promise<ToolResult>; emptyHint?: string }, input: unknown): Promise<ToolResult> {
   let parsed: unknown;
   try {
     parsed = tool.inputSchema.parse(input);
@@ -93,7 +94,10 @@ function runTool(tool: { inputSchema: { parse(i: unknown): any }; execute(i: any
     }
     throw e;
   }
-  return tool.execute(parsed);
+  // Fallback allineato al path MCP (result.hint ?? emptyHint): su risultato
+  // vuoto senza hint dinamico, usa l'emptyHint statico del tool così emit()
+  // lo scrive su stderr.
+  return withEmptyHint(await tool.execute(parsed), tool.emptyHint);
 }
 
 function parseFormat(raw: string): Format {
