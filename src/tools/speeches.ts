@@ -88,6 +88,16 @@ export const speechesTool: Tool<typeof inputSchema> = {
 /* ── Camera ─────────────────────────────────────────────────────────── */
 
 async function executeCamera(input: z.infer<typeof inputSchema>) {
+  // Il filtro data richiede la legislatura: senza il range filter sul soggetto
+  // (unico àncora d'indice, vedi sotto) il join sulla discussione con FILTER
+  // sulle date scansiona tutti gli interventi e può andare in timeout. Il
+  // contratto è documentato (description/help/skill/wiki); qui lo si impone con
+  // un errore chiaro invece di lasciar degradare la query.
+  if ((input.dateFrom || input.dateTo) && !input.legislature) {
+    throw new Error(
+      "Il filtro data per la Camera richiede --legislature (àncora l'indice sul soggetto). Specifica la legislatura.",
+    );
+  }
   // Gli interventi Camera non hanno ocd:rif_leg: la legislatura è solo nel
   // pattern URI. Filtrare con STRSTARTS impedisce a Virtuoso di usare l'indice
   // sul soggetto e forza la materializzazione/ordinamento di tutti gli interventi
@@ -109,14 +119,16 @@ async function executeCamera(input: z.infer<typeof inputSchema>) {
   // raggruppa: `?disc ocd:rif_intervento ?s ; dc:date ?d`, con dc:date plain
   // "YYYYMMDD" (verificato: sia interventi d'Aula/stenografico sia di
   // commissione/bollettino, cardinalità 1 per intervento). Confronto
-  // lessicografico diretto (già 8 cifre fisse). Il join va DENTRO la subquery
-  // così il FILTER precede il LIMIT.
+  // lessicografico (8 cifre fisse) forzato con STR(): su Virtuoso Camera i
+  // range su dc:date senza STR() rischiano il confronto numerico spurio →
+  // vuoti muti (stessa convenzione di votes/sessions/aic). Il join va DENTRO
+  // la subquery così il FILTER precede il LIMIT.
   const dFrom = input.dateFrom?.replace(/-/g, "");
   const dTo = input.dateTo?.replace(/-/g, "");
   const dateJoin =
     dFrom || dTo
       ? `?disc ocd:rif_intervento ?s ; dc:date ?d .
-      FILTER(${[dFrom ? `?d >= "${dFrom}"` : "", dTo ? `?d <= "${dTo}"` : ""].filter(Boolean).join(" && ")})`
+      FILTER(${[dFrom ? `STR(?d) >= "${dFrom}"` : "", dTo ? `STR(?d) <= "${dTo}"` : ""].filter(Boolean).join(" && ")})`
       : "";
 
   if (input.countOnly) {

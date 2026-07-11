@@ -251,6 +251,19 @@ describe("Camera tools", () => {
     }
   }, 30000);
 
+  it("speeches: Camera date filter without legislature fails fast (no unindexed scan)", async () => {
+    await expect(
+      speechesTool.execute({
+        chamber: "camera",
+        dateFrom: "2026-06-17",
+        dateTo: "2026-06-17",
+        limit: 10,
+        offset: 0,
+        countOnly: false,
+      }),
+    ).rejects.toThrow(/legislature/i);
+  }, 10000);
+
   it("speeches: --date-from/--date-to filters Senato to the session date", async () => {
     // Sedute del Senato di marzo 2025: tutte le date restituite devono cadere
     // nell'intervallo (filtro STR su osr:dataSeduta xsd:date).

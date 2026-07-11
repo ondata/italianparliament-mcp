@@ -10,7 +10,7 @@ SELECT ?date WHERE {
 }
 ```
 
-`dc:date` è una stringa semplice `AAAAMMGG` (es. `20260617`), confrontabile lessicograficamente per un filtro a intervallo. La copertura è verificata su **entrambe** le sedi: interventi d'Aula (documento stenografico, `dc:relation` con `sezione=assemblea`) e interventi di commissione (bollettino, `sezione=bollettini`) hanno tutti la discussione con `dc:date`, con cardinalità 1 per intervento.
+`dc:date` è una stringa `AAAAMMGG` (es. `20260617`), confrontabile lessicograficamente per un filtro a intervallo. Come per gli altri campi data della Camera (`votes`, `sessions`, `aic`), il confronto va forzato con `STR(?date)`: su Virtuoso Camera i range su `dc:date` senza `STR()` rischiano un confronto numerico spurio e vuoti muti. La copertura è verificata su **entrambe** le sedi: interventi d'Aula (documento stenografico, `dc:relation` con `sezione=assemblea`) e interventi di commissione (bollettino, `sezione=bollettini`) hanno tutti la discussione con `dc:date`, con cardinalità 1 per intervento.
 
 ## Filtrare per data in modo performante
 
