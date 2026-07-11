@@ -3,6 +3,7 @@ import { snQuery } from "../core/client.js";
 import { flattenBindings } from "../core/flatten.js";
 import { OSR_PREFIXES } from "../core/prefixes.js";
 import { personHtmlUrl } from "../core/html-url.js";
+import { regionFromProvince } from "../core/province-region.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -34,7 +35,7 @@ const inputSchema = z.object({
     .string()
     .optional()
     .describe(
-      "Filtra per città di nascita (match case-insensitive, es. 'rovigo'). Nota: il Senato espone solo la città, non provincia/regione.",
+      "Filtra per città di nascita (match case-insensitive, es. 'rovigo'). Provincia, nazione e regione di nascita sono restituite come colonne (birth_province, birth_country, birth_region): per filtrarle usa una pipeline (es. jq).",
     ),
   limit: z.number().int().positive().max(1000).default(300),
   offset: z.number().int().nonnegative().default(0),
@@ -56,6 +57,9 @@ const columns = [
   "gender",
   "birth_date",
   "birth_city",
+  "birth_province",
+  "birth_country",
+  "birth_region",
   "photo",
   "html_url",
 ];
@@ -74,6 +78,8 @@ const COL_MAP: Record<string, string> = {
   gen: "gender",
   dob: "birth_date",
   bc: "birth_city",
+  bp: "birth_province",
+  bn: "birth_country",
   pic: "photo",
 };
 
@@ -99,8 +105,9 @@ export const senatorsTool: Tool<typeof inputSchema> = {
     const activeFilter = activeOnly ? "FILTER(!bound(?me))" : "";
 
     // Genere Senato: valori F/M (Camera usa female/male). dataNascita è YYYY-MM-DD,
-    // confronto lessicografico via STR(). cittaNascita è solo la città (no
-    // provincia/regione al Senato).
+    // confronto lessicografico via STR(). Il Senato espone anche provincia
+    // (osr:provinciaNascita) e nazione (osr:nazioneNascita) di nascita; la
+    // regione è derivata dalla provincia via province-region.ts.
     const demoFilters = [
       input.gender ? `FILTER(STR(?gen) = "${input.gender === "female" ? "F" : "M"}")` : "",
       input.bornFrom ? `FILTER(STR(?dob) >= "${input.bornFrom}")` : "",
@@ -111,7 +118,7 @@ export const senatorsTool: Tool<typeof inputSchema> = {
       .join("\n  ");
 
     const query = `${OSR_PREFIXES}
-SELECT DISTINCT ?s ?fn ?ln ?leg ?ms ?me ?mt ?tfm ?te ?re ?gen ?dob ?bc ?pic
+SELECT DISTINCT ?s ?fn ?ln ?leg ?ms ?me ?mt ?tfm ?te ?re ?gen ?dob ?bc ?bp ?bn ?pic
 WHERE {
   ?s a osr:Senatore .
   ?s <http://xmlns.com/foaf/0.1/firstName> ?fn .
@@ -127,6 +134,8 @@ WHERE {
   OPTIONAL { ?s <http://xmlns.com/foaf/0.1/gender> ?gen }
   OPTIONAL { ?s osr:dataNascita ?dob }
   OPTIONAL { ?s osr:cittaNascita ?bc }
+  OPTIONAL { ?s osr:provinciaNascita ?bp }
+  OPTIONAL { ?s osr:nazioneNascita ?bn }
   OPTIONAL { ?s <http://xmlns.com/foaf/0.1/depiction> ?pic }
   ${legFilter}
   ${activeFilter}
@@ -143,6 +152,7 @@ LIMIT ${input.limit} OFFSET ${input.offset}`;
         row[COL_MAP[k] ?? k] = v;
       }
       row.html_url = personHtmlUrl(row.uri);
+      row.birth_region = regionFromProvince(row.birth_province);
       return row;
     });
     return { rows, columns };

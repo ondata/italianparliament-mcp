@@ -3,7 +3,45 @@ import { cdQuery } from "../core/client.js";
 import { flattenBindings } from "../core/flatten.js";
 import { OCD_PREFIXES } from "../core/prefixes.js";
 import { personHtmlUrl } from "../core/html-url.js";
+import { canonicalRegion } from "../core/province-region.js";
 import type { Tool } from "./types.js";
+
+// La Camera NON espone la geografia di nascita come triple RDF: la codifica solo
+// come slug dentro l'URI del luogo, `comune_provincia_regione` (Italia) oppure
+// `comune_stato` (estero). Casi speciali: le regioni mono/bi-provinciali (Valle
+// d'Aosta, Trentino-Alto Adige) compaiono a 2 parti come `comune_regione`, per
+// questo la 2ª parte va disambiguata via canonicalRegion (regione nota vs stato
+// estero). La regione e portata alla forma canonica del Senato; provincia e
+// comune restano nella forma nativa (deslug) dello slug Camera.
+const deslug = (s: string): string => s.replace(/-/g, " ").trim();
+
+export function parseCameraBirthPlace(slug: string): {
+  birth_city: string;
+  birth_province: string;
+  birth_country: string;
+  birth_region: string;
+} {
+  const empty = { birth_city: "", birth_province: "", birth_country: "", birth_region: "" };
+  if (!slug) return empty;
+  const parts = slug.split("_");
+  const city = deslug(parts[0] ?? "");
+  if (parts.length >= 3) {
+    return {
+      birth_city: city,
+      birth_province: deslug(parts[1]),
+      birth_country: "Italia",
+      birth_region: canonicalRegion(parts[2]),
+    };
+  }
+  if (parts.length === 2) {
+    const region = canonicalRegion(parts[1]);
+    if (region) {
+      return { birth_city: city, birth_province: "", birth_country: "Italia", birth_region: region };
+    }
+    return { birth_city: city, birth_province: "", birth_country: deslug(parts[1]), birth_region: "" };
+  }
+  return { ...empty, birth_city: city };
+}
 
 const inputSchema = z.object({
   legislature: z
@@ -50,6 +88,10 @@ const columns = [
   "gender",
   "birth_date",
   "birth_place",
+  "birth_city",
+  "birth_province",
+  "birth_country",
+  "birth_region",
   "description",
   "photo_url",
   "profile_url",
@@ -142,11 +184,15 @@ OFFSET ${input.offset}`;
     const rows = raw.map((r) => {
       const { s, rif_leg, birth_date, birth_place_uri, ...rest } = r;
       const bd = birth_date ?? "";
+      // Ultimo segmento dell'URI, ripulito da eventuale query/fragment (?…/#…)
+      // che altrimenti si attaccherebbe alla regione e la farebbe cadere a "".
+      const birth_place = ((birth_place_uri ?? "").split("/").pop() ?? "").split(/[?#]/, 1)[0] ?? "";
       return {
         uri: s ?? "",
         legislature_uri: rif_leg ?? "",
         birth_date: /^\d{8}$/.test(bd) ? `${bd.slice(0, 4)}-${bd.slice(4, 6)}-${bd.slice(6, 8)}` : bd,
-        birth_place: (birth_place_uri ?? "").split("/").pop() ?? "",
+        birth_place,
+        ...parseCameraBirthPlace(birth_place),
         ...rest,
         html_url: personHtmlUrl(s),
       };
