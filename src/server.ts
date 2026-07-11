@@ -45,6 +45,8 @@ import { senatoAttendanceTool } from "./tools/senato-attendance.js";
 import type { Tool, ToolResult } from "./tools/types.js";
 import { toJsonl } from "./core/format.js";
 import { SparqlError } from "./core/client.js";
+import { ZodError } from "zod";
+import { formatZodError } from "./core/zod-error.js";
 
 function describe(tool: Tool): string {
   return `${tool.description}\n\nExamples:\n${tool.examples
@@ -63,8 +65,13 @@ function formatResult(result: ToolResult, emptyHint?: string): string {
 function makeHandler(tool: Tool) {
   return async (input: unknown) => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await tool.execute(input as any);
+      // Valida l'input con lo schema Zod prima di eseguire, come fa la CLI
+      // (cli.ts). Le regex/limiti dello schema (es. il formato data YYYY-MM-DD
+      // di speeches) non devono dipendere dal solo dispatch dell'SDK: parseare
+      // qui è il chokepoint unico che protegge tutti i tool da input non
+      // conformi che finirebbero interpolati nelle query SPARQL.
+      const parsed = tool.inputSchema.parse(input);
+      const result = await tool.execute(parsed);
       return {
         content: [
           { type: "text" as const, text: formatResult(result, tool.emptyHint) },
@@ -72,11 +79,13 @@ function makeHandler(tool: Tool) {
       };
     } catch (err) {
       const message =
-        err instanceof SparqlError
-          ? `SPARQL error on ${err.endpoint}${err.status ? ` (HTTP ${err.status})` : ""}: ${err.message}`
-          : err instanceof Error
-            ? err.message
-            : String(err);
+        err instanceof ZodError
+          ? formatZodError(err)
+          : err instanceof SparqlError
+            ? `SPARQL error on ${err.endpoint}${err.status ? ` (HTTP ${err.status})` : ""}: ${err.message}`
+            : err instanceof Error
+              ? err.message
+              : String(err);
       return {
         content: [{ type: "text" as const, text: `Error: ${message}` }],
         isError: true,
