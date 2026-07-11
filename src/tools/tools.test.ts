@@ -282,6 +282,33 @@ describe("Camera tools", () => {
     }
   }, 30000);
 
+  it("speeches: countOnly honours the date filter (Camera)", async () => {
+    // Sentinella sul ramo count: il filtro data deve applicarsi anche con
+    // countOnly:true (dateJoin è dentro la count query). Un giorno con sedute
+    // dà un conteggio > 0; un intervallo senza sedute dà 0 — se il filtro
+    // fosse ignorato il secondo conterebbe tutti gli interventi della legislatura.
+    const withSession = await speechesTool.execute({
+      legislature: 19,
+      dateFrom: "2026-06-17",
+      dateTo: "2026-06-17",
+      chamber: "camera",
+      countOnly: true,
+      limit: 100,
+      offset: 0,
+    });
+    expect(Number(withSession.rows[0].count)).toBeGreaterThan(0);
+    const emptyRange = await speechesTool.execute({
+      legislature: 19,
+      dateFrom: "1990-01-01",
+      dateTo: "1990-01-02",
+      chamber: "camera",
+      countOnly: true,
+      limit: 100,
+      offset: 0,
+    });
+    expect(Number(emptyRange.rows[0].count)).toBe(0);
+  }, 30000);
+
   it("aic: returns atti for legislature 19", async () => {
     const result = await aicTool.execute({ legislature: 19, primaryOnly: false, limit: 3, offset: 0 });
     expect(result.rows.length).toBe(3);

@@ -65,7 +65,7 @@ const senatoColumns = [
 export const speechesTool: Tool<typeof inputSchema> = {
   name: "speeches",
   description:
-    "[CAMERA+SENATO] Interventi in aula con link al documento ufficiale e data (colonna date, YYYY-MM-DD). Camera: stenografico/bollettino, Senato: seduta e argomento. Filtrabile per legislatura, parlamentare e intervallo di date (--date-from/--date-to sulla data della seduta). Supporta conteggio rapido con countOnly. Per la Camera il filtro data richiede --legislature (àncora l'indice: senza, la query è molto più lenta).",
+    "[CAMERA+SENATO] Interventi in aula con link al documento ufficiale e data (colonna date, YYYY-MM-DD). Camera: stenografico/bollettino, Senato: seduta e argomento. Filtrabile per legislatura, parlamentare e intervallo di date (dateFrom/dateTo, CLI --date-from/--date-to, sulla data della seduta). Supporta conteggio rapido con countOnly (il filtro data vale anche per il conteggio). Per la Camera il filtro data richiede il parametro legislature (CLI: --legislature) come àncora dell'indice: senza, la query è molto più lenta.",
   inputSchema,
   examples: [
     "italianparliament speeches list --legislature 19 --limit 10",
@@ -95,7 +95,7 @@ async function executeCamera(input: z.infer<typeof inputSchema>) {
   // un errore chiaro invece di lasciar degradare la query.
   if ((input.dateFrom || input.dateTo) && !input.legislature) {
     throw new Error(
-      "Il filtro data per la Camera richiede --legislature (àncora l'indice sul soggetto). Specifica la legislatura.",
+      "Il filtro data per la Camera richiede il parametro legislature (CLI: --legislature): àncora l'indice sul soggetto. Specifica la legislatura.",
     );
   }
   // Gli interventi Camera non hanno ocd:rif_leg: la legislatura è solo nel
