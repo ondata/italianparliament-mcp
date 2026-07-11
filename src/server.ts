@@ -45,6 +45,8 @@ import { senatoAttendanceTool } from "./tools/senato-attendance.js";
 import type { Tool, ToolResult } from "./tools/types.js";
 import { toJsonl } from "./core/format.js";
 import { SparqlError } from "./core/client.js";
+import { ZodError } from "zod";
+import { formatZodError } from "./core/zod-error.js";
 
 function describe(tool: Tool): string {
   return `${tool.description}\n\nExamples:\n${tool.examples
@@ -77,11 +79,13 @@ function makeHandler(tool: Tool) {
       };
     } catch (err) {
       const message =
-        err instanceof SparqlError
-          ? `SPARQL error on ${err.endpoint}${err.status ? ` (HTTP ${err.status})` : ""}: ${err.message}`
-          : err instanceof Error
-            ? err.message
-            : String(err);
+        err instanceof ZodError
+          ? formatZodError(err)
+          : err instanceof SparqlError
+            ? `SPARQL error on ${err.endpoint}${err.status ? ` (HTTP ${err.status})` : ""}: ${err.message}`
+            : err instanceof Error
+              ? err.message
+              : String(err);
       return {
         content: [{ type: "text" as const, text: `Error: ${message}` }],
         isError: true,

@@ -47,6 +47,7 @@ import { CAPABILITIES, capabilityScore } from "./core/capabilities.js";
 import { formatRows, type Format } from "./core/format.js";
 import { SparqlError } from "./core/client.js";
 import { ZodError } from "zod";
+import { formatZodError } from "./core/zod-error.js";
 import type { ToolResult } from "./tools/types.js";
 import { withEmptyHint } from "./core/empty-hint.js";
 import { createRequire } from "module";
@@ -84,13 +85,7 @@ async function runTool(tool: { inputSchema: { parse(i: unknown): any }; execute(
     parsed = tool.inputSchema.parse(input);
   } catch (e) {
     if (e instanceof ZodError) {
-      const msgs = e.issues.map((i) => {
-        const field = i.path.join(".") || "input";
-        return i.code === "invalid_enum_value"
-          ? `--${field}: valore non valido "${(i as { received?: string }).received ?? ""}". Ammessi: ${i.options.join(" | ")}.`
-          : `--${field}: ${i.message}`;
-      });
-      throw new Error(msgs.join("\n"));
+      throw new Error(formatZodError(e, true));
     }
     throw e;
   }
@@ -1865,14 +1860,7 @@ if (argv[0] === "sparql" && argv[1] !== "query" && argv[1] !== "--help" && argv[
 runMain(main).catch((err: unknown) => {
   if (err instanceof ZodError) {
     // Errori di validazione input: per gli enum, elenca i valori validi.
-    const msgs = err.issues.map((i) => {
-      const field = i.path.join(".") || "input";
-      if (i.code === "invalid_enum_value") {
-        return `--${field}: valore non valido. Ammessi: ${i.options.join(" | ")}.`;
-      }
-      return `--${field}: ${i.message}`;
-    });
-    process.stderr.write(`Error: ${msgs.join("\n")}\n`);
+    process.stderr.write(`Error: ${formatZodError(err, true)}\n`);
   } else if (err instanceof SparqlError) {
     process.stderr.write(
       `Error: ${err.message}\nEndpoint: ${err.endpoint}\n${err.status ? `Status: ${err.status}\n` : ""}`,
