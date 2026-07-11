@@ -228,8 +228,12 @@ WHERE {
     return { rows: [{ count }], columns: ["count"] };
   }
 
+  // ?sen osr:interviene ?i è la relazione INVERSA senatore→intervento (l'URI
+  // dell'intervento non contiene l'ID del senatore), 1:1. Selezionandola,
+  // senator_uri è valorizzata per riga anche senza --deputy-uri; quando il
+  // filtro c'è, ?sen coincide col senatore filtrato.
   const query = `${OSR_PREFIXES}
-SELECT DISTINCT ?i ?lbl ?ds ?ns ?obj
+SELECT DISTINCT ?i ?lbl ?ds ?ns ?obj ?sen
 WHERE {
   ?i a osr:Intervento .
   ?i rdfs:label ?lbl .
@@ -237,6 +241,7 @@ WHERE {
   ?sed osr:dataSeduta ?ds .
   ?sed osr:numeroSeduta ?ns .
   ${input.deputyUri ? `<${input.deputyUri}> osr:interviene ?i .` : ""}
+  OPTIONAL { ?sen osr:interviene ?i }
   OPTIONAL { ?i osr:oggetto ?obj }
   ${filters.filter((f) => !f.includes("osr:interviene")).join("\n  ")}
   ${senDateFilter}
@@ -250,7 +255,7 @@ OFFSET ${input.offset}`;
   const rows = raw.map((r) => ({
     uri: r.i ?? "",
     label: r.lbl ?? "",
-    senator_uri: input.deputyUri ?? "",
+    senator_uri: r.sen ?? input.deputyUri ?? "",
     date: r.ds ?? "",
     session_number: r.ns ?? "",
     topic_uri: r.obj ?? "",
