@@ -7,7 +7,10 @@ import type { ToolResult } from "../tools/types.js";
  * Così la CLI (emit → stderr) e l'MCP comunicano lo stesso messaggio.
  */
 export function withEmptyHint(result: ToolResult, emptyHint?: string): ToolResult {
-  if (result.rows.length === 0 && !result.hint && emptyHint) {
+  // `result.hint == null` (nullish) e non `!result.hint`: così un hint dinamico
+  // valido ma falsy (stringa vuota) non viene sovrascritto, restando fedele
+  // alla precedenza `result.hint ?? emptyHint` del path MCP.
+  if (result.rows.length === 0 && result.hint == null && emptyHint) {
     return { ...result, hint: emptyHint };
   }
   return result;

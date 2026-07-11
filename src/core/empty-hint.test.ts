@@ -37,10 +37,16 @@ describe("withEmptyHint", () => {
     expect(out).not.toBe(input);
   });
 
+  it("hint dinamico stringa vuota (falsy ma non nullish) non viene sovrascritto", () => {
+    const out = withEmptyHint(empty(""), "STATICO");
+    expect(out.hint).toBe("");
+  });
+
   it("parità con il path MCP (result.hint ?? emptyHint)", () => {
     const cases: Array<[ToolResult, string | undefined]> = [
       [empty(), "STATICO"],
       [empty("DINAMICO"), "STATICO"],
+      [empty(""), "STATICO"],
       [empty(), undefined],
     ];
     for (const [result, emptyHint] of cases) {
