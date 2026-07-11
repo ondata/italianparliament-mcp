@@ -600,6 +600,7 @@ describe("Senato tools", () => {
     });
     expect(result.rows.length).toBe(0);
     expect(result.hint).toContain("iter Camera");
+    expect(result.hint).toContain("filtri");
   }, 30000);
 
   it("bill-signatories: returns signatories for a Senato DDL", async () => {
