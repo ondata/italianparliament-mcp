@@ -21,6 +21,24 @@ timestamp: 2026-07-07
 
 Filtrare `--type` o `osr:tipoVotazione` per "finale" o "fiducia" restituisce **0 righe** — non perché il dato manchi, ma perché è la proprietà sbagliata.
 
+Nota Virtuoso: il literal di `osr:tipoVotazione` è tipizzato `xsd:string`, quindi il match diretto (`osr:tipoVotazione "elettronica"`) torna **vuoto**; serve `FILTER(STR(?t) = "elettronica")` (cfr. [[trappole]]).
+
+# Dettaglio nominativo per tipo (roll call): la sola eccezione è la segreta
+
+`senato-vote-detail` restituisce le righe per-senatore **per tutte le modalità di voto**, non solo per `nominale con appello` (verificato 2026-07-11, leg. 19). La differenza vera non è "c'è / non c'è il dettaglio", ma **cosa** contiene il dettaglio:
+
+| `osr:tipoVotazione` | righe per-senatore | scelta Favorevole/Contrario espressa? |
+|---|---|---|
+| `elettronica` | sì | **sì** |
+| `nominale con appello` | sì | **sì** |
+| `controprova` | sì | **sì** |
+| `verifica numero legale` | sì | solo presenze (è un conteggio del quorum) |
+| `segreta` | sì | **NO** — solo `Presente non votante` / `In congedo/missione` |
+
+Prova sul voto segreto `19-155-52`: 15 `Presente non votante` + 21 `In congedo/missione`, **zero** Favorevole/Contrario. È costituzionalmente corretto: il voto segreto registra chi era presente, non come ha votato.
+
+**Regola pratica per l'orchestratore/LLM:** la domanda "come ha votato il singolo senatore X?" è rispondibile per ogni votazione **tranne** quando `type = "segreta"`. Non serve un campo booleano dedicato (`roll_call_available`): il segnale è **derivabile** dal campo `type` già esposto da `senato-votes` (`type !== "segreta"`). Su un voto segreto non dedurre né inventare il sì/no: la scelta non esiste nel dato.
+
 # Dove vive il tipo semantico
 
 Nel **`rdfs:label`** della votazione, come testo. Pattern verificati (leg. 19):

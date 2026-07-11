@@ -131,3 +131,4 @@ Quando ricostruisci iter, voti o schede, il rischio è la **confabulazione su sc
 - Use `--limit` to cap results during exploration
 - URIs from `list` commands can be passed to `show` commands
 - **Senato confidence votes have empty `ddl_uri` at the source**, but `senato-votes list --ddl-uri <uri>` **now returns the *fiducia* anyway** (it resolves the DDL's seduta dates and re-links the confidence vote of that day). Still check `ddl_uri` on any "final" vote found by date: it may belong to a different act (unified text).
+- **Senato voto segreto**: se il campo `type` di `senato-votes` è `segreta`, `senato-vote-detail` restituisce solo le presenze (`Presente non votante`, `In congedo/missione`), **mai** `Favorevole`/`Contrario` — la scelta individuale non è nel dato (voto segreto). Per ogni altro `type` il sì/no del singolo senatore è disponibile. Non dedurre il voto individuale su una votazione segreta.
