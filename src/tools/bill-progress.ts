@@ -7,6 +7,8 @@ import { ddlRssUrl } from "../core/html-url.js";
 import { currentLegislature } from "../core/current-legislature.js";
 import type { Tool } from "./types.js";
 
+const sparqlStringLiteral = (value: string): string => JSON.stringify(value);
+
 const inputSchema = z.object({
   ddlUri: z
     .string()
@@ -41,12 +43,16 @@ const inputSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional()
-    .describe("Data inizio presentazione (YYYY-MM-DD)"),
+    .describe(
+      "Data inizio filtro (YYYY-MM-DD): su Senato filtra la data presentazione; su Camera (timeline) filtra la data dello stato iter",
+    ),
   dateTo: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional()
-    .describe("Data fine presentazione (YYYY-MM-DD)"),
+    .describe(
+      "Data fine filtro (YYYY-MM-DD): su Senato filtra la data presentazione; su Camera (timeline) filtra la data dello stato iter",
+    ),
   legislature: z
     .number()
     .int()
@@ -92,7 +98,7 @@ export const billProgressTool: Tool<typeof inputSchema> = {
   ],
   async execute(input) {
     const cameraEmptyHint =
-      "Nessuno stato iter Camera trovato per l'atto richiesto. Verifica il pairing legislature+number (o l'URI) e non dedurre assenza di iter dal vuoto: senza evidenza non inventare stati, date o conclusioni.";
+      "Nessuno stato iter Camera trovato per l'atto richiesto. Verifica il pairing legislature+number (o l'URI) e, se hai usato keyword/date/limit/offset, prova ad allargare i filtri o la paginazione. Non dedurre assenza di iter dal vuoto: senza evidenza non inventare stati, date o conclusioni.";
 
     // Routing per host: un URI Camera attiva il ramo "timeline iter".
     const isCamera = (u?: string): u is string =>
@@ -143,8 +149,9 @@ export const billProgressTool: Tool<typeof inputSchema> = {
       filters.push(`FILTER(?s = <${senatoDdlUri}>)`);
     }
     if (input.keyword) {
-      const escaped = input.keyword.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-      filters.push(`FILTER(CONTAINS(LCASE(STR(?titolo)), LCASE("${escaped}")))`);
+      filters.push(
+        `FILTER(CONTAINS(LCASE(STR(?titolo)), LCASE(${sparqlStringLiteral(input.keyword)})))`,
+      );
     }
     if (input.number) {
       // numeroFase è tipizzato → confronto via STR(); il ramo (osr:ramo S/C) è
@@ -234,9 +241,8 @@ async function cameraIterTimeline(
 ) {
   const filters: string[] = [];
   if (opts.keyword) {
-    const escaped = opts.keyword.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     filters.push(
-      `FILTER(BOUND(?titolo) && CONTAINS(LCASE(STR(?titolo)), LCASE("${escaped}")))`,
+      `FILTER(BOUND(?titolo) && CONTAINS(LCASE(STR(?titolo)), LCASE(${sparqlStringLiteral(opts.keyword)})))`,
     );
   }
   if (opts.dateFrom) {
@@ -247,14 +253,14 @@ async function cameraIterTimeline(
   }
 
   const query = `${OCD_PREFIXES}
-SELECT DISTINCT ?titolo ?date ?stato WHERE {
+SELECT DISTINCT ?st ?titolo ?date ?stato WHERE {
   <${uri}> ocd:rif_statoIter ?st .
   OPTIONAL { <${uri}> dc:title ?titolo }
   ?st dc:date ?date .
   ?st dc:title ?stato .
   ${filters.join("\n  ")}
 }
-ORDER BY ?date
+ORDER BY ?date ?st
 LIMIT ${opts.limit ?? 100}
 OFFSET ${opts.offset ?? 0}`;
 
