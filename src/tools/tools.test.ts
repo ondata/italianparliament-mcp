@@ -703,6 +703,25 @@ describe("Senato tools", () => {
     expect(finale?.ddl_uri).toBe("http://dati.senato.it/ddl/59070");
   }, 45000);
 
+  it("senato-votes: refuso nel numero del label non intacca bill_number (Piano Casa 1994→1944)", async () => {
+    // Fiducia Piano Casa (19-434-2): la fonte ha un refuso nel label
+    // ("DDL  n. 1994" per S.1944). Il numero del label NON risolve ad alcun
+    // DDL → azzerato per difesa; poi la propagazione intra-seduta risolve
+    // ddl_uri e il backfill rilegge il numero VERO dalla osr:fase. Il label
+    // resta verbatim (1994), ma bill_number è autoritativo (1944).
+    const result = await senatoVotesTool.execute({
+      legislature: 19,
+      dateFrom: "2026-07-01",
+      dateTo: "2026-07-01",
+      limit: 100,
+      offset: 0,
+    });
+    const fiducia = result.rows.find((r) => r.uri.endsWith("/19-434-2"));
+    expect(fiducia?.label).toContain("1994"); // verbatim, refuso preservato
+    expect(fiducia?.bill_number).toBe("1944"); // mai il refuso 1994
+    expect(fiducia?.ddl_uri).toBe("http://dati.senato.it/ddl/60233");
+  }, 45000);
+
   it("bill: rejects Senato URIs with a routing message (solo-Camera)", async () => {
     await expect(
       billTool.execute({ uri: "http://dati.senato.it/ddl/59070" }),

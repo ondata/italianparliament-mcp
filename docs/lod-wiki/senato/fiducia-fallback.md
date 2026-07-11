@@ -27,6 +27,12 @@ voto 19-434-3 (risoluzione)    → ddl_uri = ddl/60233 (propagato ma estraneo)
 
 Se la stessa data ha più DDL diversi (testi unificati), il fallback **non** propaga per non collegare la fiducia al DDL sbagliato.
 
+## Recupero di `bill_number` dopo la propagazione (refuso)
+
+Sul refuso il primo fallback azzera `bill_number` (il numero del label non risolve). Ma una volta che il secondo fallback ha risolto `ddl_uri`, un **backfill** finale (`senato-votes.ts`, blocco `missingNum`) rilegge il numero **vero** dalla `osr:fase` del DDL risolto. Esito per il Piano Casa: `label` resta verbatim col refuso (`"DDL  n. 1994. Votazione questione di fiducia"`), ma `bill_number` è autoritativo e corretto (`1944`), `ddl_uri` = `ddl/60233`.
+
+Conseguenza pratica: **non fidarsi del numero nel testo del `label`** (può contenere refusi della fonte); il campo strutturato `bill_number` (e `ddl_uri`) è quello verificato. Il tool non emette mai il refuso come `bill_number`: o è il numero corretto, o è vuoto (quando neppure la propagazione risolve il DDL). Regressione coperta dal test `senato-votes: refuso nel numero del label non intacca bill_number`.
+
 ## Discovery tematica: `--keyword` e le fiducie
 
 Il match keyword sul titolo del DDL collegato (v0.20.0) passa in SPARQL da `osr:oggetto → osr:relativoA → osr:titolo`: sulle fiducie `?ddlTitolo` resta unbound e il filtro le escludeva anche quando il tema cercato era nel titolo del DDL citato per numero nel label (es. `--keyword sicurezza` non trovava la fiducia 19-312-1 sul DDL 59201 "…sicurezza pubblica…"). Dal 2026-07-10 un **supplemento fiducie** le recupera a parte (set piccolo, ~55 nell'intera leg. 19): risolve il numero citato nel label via `osr:fase` leggendo anche `osr:titolo`, e tiene solo quelle il cui titolo matcha la keyword. Residuo: le fiducie con refuso nel numero (es. "DDL n. 1994" per S.1944) non sono recuperabili per keyword — il supplemento usa solo il Fallback 1, non la propagazione intra-seduta.
