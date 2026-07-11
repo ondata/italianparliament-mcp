@@ -68,7 +68,7 @@ SELECT DISTINCT ?senator_uri ?group_label WHERE {
 export const senatoVoteDetailTool: Tool<typeof inputSchema> = {
   name: "senato-vote-detail",
   description:
-    "[SENATO] Voto individuale di ogni senatore in una singola votazione d'Assemblea: come ha votato (Favorevole, Contrario, Astenuto, Presente non votante, In congedo/missione), con nome e gruppo di appartenenza alla data del voto. Richiede l'URI della votazione (da senato-votes). ATTENZIONE ai voti SEGRETI (quando senato-votes riporta type='segreta'): la scelta espressa non è registrata alla fonte, quindi il tool restituisce solo le presenze (Presente non votante, In congedo/missione) e MAI Favorevole/Contrario — è corretto così (voto segreto), non dedurre né inventare il sì/no del singolo senatore.",
+    "[SENATO] Voto individuale di ogni senatore in una singola votazione d'Assemblea: come ha votato (Favorevole, Contrario, Astenuto, Presente non votante, In congedo/missione), con nome e gruppo di appartenenza alla data del voto. Richiede l'URI della votazione (da senato-votes). ATTENZIONE: la scelta espressa (Favorevole/Contrario) è registrata solo per i voti di merito (type 'elettronica', 'nominale con appello', 'controprova'). Per i voti 'segreta' (voto segreto) e 'verifica numero legale' (conteggio del quorum) il tool restituisce solo le presenze (Presente non votante, In congedo/missione) e MAI Favorevole/Contrario — è corretto così, non dedurre né inventare il sì/no del singolo senatore su queste due modalità.",
   inputSchema,
   examples: [
     "italianparliament senato-vote-detail show --vote-uri http://dati.senato.it/votazione/19-167-42",
