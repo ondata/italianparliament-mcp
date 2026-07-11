@@ -229,6 +229,44 @@ describe("Camera tools", () => {
     expect(result.rows.length).toBe(3);
     expect(result.rows[0]).toHaveProperty("deputy_uri");
     expect(result.rows[0]).toHaveProperty("document_url");
+    expect(result.rows[0]).toHaveProperty("date");
+  }, 30000);
+
+  it("speeches: --date-from/--date-to filters Camera to the session date (in19)", async () => {
+    // Interventi d'Aula del 2026-06-17 (question time). La colonna date è
+    // ricavata dalla ocd:discussione (non da ods:modified) e deve restare
+    // dentro l'intervallo richiesto: nessuna riga fuori dal 17/6.
+    const result = await speechesTool.execute({
+      legislature: 19,
+      dateFrom: "2026-06-17",
+      dateTo: "2026-06-17",
+      limit: 200,
+      offset: 0,
+      chamber: "camera",
+      countOnly: false,
+    });
+    expect(result.rows.length).toBeGreaterThan(0);
+    for (const r of result.rows) {
+      expect(r.date).toBe("2026-06-17");
+    }
+  }, 30000);
+
+  it("speeches: --date-from/--date-to filters Senato to the session date", async () => {
+    // Sedute del Senato di marzo 2025: tutte le date restituite devono cadere
+    // nell'intervallo (filtro STR su osr:dataSeduta xsd:date).
+    const result = await speechesTool.execute({
+      chamber: "senato",
+      legislature: 19,
+      dateFrom: "2025-03-01",
+      dateTo: "2025-03-31",
+      limit: 200,
+      offset: 0,
+      countOnly: false,
+    });
+    expect(result.rows.length).toBeGreaterThan(0);
+    for (const r of result.rows) {
+      expect(r.date >= "2025-03-01" && r.date <= "2025-03-31").toBe(true);
+    }
   }, 30000);
 
   it("aic: returns atti for legislature 19", async () => {

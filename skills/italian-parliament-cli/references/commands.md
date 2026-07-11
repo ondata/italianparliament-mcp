@@ -112,10 +112,13 @@ italianparliament vote-detail show --vote-uri <vote-uri> --format csv
 ```
 
 ### `speeches list`
-Interventi in aula (disponibili da leg. 17).
+Interventi in aula, Camera e Senato (`--chamber`; dati Camera da leg. 17). Colonna `date` (YYYY-MM-DD) in output.
 ```bash
 italianparliament speeches list --legislature 19
+italianparliament speeches list --legislature 19 --date-from 2026-06-17 --date-to 2026-06-17
+italianparliament speeches list --chamber senato --legislature 19 --date-from 2025-03-01 --date-to 2025-03-31
 ```
+`--date-from`/`--date-to` filtrano per la **data della seduta**. Camera: la data non è sull'intervento (`ods:modified` è il timestamp del record) ma sulla `ocd:discussione` che lo raggruppa — il tool la ricava. Per la Camera il filtro data richiede `--legislature` (àncora l'indice; senza è molto più lento).
 
 ### `attendance show`
 Conteggio aggregato dei voti di un deputato su tutte le votazioni della sua legislatura (favorevole/contrario/astensione/non ha votato/ha votato in scrutinio segreto) — misura di attivismo/assenteismo.

@@ -644,6 +644,8 @@ const speechesList = defineCommand({
       type: "string",
       description: "Full URI of a deputy/senator",
     },
+    "date-from": { type: "string", description: "Start date YYYY-MM-DD (session date)" },
+    "date-to": { type: "string", description: "End date YYYY-MM-DD (session date)" },
     "count-only": {
       type: "boolean",
       description: "Return only the total count",
@@ -658,6 +660,8 @@ const speechesList = defineCommand({
       chamber,
       legislature: parseIntFlag(args.legislature as string, "legislature"),
       deputyUri: (args["deputy-uri"] as string) || undefined,
+      dateFrom: (args["date-from"] as string) || undefined,
+      dateTo: (args["date-to"] as string) || undefined,
       countOnly: Boolean(args["count-only"]),
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,
       offset: Number(args.offset ?? 0),
