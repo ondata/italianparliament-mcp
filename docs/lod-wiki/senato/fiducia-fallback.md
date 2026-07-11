@@ -31,7 +31,7 @@ Se la stessa data ha più DDL diversi (testi unificati), il fallback **non** pro
 
 Sul refuso il primo fallback azzera `bill_number` (il numero del label non risolve). Ma una volta che il secondo fallback ha risolto `ddl_uri`, un **backfill** finale (`senato-votes.ts`, blocco `missingNum`) rilegge il numero **vero** dalla `osr:fase` del DDL risolto. Esito per il Piano Casa: `label` resta verbatim col refuso (`"DDL  n. 1994. Votazione questione di fiducia"`), ma `bill_number` è autoritativo e corretto (`1944`), `ddl_uri` = `ddl/60233`.
 
-Conseguenza pratica: **non fidarsi del numero nel testo del `label`** (può contenere refusi della fonte); il campo strutturato `bill_number` (e `ddl_uri`) è quello verificato. Il tool non emette mai il refuso come `bill_number`: o è il numero corretto, o è vuoto (quando neppure la propagazione risolve il DDL). Regressione coperta dal test `senato-votes: refuso nel numero del label non intacca bill_number`.
+Conseguenza pratica: **non fidarsi del numero nel testo del `label`** (può contenere refusi della fonte); il campo strutturato `bill_number` (e `ddl_uri`) è quello verificato. Il tool non emette mai il refuso come `bill_number`: o è il numero corretto, o è vuoto (quando neppure la propagazione risolve il DDL). Regressione coperta dagli assert sul caso Piano Casa nel test `senato-votes: --ddl-uri includes the fiducia (no osr:oggetto) and excludes same-day extraneous votes`.
 
 ## Discovery tematica: `--keyword` e le fiducie
 

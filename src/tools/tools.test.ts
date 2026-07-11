@@ -679,14 +679,14 @@ describe("Senato tools", () => {
     expect(uris).not.toContain("http://dati.senato.it/votazione/19-434-3"); // risoluzione estranea
     const fiducia = result.rows.find((r) => r.uri.endsWith("19-434-2"));
     expect(fiducia).toBeDefined();
-    expect(fiducia?.in_favour).toBe("106");
-    expect(fiducia?.against).toBe("62");
-    expect(fiducia?.ddl_uri).toBe("http://dati.senato.it/ddl/60233");
+    expect(fiducia!.in_favour).toBe("106");
+    expect(fiducia!.against).toBe("62");
+    expect(fiducia!.ddl_uri).toBe("http://dati.senato.it/ddl/60233");
     // Il label ha un refuso ("DDL  n. 1994" per S.1944): il numero del label
     // NON risolve ad alcun DDL → azzerato per difesa; poi la propagazione
     // intra-seduta risolve ddl_uri e il backfill rilegge il numero VERO dalla
     // osr:fase (1944). Il tool non emette mai il refuso 1994 come bill_number.
-    expect(fiducia?.bill_number).toBe("1944");
+    expect(fiducia!.bill_number).toBe("1944");
   }, 30000);
 
   it("senato-votes: backfills bill_number from the resolved DDL on generic labels", async () => {
