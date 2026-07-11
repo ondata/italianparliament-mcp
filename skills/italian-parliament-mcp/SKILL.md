@@ -107,6 +107,7 @@ Use `rank` with `rankBy`: `aic-primo-firmatario`, `aic-cofirmatario`, `bills-pri
 **Who voted how (Senato)**
 1. `senato-votes` → get vote URI (filter by `ddlUri` for votes on a bill, or by date)
 2. `senato-vote-detail` with the URI. Each row includes the senator's `group_label` at the vote date, so the group breakdown comes directly (no need to cross-reference).
+   - **When is the individual choice available?** Only for *merit* votes (`type` from `senato-votes` = `elettronica`, `nominale con appello`, `controprova`). For `segreta` (secret ballot) and `verifica numero legale` (quorum count) the source does **not** record the individual choice — `senato-vote-detail` returns only presence rows (`Presente non votante`, `In congedo/missione`), never an expressed choice (neither `Favorevole`, nor `Contrario`, nor `Astenuto`). That's correct: report "scelta individuale non registrata (voto segreto / verifica del numero legale)", don't infer the vote on those two types.
 
 **Iter completo di una legge (Camera → Senato → pubblicazione)**
 Non generare la timeline a memoria: costruiscila dai tool, passo per passo. `bill-progress` è la spina dorsale.

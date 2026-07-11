@@ -4,7 +4,7 @@ title: Tipo semantico di una votazione (finale/fiducia) NON in osr:tipoVotazione
 description: osr:tipoVotazione è la modalità di voto (elettronica/nominale/segreta), non il tipo semantico. "Votazione finale" e "questione di fiducia" vivono solo nel rdfs:label.
 resource: http://dati.senato.it/osr/Votazione
 tags: [senato, osr, votazione, tipoVotazione, fiducia, finale, label]
-timestamp: 2026-07-07
+timestamp: 2026-07-11
 ---
 
 # Trappola
@@ -20,6 +20,24 @@ timestamp: 2026-07-07
 | `segreta` | 13 |
 
 Filtrare `--type` o `osr:tipoVotazione` per "finale" o "fiducia" restituisce **0 righe** — non perché il dato manchi, ma perché è la proprietà sbagliata.
+
+Nota Virtuoso: il literal di `osr:tipoVotazione` è tipizzato `xsd:string`, quindi il match con un literal **semplice** (`osr:tipoVotazione "elettronica"`) torna **vuoto** — è un problema di uguaglianza di *term* (`"elettronica"` ≠ `"elettronica"^^xsd:string`). Due forme che funzionano (verificato leg. 19: 7821 vs 0): tipizzare il literal nel triple pattern — `osr:tipoVotazione "elettronica"^^xsd:string` — oppure filtrare con `FILTER(STR(?t) = "elettronica")` (cfr. [[trappole]]).
+
+# Dettaglio nominativo per tipo (roll call): la scelta individuale c'è solo per i voti di merito
+
+`senato-vote-detail` restituisce le righe per-senatore **per tutte le modalità di voto**, non solo per `nominale con appello` (verificato 2026-07-11, leg. 19). La differenza vera non è "c'è / non c'è il dettaglio", ma **cosa** contiene il dettaglio: la scelta espressa (Favorevole, Contrario, Astenuto) oppure solo le presenze (Presente non votante, In congedo/missione).
+
+| `osr:tipoVotazione` | righe per-senatore | scelta espressa (Fav./Contr./Astenuto)? |
+|---|---|---|
+| `elettronica` | sì | **sì** (voto di merito) |
+| `nominale con appello` | sì | **sì** (voto di merito) |
+| `controprova` | sì | **sì** (voto di merito) |
+| `verifica numero legale` | sì | **NO** — solo presenze (conteggio del quorum) |
+| `segreta` | sì | **NO** — solo presenze (voto segreto) |
+
+Prova sul voto segreto `19-155-52`: 15 `Presente non votante` + 21 `In congedo/missione`, **zero** scelte espresse (né Favorevole, né Contrario, né Astenuto). È costituzionalmente corretto: il voto segreto registra chi era presente, non come ha votato. Lo stesso vale per la `verifica numero legale`, che è un semplice conteggio del numero legale, non un voto su un provvedimento.
+
+**Regola pratica per l'orchestratore/LLM:** la domanda "come ha votato il singolo senatore X?" è rispondibile solo per i voti di **merito** (`elettronica`, `nominale con appello`, `controprova`). Su `segreta` e `verifica numero legale` **non** dedurre né inventare il sì/no: la scelta non esiste nel dato, ci sono solo le presenze. Non serve un campo booleano dedicato (`roll_call_available`): il segnale è **derivabile** dal campo `type` già esposto da `senato-votes` — la scelta individuale c'è quando `type ∉ {"segreta", "verifica numero legale"}`.
 
 # Dove vive il tipo semantico
 
