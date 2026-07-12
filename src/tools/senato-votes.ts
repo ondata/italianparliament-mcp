@@ -17,7 +17,7 @@ const inputSchema = z.object({
     .string()
     .url()
     .optional()
-    .describe("Filtra le votazioni collegate a un DDL (es. http://dati.senato.it/ddl/58039)"),
+    .describe("Filtra le votazioni collegate a un DDL (es. http://dati.senato.it/ddl/58039). La legislatura è derivata dall'URI del DDL: funziona anche per provvedimenti di legislature passate senza passare --legislature (es. il DDL leg.18 http://dati.senato.it/ddl/52988)"),
   keyword: z
     .string()
     .optional()
@@ -84,6 +84,7 @@ export const senatoVotesTool: Tool<typeof inputSchema> = {
     "italianparliament senato-votes list --legislature 19 --limit 50",
     "italianparliament senato-votes list --legislature 19 --date-from 2026-01-01 --date-to 2026-03-31",
     "italianparliament senato-votes list --ddl-uri http://dati.senato.it/ddl/58039 --format jsonl",
+    "italianparliament senato-votes list --ddl-uri http://dati.senato.it/ddl/52988",
     "italianparliament senato-votes list --legislature 19 --confidence-vote true",
     "italianparliament senato-votes list --legislature 19 --final-vote true --date-from 2026-06-01",
     "italianparliament senato-votes list --legislature 19 --keyword bilancio",
