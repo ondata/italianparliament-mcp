@@ -1,6 +1,6 @@
 # PRD — URL human-readable per le entità (persone e atti)
 
-Stato: bozza · 2026-06-29
+Stato: bozza · 2026-06-29 · spec di dettaglio del **principio 1** di [../PRD.md](../PRD.md)
 
 ## Problema
 
@@ -15,6 +15,10 @@ Restituire, **ove possibile e in aggiunta all'URI SPARQL**, l'**URL della scheda
 Per le persone è una funzione nuova (oggi assente). Per le leggi `html_url` esiste già su alcuni tool: l'obiettivo è renderlo **consistente e presente su tutti** i tool che restituiscono atti/DDL.
 
 Vincolo dichiarato dall'utente: garantire la correttezza **almeno per la legislatura corrente (19)**, perché i pattern URL dei siti istituzionali possono essere cambiati nel tempo e non è detto che valgano per le legislature passate.
+
+## Principio generale (linea guida di progetto)
+
+La regola non si limita a persone e atti: vale per **qualsiasi risorsa** che abbia una pagina pubblica corrispondente. Ogni volta che è possibile, l'output di un tool include un **URL human-readable** accanto all'identificatore tecnico. Motivo: il target è il giornalista, che usa quel link per (1) **verificare il dato alla fonte** e (2) **citarlo come link nel proprio articolo** — l'URI LOD non serve a nessuno dei due scopi. Si applica anche alle **fonti non-LOD** (scheda votazione, Bollettino delle Giunte e Commissioni, emendamenti, scheda-attività del deputato): i pattern sono nel wiki `docs/lod-wiki/camera/getdocumento-router.md`. Esempi già coperti oltre a persone/atti: `votes.url` → scheda votazione della Camera. Regola invariata: URL generato **localmente** dall'identificatore quando derivabile, **mai inventato** (stringa vuota se il pattern non combacia).
 
 ## Pattern URL verificati
 

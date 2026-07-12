@@ -119,6 +119,10 @@ Non integrato nel progetto: è scraping HTML di un endpoint non documentato (fra
 1. **Prova indipendente** che il gap `ocd:rif_attoCamera` (issue #21) è puramente un problema del LOD e non di dato mancante a monte — anche questo canale "ufficiale ma non documentato" conferma lo stesso numero (62).
 2. **Fallback pratico** se in futuro servisse risolvere un DDL non ancora coperto dal parsing di `dc:description` (es. formati di titolo imprevisti): la ricerca full-text qui è fatta dal motore stesso della Camera, non da un regex nostro.
 
+# La scheda di dettaglio (`schedaVotazione.asp`) è ridondante col LOD — non integrare
+
+Diverso dal form di ricerca sopra: la scheda della singola votazione (`schedaVotazione.asp?...&RifVotazione=<seduta>_<n>&tipo=gruppi|dettaglio`) **non copre alcun vuoto del LOD**. Verificato il 2026-07-12 sulla votazione `587_2` (ODG 9/2736/39): il riepilogo (presenti/votanti/favorevoli/contrari/esito) è già in `votes`, e il **voto nominale per singolo deputato** (nome, voto, gruppo) è già in `vote-detail`. L'unico dato pre-confezionato solo qui è il *riepilogo percentuale di partecipazione per gruppo* (`tipo=gruppi`), ma è banalmente **derivabile** aggregando `vote-detail` per `group_acronym` — quindi niente fonte/tool nuovo. Le votazioni Camera sono anzi un punto forte del LOD (copertura fino al nominale), all'opposto di emendamenti e Bollettino. Il campo `url` di `votes` linka già a questa scheda per l'uso umano.
+
 # Citations
 
 [1] Intercettazione traffico con agent-browser (`network requests`) il 2026-07-01: nessuna chiamata XHR, singola POST server-rendered.

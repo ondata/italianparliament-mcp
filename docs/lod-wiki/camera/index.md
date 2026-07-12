@@ -14,6 +14,8 @@ Endpoint SPARQL: `https://dati.camera.it/sparql`. Ontologia OCD (namespace `http
 # Fonti non-LOD (HTML/PDF)
 
 * [getDocumento.ashx — router delle fonti non-LOD](getdocumento-router.md) - il servizio `CommonServices/getDocumento.ashx` serve, cambiando `sezione`/`tipoDoc`, testi dei ddl, schede-attività dei deputati e Bollettini delle Giunte e Commissioni. Mappa delle facce, copertura vs LOD e priorità di integrazione (scraping, non dato strutturato).
+* [Convocazioni delle commissioni — agenda prospettica](convocazioni-commissioni.md) - `mobile.camera.it` pubblica l'ordine del giorno FUTURO delle sedute di commissione (data, ora, argomenti+relatore, audizioni con auditi, previsione di voto). Dato prospettico assente dal LOD (tutto consuntivo): colma un vuoto reale, candidata a tool nuovo. Fonte HTML curl-friendly.
+* [Votazioni: ricerca HTML e ridondanza schedaVotazione](votazioni-ricerca-html.md) - form di ricerca votazioni per provvedimento (link voto→ddl che manca nel LOD); la scheda di dettaglio è invece ridondante col LOD (`votes` + `vote-detail`).
 
 # Assenti
 
