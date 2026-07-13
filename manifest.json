@@ -1,7 +1,7 @@
 {
   "dxt_version": "0.1",
   "name": "italianparliament-mcp",
-  "version": "0.25.1",
+  "version": "0.25.2",
   "display_name": "Italian Parliament MCP",
   "description": "Query Italian Parliament open data (Camera dei Deputati + Senato della Repubblica)",
   "long_description": "MCP server for the Italian Parliament SPARQL endpoints (dati.camera.it, dati.senato.it). Tools for deputies, senators, bills, votes, speeches, parliamentary groups, government members, oversight acts, committees, rankings, and direct links to bill texts. Designed for journalists, researchers and parliamentary analysts.",

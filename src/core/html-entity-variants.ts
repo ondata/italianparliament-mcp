@@ -20,9 +20,15 @@ const HTML_ENTITY_BY_CHAR: Record<string, string> = {
   "\u00ec": "&igrave;",
   "\u00f2": "&ograve;",
   "\u00f9": "&ugrave;",
+  "\u00c0": "&Agrave;",
+  "\u00c8": "&Egrave;",
+  "\u00c9": "&Eacute;",
+  "\u00cc": "&Igrave;",
+  "\u00d2": "&Ograve;",
+  "\u00d9": "&Ugrave;",
 };
 
-const HTML_ENTITY_CHARS = /["'&<>\u2018\u2019\u201c\u201d\u2013\u2014\u2026\u20ac\u00ab\u00bb\u00e0\u00e8\u00e9\u00ec\u00f2\u00f9]/g;
+const HTML_ENTITY_CHARS = /["'&<>\u2018\u2019\u201c\u201d\u2013\u2014\u2026\u20ac\u00ab\u00bb\u00e0\u00e8\u00e9\u00ec\u00f2\u00f9\u00c0\u00c8\u00c9\u00cc\u00d2\u00d9]/g;
 
 /**
  * Camera LOD often stores title/label literals with HTML entities

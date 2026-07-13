@@ -2,6 +2,7 @@
 
 ## 2026-07-13
 
+- **v0.25.2** — release patch che consolida il fix keyword-entità HTML (bug ad alto impatto: ricerche Camera silenziosamente vuote). Recepiti due rilievi Copilot sulla PR #64 (già mergiata): (1) `htmlEntityKeywordVariants` copriva solo le vocali accentate **minuscole** → una keyword in maiuscolo (`CRIMINALITÀ`) non generava la variante `&Agrave;` e, nonostante il match SPARQL sia `LCASE`-insensitive, falliva sul dato grezzo; aggiunte À/È/É/Ì/Ò/Ù alla mappa e al regex, con test di regressione dedicato; (2) il test di regressione usava `limit: 10`, fragile rispetto all'ordinamento (19 atti matchano `criminalità`): alzato a 100. 43 tool invariati, 162/162 test verdi.
 - **fix keyword Camera con entità HTML** — `bills --keyword` e `bill-progress --uri/--branch C --keyword` ora cercano anche la variante HTML-escaped della keyword (`criminalità` → `criminalit&agrave;`). Il LOD Camera salva alcuni `rdfs:label`/`dc:title` con entità HTML ma la CLI decodifica l'output: prima una ricerca sul testo visibile (`--keyword "criminalità"`) non trovava atti il cui titolo mostrato contiene `criminalità organizzata`; funzionavano solo workaround come `criminalit` o `criminalit&agrave;`. Aggiunto helper condiviso `htmlEntityKeywordVariants`, test di regressione su `ac19_2696`, build/tsc/test completi verdi (161/161).
 
 ## 2026-07-12

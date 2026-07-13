@@ -1,6 +1,6 @@
 {
   "name": "@aborruso/italianparliament-mcp",
-  "version": "0.25.1",
+  "version": "0.25.2",
   "description": "CLI and MCP server for querying Italian Parliament SPARQL endpoints (Camera dei Deputati and Senato della Repubblica)",
   "main": "dist/index.js",
   "type": "module",

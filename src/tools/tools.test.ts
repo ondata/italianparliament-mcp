@@ -117,7 +117,21 @@ describe("Camera tools", () => {
     const result = await billsTool.execute({
       legislature: 19,
       keyword: "criminalità",
-      limit: 10,
+      limit: 100,
+      offset: 0,
+    });
+    expect(
+      result.rows.some(
+        (r) => r.uri === "http://dati.camera.it/ocd/attocamera.rdf/ac19_2696",
+      ),
+    ).toBe(true);
+  }, 30000);
+
+  it("bills: HTML-entity keyword match is case-insensitive on accented input", async () => {
+    const result = await billsTool.execute({
+      legislature: 19,
+      keyword: "CRIMINALITÀ",
+      limit: 100,
       offset: 0,
     });
     expect(
