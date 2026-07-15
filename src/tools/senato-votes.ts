@@ -6,6 +6,124 @@ import { actHtmlUrl, ddlRssUrl } from "../core/html-url.js";
 import { extractBillNumber } from "../core/bill-number.js";
 import type { Tool } from "./types.js";
 
+/**
+ * Cosa il grafo Senato contiene DAVVERO per l'intervallo di date interrogato,
+ * osservato al volo quando il risultato è vuoto (non un elenco di buchi noti).
+ * Distingue "nessuna seduta" / "sedute senza votazioni" (buco fonte) / "dato
+ * pieno" senza sapere in anticipo quale data è quale.
+ */
+export type SenatoVotesProbe = { sedute: number; votazioni: number };
+
+type EmptyHintInput = {
+  ddlUri?: string;
+  keyword?: string;
+  confidenceVote?: boolean;
+  finalVote?: boolean;
+  dateFrom?: string;
+  dateTo?: string;
+};
+
+function describePeriodo(dateFrom?: string, dateTo?: string): string {
+  if (dateFrom && dateTo)
+    return dateFrom === dateTo
+      ? `giorno ${dateFrom}`
+      : `periodo ${dateFrom}–${dateTo}`;
+  if (dateFrom) return `periodo dal ${dateFrom}`;
+  if (dateTo) return `periodo fino al ${dateTo}`;
+  return "periodo indicato";
+}
+
+function describeActiveFilters(input: EmptyHintInput): string {
+  const f: string[] = [];
+  if (input.keyword) f.push(`--keyword "${input.keyword}"`);
+  if (input.confidenceVote !== undefined)
+    f.push(`--confidence-vote ${input.confidenceVote}`);
+  if (input.finalVote !== undefined) f.push(`--final-vote ${input.finalVote}`);
+  return f.join(", ");
+}
+
+/**
+ * Hint dinamico per risultato vuoto. Con `probe` (path per data) riporta lo
+ * stato reale del grafo; senza, mostra solo i frammenti statici pertinenti ai
+ * filtri attivi. Funzione pura: testabile senza rete.
+ */
+export function buildSenatoVotesEmptyHint(
+  input: EmptyHintInput,
+  effectiveLeg: number,
+  probe?: SenatoVotesProbe,
+): string {
+  const parts: string[] = ["Nessuna votazione trovata."];
+
+  if (probe) {
+    const periodo = describePeriodo(input.dateFrom, input.dateTo);
+    if (probe.sedute === 0) {
+      parts.push(
+        `Nel ${periodo} non risulta alcuna seduta d'Assemblea del Senato nel LOD (leg. ${effectiveLeg}): probabilmente non si è votato in Aula in quelle date, oppure le sedute non sono state ancora caricate. Verifica le date.`,
+      );
+    } else if (probe.votazioni === 0) {
+      parts.push(
+        `Nel ${periodo} risultano ${probe.sedute} sedute d'Assemblea ma ZERO votazioni nel LOD: è il segno di un buco della fonte (le sedute esistono, le votazioni non sono state caricate). Un vuoto qui NON significa che non si sia votato: è un limite del dato, non deducibile da qui. Non inventare l'esito o i contatori del voto.`,
+      );
+    } else {
+      const filtri = describeActiveFilters(input);
+      parts.push(
+        `Nel ${periodo} risultano ${probe.votazioni} votazioni nel LOD, ma nessuna corrisponde ai filtri attivi${filtri ? ` (${filtri})` : ""}: la votazione cercata potrebbe avere un label diverso, oppure quella specifica votazione non è nel LOD pur essendoci le altre della seduta. Riprova allargando o togliendo i filtri e riconosci il voto dal label. Non inventare l'esito o i contatori.`,
+      );
+    }
+    return parts.join(" ");
+  }
+
+  if (input.ddlUri) {
+    parts.push(
+      "Con --ddl-uri: nel LOD non risulta alcuna votazione d'Assemblea collegata a quel DDL (fiducie incluse). Verifica l'URI del DDL, oppure il voto potrebbe essere avvenuto solo in Commissione.",
+    );
+  }
+  if (
+    input.keyword ||
+    input.confidenceVote !== undefined ||
+    input.finalVote !== undefined
+  ) {
+    parts.push(
+      "Il tema o il tipo cercato non compare in tutti i label: riprova filtrando per data (--date-from/--date-to intorno all'evento) e riconosci il voto dal label.",
+    );
+  }
+  if (parts.length === 1)
+    parts.push(
+      "Restringi la ricerca per data (--date-from/--date-to) o per DDL (--ddl-uri).",
+    );
+  return parts.join(" ");
+}
+
+/**
+ * Sonda le date: conta sedute d'Assemblea e votazioni nell'intervallo. Eseguita
+ * SOLO sul path vuoto con almeno un vincolo di data. Una sola query (COUNT
+ * sedute + COUNT votazioni via OPTIONAL sulla stessa seduta): il throttle Senato
+ * spazia le richieste di ~2s, quindi due query separate raddoppierebbero la
+ * latenza del path vuoto per nulla. Range filter performante su Virtuoso; usa
+ * `effectiveLeg` (derivata dal DDL se dato).
+ */
+async function probeSenatoDates(
+  effectiveLeg: number,
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<SenatoVotesProbe> {
+  const bounds: string[] = [];
+  if (dateFrom) bounds.push(`?d >= "${dateFrom}"^^xsd:date`);
+  if (dateTo) bounds.push(`?d <= "${dateTo}"^^xsd:date`);
+  const filter = bounds.length ? `FILTER(${bounds.join(" && ")})` : "";
+  const q = `${OSR_PREFIXES}
+SELECT (COUNT(DISTINCT ?s) AS ?sedute) (COUNT(DISTINCT ?v) AS ?votazioni) WHERE {
+  ?s a osr:SedutaAssemblea ; osr:legislatura ${effectiveLeg} ; osr:dataSeduta ?d .
+  ${filter}
+  OPTIONAL { ?v a osr:Votazione ; osr:seduta ?s }
+}`;
+  const r = flattenBindings(await snQuery(q))[0];
+  return {
+    sedute: Number(r?.sedute ?? "0"),
+    votazioni: Number(r?.votazioni ?? "0"),
+  };
+}
+
 const inputSchema = z.object({
   legislature: z
     .number()
@@ -77,8 +195,12 @@ export const senatoVotesTool: Tool<typeof inputSchema> = {
   name: "senato-votes",
   description:
     "[SENATO] Lista votazioni dell'Assemblea del Senato con esito, contatori (favorevoli, contrari, astenuti, presenti, votanti), tipo, data seduta e DDL collegato. Filtrabile per legislatura, data, DDL, parola chiave (label + titolo del DDL collegato, fiducie incluse), voti di fiducia (--confidence-vote) e voti finali (--final-vote). Per il voto del singolo senatore usare senato-vote-detail. Le votazioni di FIDUCIA hanno ddl_uri vuoto alla fonte (il DDL è solo nel label, es. 'Disegno di legge n.1933. Votazione questione di fiducia'), ma --ddl-uri le include comunque: risolve le sedute del DDL e ricollega la fiducia votata quel giorno. Verifica sempre il ddl_uri di una 'Votazione finale' trovata per data: può appartenere a un atto diverso (testo unificato). Riporta solo i contatori restituiti, non stimarli.",
+  // Fallback statico: sui risultati vuoti execute() valorizza `result.hint`
+  // (dinamico, con sonda del grafo sul path per data), che ha precedenza. Questo
+  // testo resta solo come rete di sicurezza e non afferma buchi specifici: quelli
+  // li rileva la sonda al volo, non un elenco hardcoded.
   emptyHint:
-    "Nessuna votazione trovata. Con --ddl-uri significa che nel LOD non risulta alcuna votazione d'Assemblea collegata a quel DDL (fiducie incluse): verifica l'URI del DDL, oppure il voto potrebbe essere solo in Commissione. Con --keyword/--confidence-vote/--final-vote: il tema/tipo non compare in tutti i label — riprova filtrando per data (--date-from/--date-to intorno all'evento) e riconosci il voto dal label. Caso limite: se cerchi una fiducia e il DDL non ha nessun altro voto d'Assemblea che lo cita, prova per data e riconosci il DDL dal label. Gap noto di dataset (legislatura 18): tra il 10 marzo e il 16 aprile 2020 (periodo COVID) non risulta ALCUNA votazione d'Assemblea nel LOD, pur essendoci le sedute con i relativi interventi — include la fiducia sul decreto Cura Italia (9/4/2020). Un vuoto in questa finestra non significa che non si sia votato: è un buco della fonte, non deducibile da qui. Non inventare l'esito o i contatori del voto.",
+    "Nessuna votazione trovata. Un vuoto può dipendere dai filtri (riprova per data con --date-from/--date-to e riconosci il voto dal label) o da un limite della fonte (nel LOD Senato alcune sedute esistono senza le relative votazioni). Non inventare l'esito o i contatori del voto.",
   inputSchema,
   examples: [
     "italianparliament senato-votes list --legislature 19 --limit 50",
@@ -265,7 +387,11 @@ SELECT DISTINCT ?date WHERE {
       if (ddlDates.length === 0) {
         return input.countOnly
           ? { rows: [{ count: "0" }], columns: ["count"] }
-          : { rows: [], columns };
+          : {
+              rows: [],
+              columns,
+              hint: buildSenatoVotesEmptyHint(input, effectiveLeg),
+            };
       }
       ddlDateFilter = `FILTER(?date IN (${ddlDates
         .map((d) => `"${d}"^^xsd:date`)
@@ -509,6 +635,29 @@ SELECT ?ddl ?f WHERE {
         rss_urls_json: JSON.stringify(rssUrls),
       };
     });
+    if (rows.length === 0) {
+      // Sonda il grafo SOLO se la ricerca ha un vincolo di data, non è per DDL
+      // (col DDL il ragionamento è per provvedimento, non per intervallo) ed è la
+      // prima pagina: con offset>0 il vuoto può essere solo "oltre l'ultima
+      // pagina" (votazioni>0), e la sonda affermerebbe il falso ("N votazioni ma
+      // nessuna matcha i filtri"). In quel caso restano i frammenti statici.
+      // La sonda è diagnostica accessoria: se fallisce (es. 403/timeout Senato)
+      // NON deve trasformare un risultato vuoto legittimo in un errore — degrada
+      // all'hint statico.
+      const probe =
+        (input.dateFrom || input.dateTo) && !input.ddlUri && input.offset === 0
+          ? await probeSenatoDates(
+              effectiveLeg,
+              input.dateFrom,
+              input.dateTo,
+            ).catch(() => undefined)
+          : undefined;
+      return {
+        rows,
+        columns,
+        hint: buildSenatoVotesEmptyHint(input, effectiveLeg, probe),
+      };
+    }
     return { rows, columns };
   },
 };

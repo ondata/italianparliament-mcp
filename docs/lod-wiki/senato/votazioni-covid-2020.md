@@ -78,6 +78,10 @@ SELECT ?v ?date ?label WHERE {
 
 Durante il lockdown il Senato adottò per un periodo il voto per appello nominale a gruppi ridotti (procedura anti-assembramento), diversa dal voto elettronico ordinario. Il dataset leg.18 registra "nominale con appello" solo per 5 voti del 2022: la modalità di voto straordinaria di marzo-aprile 2020 non sembra essere stata digitalizzata in questo dataset.
 
+# Non è l'unico pattern: buco "totale" vs "chirurgico"
+
+Questa nota documenta il buco **"totale"** — sedute con **zero** `osr:Votazione`. Esiste anche un pattern **"chirurgico"** diverso: seduta piena di votazioni ma manca la **singola** votazione cercata (es. la fiducia sul Milleproroghe del **26/2/2020**, S.1729: 21 votazioni nella seduta, ma la fiducia non è nel LOD — e non è COVID, è pre-lockdown). Per distinguere i due (e il caso "nessuna seduta") senza conoscere in anticipo le date-buco, vedi il metodo dei tre stati in [vuoto-votazioni-diagnosi.md](vuoto-votazioni-diagnosi.md).
+
 # Conseguenza per il tooling
 
 Un vuoto da `senato-votes` in questa finestra **non significa "nessuna votazione avvenuta"** — le fonti terze (stampa, OpenParlamento) confermano che le sedute prevedevano voti regolari, incluse fiducie importanti (Cura Italia 9/4, Liquidità inizio aprile, Rilancio 16/7). Significa che questo specifico dataset LOD non li registra per il periodo, o non li collega al DDL (caso Decreto Agosto).
