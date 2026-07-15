@@ -19,6 +19,10 @@ Endpoint SPARQL: `https://dati.senato.it/sparql`. Ontologia OSR (namespace `http
 * [Emendamenti — dataset fermo da agosto 2024](emendamenti-freschezza.md) - nessun DDL con `dataPresentazione` successiva al 9/8/2024 ha emendamenti collegati; vuoto su DDL recenti non è assenza del dato ma cutoff del dataset.
 * [Votazioni assenti 10/3–16/4/2020 (leg.18)](votazioni-covid-2020.md) - sedute d'Assemblea COVID con `osr:Intervento` ma zero `osr:Votazione` collegate, inclusa la fiducia sul Cura Italia; probabile voto per appello nominale a gruppi mai digitalizzato.
 
+# Diagnostica
+
+* [Interpretare un vuoto di senato-votes — i tre stati](vuoto-votazioni-diagnosi.md) - sondando sedute (`osr:SedutaAssemblea`) vs votazioni si distinguono nessuna-seduta / buco "totale" (sedute senza voti) / buco "chirurgico" (voti presenti ma il target — es. una fiducia — manca, come il Milleproroghe del 26/2/2020). Metodo che l'`emptyHint` di `senato-votes` sonda al volo.
+
 # Fonti complementari
 
 * [Bulk data Akoma Ntoso su GitHub](akn-bulk-data.md) - repo ufficiale senza WAF, aggiornato quotidianamente, `AttoID` = id del `ddl` LOD; colma emendamenti post-2024, testi dietro WAF e (via parsing dei resoconti) le votazioni COVID 2020. Non copre le audizioni.
