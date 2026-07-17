@@ -222,15 +222,20 @@ export const senatoVotesTool: Tool<typeof inputSchema> = {
       : "";
     const labelFilters: string[] = [];
     // Il tema del provvedimento spesso non è nel label del voto ("Votazione
-    // finale") ma nel titolo del DDL collegato (osr:titolo, via
-    // osr:oggetto/osr:relativoA): la keyword deve poter matchare anche lì,
-    // altrimenti ricerche come "caccia" non trovano il voto finale collegato
-    // a un DDL sulla caccia. BOUND() evita che il match sul titolo (assente
-    // sulle fiducie, prive di osr:oggetto) faccia fallire l'intero OR.
+    // finale") ma nel titolo del DDL/documento collegato (osr:titolo e/o
+    // osr:titoloBreve, via osr:oggetto/osr:relativoA): la keyword deve poter
+    // matchare anche lì, altrimenti ricerche come "caccia" non trovano il voto
+    // finale collegato a un DDL sulla caccia. Entrambe le proprietà: un
+    // osr:Documento (es. le risoluzioni di commissione, cfr. ddl_title) può
+    // avere solo osr:titoloBreve popolato in modo pertinente al match, mentre
+    // osr:titolo (paragrafo lungo) può non contenerlo per esteso. BOUND()
+    // evita che il match sul titolo (assente sulle fiducie, prive di
+    // osr:oggetto) faccia fallire l'intero OR.
     if (input.keyword)
       labelFilters.push(
         `(CONTAINS(LCASE(STR(?label)), LCASE("${keywordEsc}")) || ` +
-          `(BOUND(?ddlTitolo) && CONTAINS(LCASE(STR(?ddlTitolo)), LCASE("${keywordEsc}"))))`,
+          `(BOUND(?ddlTitolo) && CONTAINS(LCASE(STR(?ddlTitolo)), LCASE("${keywordEsc}"))) || ` +
+          `(BOUND(?ddlTitoloBreve) && CONTAINS(LCASE(STR(?ddlTitoloBreve)), LCASE("${keywordEsc}"))))`,
       );
     if (input.confidenceVote !== undefined)
       // 'fiducia' copre 'questione di fiducia' / 'questione fiducia' / 'fiducia governo';
@@ -249,10 +254,10 @@ export const senatoVotesTool: Tool<typeof inputSchema> = {
     const needsLabel = labelFilters.length > 0;
     const labelFilter = needsLabel ? `FILTER(${labelFilters.join(" && ")})` : "";
     // Titolo del DDL collegato, serve solo per il match --keyword sul tema
-    // (vedi sopra); va nel BGP prima del labelFilter perché ?ddlTitolo vi è
-    // referenziato.
+    // (vedi sopra); va nel BGP prima del labelFilter perché ?ddlTitolo/
+    // ?ddlTitoloBreve vi sono referenziati.
     const ddlTopicPattern = input.keyword
-      ? "OPTIONAL { ?v osr:oggetto ?kwOggetto . OPTIONAL { ?kwOggetto osr:relativoA ?kwDdl . OPTIONAL { ?kwDdl osr:titolo ?ddlTitolo } } }"
+      ? "OPTIONAL { ?v osr:oggetto ?kwOggetto . OPTIONAL { ?kwOggetto osr:relativoA ?kwDdl . OPTIONAL { ?kwDdl osr:titolo ?ddlTitolo } OPTIONAL { ?kwDdl osr:titoloBreve ?ddlTitoloBreve } } }"
       : "";
 
     const dateFromFilter = input.dateFrom
@@ -344,16 +349,20 @@ WHERE {
       const nums = [...new Set(cand.map((v) => v.bill_number))];
       const filter = nums.map((n) => `STR(?f) = "S.${n}"`).join(" || ");
       const fq = `${OSR_PREFIXES}
-SELECT ?ddl ?f ?titolo WHERE {
+SELECT ?ddl ?f ?titolo ?titoloBreve WHERE {
   ?ddl a osr:Ddl ; osr:legislatura ${effectiveLeg} ; osr:fase ?f .
   OPTIONAL { ?ddl osr:titolo ?titolo }
+  OPTIONAL { ?ddl osr:titoloBreve ?titoloBreve }
   FILTER(${filter})
 }`;
       const byNum = new Map<string, { ddl: string; titolo: string }>();
       for (const r of flattenBindings(await snQuery(fq))) {
         const num = (r.f ?? "").replace(/^S\./, "");
         if (num && r.ddl && !byNum.has(num))
-          byNum.set(num, { ddl: r.ddl, titolo: r.titolo ?? "" });
+          byNum.set(num, {
+            ddl: r.ddl,
+            titolo: `${r.titolo ?? ""} ${r.titoloBreve ?? ""}`,
+          });
       }
       const kw = input.keyword!.toLowerCase();
       return cand.filter((v) => {

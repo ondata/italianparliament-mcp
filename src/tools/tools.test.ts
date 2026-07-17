@@ -930,6 +930,27 @@ describe("Senato tools", () => {
     );
   }, 30000);
 
+  it("senato-votes: --keyword also matches osr:titoloBreve of the linked documento (not just osr:titolo)", async () => {
+    // Stesso caso di sopra (19-438-3, ODG Cataldi su documento/54204): il
+    // label ("ODG G170, Cataldi e altri") non nomina la Liguria, solo il
+    // documento collegato. Prima del fix il match --keyword guardava solo
+    // osr:titolo (già copre "Liguria" qui, ma la query ora include anche
+    // osr:titoloBreve senza regressioni).
+    const result = await senatoVotesTool.execute({
+      legislature: 19,
+      keyword: "regione liguria",
+      dateFrom: "2026-07-16",
+      dateTo: "2026-07-16",
+      limit: 100,
+      offset: 0,
+    });
+    const cataldi = result.rows.find((r) => r.uri.endsWith("/19-438-3"));
+    expect(cataldi).toBeDefined();
+    expect(cataldi?.ddl_title).toBe(
+      "Risoluzione su schemi di intesa preliminare autonomia regione Liguria",
+    );
+  }, 30000);
+
   it("senato-votes: --ddl-uri includes the fiducia when it falls on a different seduta than the strongly-linked vote", async () => {
     // DDL 59201 = S.1509 (decreto sicurezza 2025): la pregiudiziale
     // (osr:oggetto/osr:relativoA) è del 2025-06-03, la fiducia (senza
