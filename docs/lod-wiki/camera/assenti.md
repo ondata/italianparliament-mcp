@@ -55,6 +55,12 @@ Esiste inoltre un **Web Service SOAP documentato** in `apps/emendamenti/docs` (m
 
 Sintesi integrabilità: il valore aggiunto (testo, cofirmatari, esito) resta recuperabile **solo via scraping HTML** dei link foglia; i due endpoint XML (`proxySito`, `export-elenco-testi-riferimento`) sono utili per **orchestrare le sedute** senza parsing HTML. Miglioria naturale del tool esistente (non un tool nuovo): arricchire `camera-amendments` con **esito**, **cofirmatari** e opzionalmente **testo**. Nulla di ciò è derivabile dai tool attuali.
 
+## Aggiornamento 2026-07-17: la scheda atto storica perde il link diretto, ma l'indice ostr resta interrogabile
+
+La riga 28 sopra assume che la scheda atto esponga sempre il link `getProposteEmendative.aspx` lato server. Non è più vero per le legislature vecchie: verificato su AC 2402 (decreto Covid, leg.18, `www.camera.it/leg18/126?idDocumento=2402`), il bottone "Emendamenti" punta oggi a `https://www.camera.it/ricerca-emendamenti` (motore di ricerca generico, non un link diretto alla lista dell'atto) — `camera-amendments` restituiva **0 righe senza errore**, pur esistendo 54+53 emendamenti alla fonte (confermato l'emendamento Locatelli 1.52 citato dalla stampa dell'epoca).
+
+L'indice per-atto `apps/emendamenti/ostr/{leg}?attoportante=leg.{leg}.eme.ac.{num}` (già mappato sopra, 2026-07-12) **contiene comunque** i link diretti `getProposteEmendative.aspx` per referente e Assemblea, indipendentemente dal fatto che la scheda atto li esponga o meno. Dalla v successiva alla 0.25.3, `camera-amendments` prova prima la scheda atto e, se valida ma senza il link diretto, usa questo indice come fallback — nessun nuovo tool, stessa pipeline di scraping.
+
 # Citations
 
 [1] Enumerazione dei tipi OCD (2026-07-01), usata come controprova dell'assenza di `ocd:emendamento`:

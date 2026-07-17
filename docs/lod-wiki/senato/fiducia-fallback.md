@@ -42,3 +42,11 @@ Il match keyword sul titolo del DDL collegato (v0.20.0) passa in SPARQL da `osr:
 Il filtro diretto `osr:relativoA` escluderebbe le fiducie (prive di `osr:oggetto`). Perciò `--ddl-uri` prima **risolve le date delle sedute** in cui il DDL è stato votato, poi interroga per quelle date e applica i due fallback sopra.
 
 In post-filtro tiene i voti collegati al DDL **e** (fortemente collegati _oppure_ fiducie): sono forti i link diretti `osr:relativoA` e quelli risolti dal Fallback 1. La propagazione per data (Fallback 2) è debole e aggancia anche voti estranei votati la stessa seduta (es. la risoluzione 19-434-3): quelli, non essendo fiducie, vengono **scartati**. Risultato per il Piano Casa: pregiudiziale + fiducia, senza la risoluzione.
+
+### Bug (fisso dal 2026-07-17): fiducia su seduta diversa dal voto forte
+
+La risoluzione delle date (sopra) inizialmente si basava **solo** sul link forte `osr:oggetto/osr:relativoA`: se la fiducia cadeva in una seduta diversa da ogni voto fortemente collegato, la sua data non entrava nel filtro e la fiducia spariva **senza errore** (nessuna riga, nessun hint). Caso reale: decreto sicurezza 2025 (DDL 59201 = S.1509), pregiudiziale il 2025-06-03 (`osr:relativoA` diretto), fiducia il giorno **dopo**, 2025-06-04 (senza `osr:oggetto`) — due sedute distinte. `--ddl-uri` restituiva solo la pregiudiziale, con la fiducia (109-69-1, il voto decisivo) mancante.
+
+Il caso funzionava per coincidenza quando pregiudiziale e fiducia cadono nella **stessa** data (es. Piano Casa e DDL 1561/59320, entrambi con voto forte e fiducia nella stessa seduta): lì la data risolta dal link forte copriva anche la fiducia.
+
+Fix: oltre alla risoluzione via link forte, la risoluzione delle date ora interroga anche le fiducie della legislatura (label contiene "fiducia", non "sfiducia") il cui numero estratto dal label (`extractBillNumber`, lo stesso helper del Fallback 1) corrisponde alla `osr:fase` del DDL cercato — indipendentemente dalla data della seduta. Verificato: il decreto sicurezza ora restituisce sia pregiudiziale (3/6) sia fiducia (4/6); nessuna regressione sui casi same-day (Piano Casa, DDL 1561) o storici (leg.18, DDL 52988). Regressione coperta dal test `senato-votes: --ddl-uri includes the fiducia when it falls on a different seduta than the strongly-linked vote`.

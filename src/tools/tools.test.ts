@@ -907,6 +907,53 @@ describe("Senato tools", () => {
     expect(finale?.ddl_uri).toBe("http://dati.senato.it/ddl/59070");
   }, 45000);
 
+  it("senato-votes: ddl_title resolves the linked osr:Documento title (not just osr:Ddl)", async () => {
+    // Seduta 19-438 (16/7/2026): risoluzioni di commissione sull'autonomia
+    // differenziata. ddl_uri punta a un osr:Documento (non osr:Ddl) — il
+    // titolo va risolto comunque, senza richiedere `a osr:Ddl` nel BGP.
+    const result = await senatoVotesTool.execute({
+      legislature: 19,
+      dateFrom: "2026-07-16",
+      dateTo: "2026-07-16",
+      limit: 100,
+      offset: 0,
+    });
+    const veneto = result.rows.find((r) => r.uri.endsWith("/19-438-8"));
+    expect(veneto?.ddl_uri).toBe("http://dati.senato.it/documento/54207");
+    expect(veneto?.ddl_title).toBe(
+      "Risoluzione su schemi di intesa preliminare autonomia regione Veneto",
+    );
+    const cataldi = result.rows.find((r) => r.uri.endsWith("/19-438-3"));
+    expect(cataldi?.ddl_uri).toBe("http://dati.senato.it/documento/54204");
+    expect(cataldi?.ddl_title).toBe(
+      "Risoluzione su schemi di intesa preliminare autonomia regione Liguria",
+    );
+  }, 30000);
+
+  it("senato-votes: --ddl-uri includes the fiducia when it falls on a different seduta than the strongly-linked vote", async () => {
+    // DDL 59201 = S.1509 (decreto sicurezza 2025): la pregiudiziale
+    // (osr:oggetto/osr:relativoA) è del 2025-06-03, la fiducia (senza
+    // osr:oggetto) è del giorno DOPO, 2025-06-04 — sedute diverse. Prima del
+    // fix, la risoluzione delle date del DDL si basava solo sul link forte
+    // (2025-06-03): la fiducia del 4/6 restava fuori dal filtro data e
+    // spariva silenziosamente (nessun errore, riga mancante).
+    const result = await senatoVotesTool.execute({
+      legislature: 19,
+      ddlUri: "http://dati.senato.it/ddl/59201",
+      limit: 100,
+      offset: 0,
+    });
+    const uris = result.rows.map((r) => r.uri);
+    expect(uris).toContain("http://dati.senato.it/votazione/19-311-1"); // pregiudiziale 3/6
+    expect(uris).toContain("http://dati.senato.it/votazione/19-312-1"); // fiducia 4/6
+    const fiducia = result.rows.find((r) => r.uri.endsWith("19-312-1"));
+    expect(fiducia).toBeDefined();
+    expect(fiducia!.date).toBe("2025-06-04");
+    expect(fiducia!.in_favour).toBe("109");
+    expect(fiducia!.against).toBe("69");
+    expect(fiducia!.ddl_uri).toBe("http://dati.senato.it/ddl/59201");
+  }, 30000);
+
   it("bill: rejects Senato URIs with a routing message (solo-Camera)", async () => {
     await expect(
       billTool.execute({ uri: "http://dati.senato.it/ddl/59070" }),
@@ -953,6 +1000,30 @@ describe("Senato tools", () => {
     expect(result.rows[0]).toHaveProperty("number");
     expect(result.rows[0]).toHaveProperty("first_signatory");
     expect(result.rows[0].text_url).toMatch(/getPropostaEmendativa\.aspx/);
+  }, 30000);
+
+  it("camera-amendments: falls back to the ostr index on historical acts where the scheda has no direct link (AC 2402, leg.18)", async () => {
+    // La scheda-atto storica (leg.18) non incorpora più getProposteEmendative.aspx
+    // (il bottone "Emendamenti" punta al motore di ricerca generico
+    // ricerca-emendamenti): prima del fix il tool restituiva 0 righe senza
+    // errore pur esistendo gli emendamenti alla fonte. L'indice strutturato
+    // apps/emendamenti/ostr/{leg} li contiene comunque.
+    const result = await cameraAmendmentsTool.execute({
+      billUri: "http://dati.camera.it/ocd/attocamera.rdf/ac18_2402",
+      countOnly: false,
+      limit: 2000,
+    });
+    const bySede: Record<string, number> = {};
+    for (const r of result.rows) bySede[r.sede] = (bySede[r.sede] ?? 0) + 1;
+    expect(bySede["referente"]).toBe(54);
+    expect(bySede["assemblea"]).toBe(53);
+    // Emendamento Locatelli (Lega) sulla sospensione dei centri diurni,
+    // citato dalla stampa sul dl Covid, votato in Assemblea.
+    const locatelli = result.rows.find(
+      (r) => r.sede === "assemblea" && r.number === "1.52",
+    );
+    // Nbsp (U+00A0) tra cognome e nome nel dato grezzo, non normalizzato dal tool.
+    expect(locatelli?.first_signatory).toBe("Locatelli Alessandra");
   }, 30000);
 
   it("camera-amendments: rejects a Senato URI (offline guard)", async () => {

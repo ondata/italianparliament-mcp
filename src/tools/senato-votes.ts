@@ -181,6 +181,7 @@ const columns = [
   "majority",
   "bill_number",
   "ddl_uri",
+  "ddl_title",
   "ddl_count",
   "ambiguous_ddl",
   "ddl_uris_json",
@@ -194,7 +195,7 @@ const columns = [
 export const senatoVotesTool: Tool<typeof inputSchema> = {
   name: "senato-votes",
   description:
-    "[SENATO] Lista votazioni dell'Assemblea del Senato con esito, contatori (favorevoli, contrari, astenuti, presenti, votanti), tipo, data seduta e DDL collegato. Filtrabile per legislatura, data, DDL, parola chiave (label + titolo del DDL collegato, fiducie incluse), voti di fiducia (--confidence-vote) e voti finali (--final-vote). Per il voto del singolo senatore usare senato-vote-detail. Le votazioni di FIDUCIA hanno ddl_uri vuoto alla fonte (il DDL è solo nel label, es. 'Disegno di legge n.1933. Votazione questione di fiducia'), ma --ddl-uri le include comunque: risolve le sedute del DDL e ricollega la fiducia votata quel giorno. Verifica sempre il ddl_uri di una 'Votazione finale' trovata per data: può appartenere a un atto diverso (testo unificato). Riporta solo i contatori restituiti, non stimarli.",
+    "[SENATO] Lista votazioni dell'Assemblea del Senato con esito, contatori (favorevoli, contrari, astenuti, presenti, votanti), tipo, data seduta e DDL collegato. Filtrabile per legislatura, data, DDL, parola chiave (label + titolo del DDL collegato, fiducie incluse), voti di fiducia (--confidence-vote) e voti finali (--final-vote). Per il voto del singolo senatore usare senato-vote-detail. Le votazioni di FIDUCIA hanno ddl_uri vuoto alla fonte (il DDL è solo nel label, es. 'Disegno di legge n.1933. Votazione questione di fiducia'), ma --ddl-uri le include comunque: risolve le sedute in cui il DDL è votato (link diretto o fiducia che lo cita per numero, anche su una seduta diversa da quella del voto forte) e ricollega la fiducia. Verifica sempre il ddl_uri di una 'Votazione finale' trovata per data: può appartenere a un atto diverso (testo unificato). `ddl_title` è il titolo del provvedimento collegato (osr:titoloBreve, o osr:titolo se il primo manca), utile quando il label del voto è generico (es. un ODG o una risoluzione di commissione che non nomina il tema): vuoto se ddl_uri è multiplo (testo unificato, ambiguo) o non risolto. Riporta solo i contatori restituiti, non stimarli.",
   // Fallback statico: sui risultati vuoti execute() valorizza `result.hint`
   // (dinamico, con sonda del grafo sul path per data), che ha precedenza. Questo
   // testo resta solo come rete di sicurezza e non afferma buchi specifici: quelli
@@ -335,6 +336,7 @@ WHERE {
           majority: r.maggioranza ?? "",
           bill_number: extractBillNumber(r.label),
           ddl_uri: "",
+          ddl_title: "",
           object_uri: "",
         }))
         .filter((v) => v.bill_number);
@@ -363,12 +365,16 @@ SELECT ?ddl ?f ?titolo WHERE {
     };
 
     // --ddl-uri: le votazioni di FIDUCIA non hanno osr:oggetto, quindi il filtro
-    // diretto osr:relativoA le esclude a monte. Ma sono nella stessa seduta
-    // (stessa data) del voto procedurale/finale che invece cita il DDL. Perciò
-    // risolviamo prima le DATE delle sedute in cui il DDL è stato votato, poi
-    // interroghiamo per quelle date e ricolleghiamo il DDL con i fallback
-    // esistenti (come già avviene per le query per data). Il set di date è
-    // piccolo (poche sedute): niente rischio timeout.
+    // diretto osr:relativoA le esclude a monte. Spesso sono nella stessa seduta
+    // (stessa data) del voto procedurale/finale che invece cita il DDL, ma non
+    // sempre: es. il decreto sicurezza 2025 (S.1509) ha la pregiudiziale il
+    // 3/6 e la fiducia il giorno dopo, 4/6 — sedute diverse. Risolviamo prima
+    // le DATE delle sedute in cui il DDL è stato votato (via link forte),
+    // aggiungiamo anche le date delle fiducie che citano il numero del DDL nel
+    // label (stesso meccanismo di risoluzione numero→DDL usato altrove in
+    // questo file), poi interroghiamo per l'unione di quelle date e
+    // ricolleghiamo il DDL con i fallback esistenti. Il set di date è piccolo
+    // (poche sedute): niente rischio timeout.
     let ddlDateFilter = "";
     if (input.ddlUri) {
       const datesQuery = `${OSR_PREFIXES}
@@ -377,14 +383,34 @@ SELECT DISTINCT ?date WHERE {
   ?s osr:dataSeduta ?date .
   ?v osr:oggetto ?o . ?o osr:relativoA <${input.ddlUri}> .
 }`;
-      const ddlDates = [
-        ...new Set(
-          flattenBindings(await snQuery(datesQuery))
-            .map((r) => r.date)
-            .filter(Boolean),
+      const ddlDates = new Set(
+        flattenBindings(await snQuery(datesQuery))
+          .map((r) => r.date)
+          .filter(Boolean),
+      );
+
+      const faseRows = flattenBindings(
+        await snQuery(
+          `${OSR_PREFIXES}\nSELECT ?f WHERE { <${input.ddlUri}> osr:fase ?f . FILTER(STRSTARTS(STR(?f), "S.")) }`,
         ),
-      ];
-      if (ddlDates.length === 0) {
+      );
+      const ddlNumbers = new Set(
+        faseRows.map((r) => r.f?.replace(/^S\./, "")).filter(Boolean),
+      );
+      if (ddlNumbers.size > 0) {
+        const fiduciaDatesQuery = `${OSR_PREFIXES}
+SELECT DISTINCT ?date ?label WHERE {
+  ?v a osr:Votazione ; osr:legislatura ${effectiveLeg} ; osr:seduta ?s ; rdfs:label ?label .
+  ?s osr:dataSeduta ?date .
+  FILTER(CONTAINS(LCASE(STR(?label)), "fiducia") && !CONTAINS(LCASE(STR(?label)), "sfiducia"))
+}`;
+        for (const r of flattenBindings(await snQuery(fiduciaDatesQuery))) {
+          if (r.date && ddlNumbers.has(extractBillNumber(r.label)))
+            ddlDates.add(r.date);
+        }
+      }
+
+      if (ddlDates.size === 0) {
         return input.countOnly
           ? { rows: [{ count: "0" }], columns: ["count"] }
           : {
@@ -393,7 +419,7 @@ SELECT DISTINCT ?date WHERE {
               hint: buildSenatoVotesEmptyHint(input, effectiveLeg),
             };
       }
-      ddlDateFilter = `FILTER(?date IN (${ddlDates
+      ddlDateFilter = `FILTER(?date IN (${[...ddlDates]
         .map((d) => `"${d}"^^xsd:date`)
         .join(", ")}))`;
     }
@@ -485,6 +511,7 @@ WHERE {
         majority: r.maggioranza ?? "",
         bill_number: extractBillNumber(r.label),
         ddl_uri: ddl,
+        ddl_title: "",
         object_uri: r.oggetto ?? "",
       });
     }
@@ -618,6 +645,36 @@ SELECT ?ddl ?f WHERE {
       }
       for (const v of missingNum) {
         v.bill_number = faseByDdl.get(v.ddl_uri) ?? "";
+      }
+    }
+    // Titolo del provvedimento collegato: serve a capire di cosa parla il voto
+    // quando il label è generico o non nomina il tema (es. un ODG su una
+    // risoluzione di commissione non nomina la regione, ma il documento
+    // collegato sì). ddl_uri può puntare sia a un osr:Ddl sia a un
+    // osr:Documento (es. le risoluzioni su schemi di intesa autonomia): niente
+    // `a osr:Ddl` nel BGP, altrimenti i Documento restano esclusi. osr:legislatura
+    // è comune a entrambi i tipi e serve solo a legare ?ddl nel BGP; niente
+    // VALUES (400 su Virtuoso, cfr. docs/lod-wiki/senato/votazione-ddl-link.md).
+    // Solo DDL singolo (multi = ambiguo, mostreremmo il titolo sbagliato).
+    const missingTitle = values.filter(
+      (v) => v.ddl_uri && !v.ddl_uri.includes(" | "),
+    );
+    if (missingTitle.length > 0) {
+      const ddlUris = [...new Set(missingTitle.map((v) => v.ddl_uri))];
+      const titleQuery = `${OSR_PREFIXES}
+SELECT ?ddl ?titoloBreve ?titolo WHERE {
+  ?ddl osr:legislatura ?legDdl .
+  FILTER(?ddl IN (${ddlUris.map((u) => `<${u}>`).join(", ")}))
+  OPTIONAL { ?ddl osr:titoloBreve ?titoloBreve }
+  OPTIONAL { ?ddl osr:titolo ?titolo }
+}`;
+      const titleByDdl = new Map<string, string>();
+      for (const r of flattenBindings(await snQuery(titleQuery))) {
+        if (r.ddl && !titleByDdl.has(r.ddl))
+          titleByDdl.set(r.ddl, r.titoloBreve || r.titolo || "");
+      }
+      for (const v of missingTitle) {
+        v.ddl_title = titleByDdl.get(v.ddl_uri) ?? "";
       }
     }
     const rows = values.map((v) => {

@@ -130,26 +130,28 @@ function schedaListUrls(html: string): string[] {
 export const cameraAmendmentsTool: Tool<typeof inputSchema> = {
   name: "camera-amendments",
   description:
-    "[CAMERA] Emendamenti (proposte emendative) a un atto della Camera, per sede (referente/Assemblea): numero, articolo, primo firmatario, emendamenti identici e link al testo. Con --count-only restituisce il conteggio per sede. FONTE: app HTML documenti.camera.it (gli emendamenti Camera non sono nel LOD); per il Senato usare invece 'amendments'.",
+    "[CAMERA] Emendamenti (proposte emendative) a un atto della Camera, per sede (referente/Assemblea): numero, articolo, primo firmatario, emendamenti identici e link al testo. Con --count-only restituisce il conteggio per sede. FONTE: app HTML documenti.camera.it (gli emendamenti Camera non sono nel LOD); per il Senato usare invece 'amendments'. Copre anche gli atti di legislature passate (es. leg.18): la scheda atto storica spesso non incorpora più il link diretto agli emendamenti, in quel caso il tool usa in automatico l'indice per-atto apps/emendamenti/ostr.",
   inputSchema,
   examples: [
     "italianparliament camera-amendments list --bill-uri http://dati.camera.it/ocd/attocamera.rdf/ac19_2696 --count-only",
     "italianparliament camera-amendments list --bill-uri http://dati.camera.it/ocd/attocamera.rdf/ac19_2696 --format jsonl",
   ],
   async execute(input) {
-    if (!/attocamera\.rdf\/ac\d+_\d+/.test(input.billUri)) {
+    const camMatch = input.billUri.match(/attocamera\.rdf\/ac(\d+)_(\d+)$/);
+    if (!camMatch) {
       throw new Error(
         `camera-amendments richiede un URI di atto Camera ` +
           `(es. http://dati.camera.it/ocd/attocamera.rdf/ac19_2696). ` +
           `Ricevuto: "${input.billUri}". Per gli emendamenti del Senato usare il tool 'amendments'.`,
       );
     }
+    const [, leg, num] = camMatch;
     const schedaUrl = actHtmlUrl(input.billUri);
     if (!schedaUrl) {
       throw new Error(`Impossibile derivare la scheda atto da "${input.billUri}".`);
     }
     const scheda = await fetchHtml(schedaUrl);
-    const listUrls = schedaListUrls(scheda);
+    let listUrls = schedaListUrls(scheda);
 
     if (listUrls.length === 0) {
       // Distinzione: scheda valida senza emendamenti (legittimo) vs pagina non
@@ -169,6 +171,16 @@ export const cameraAmendmentsTool: Tool<typeof inputSchema> = {
             `Riprovare dalla CLI locale.`,
         );
       }
+      // Scheda valida ma senza il link diretto agli emendamenti: capita sulle
+      // schede atto delle legislature vecchie (es. leg.18), che non incorporano
+      // più getProposteEmendative.aspx (il bottone "Emendamenti" punta al
+      // motore di ricerca generico ricerca-emendamenti) anche se gli
+      // emendamenti esistono ancora alla fonte. L'indice strutturato per-atto
+      // (apps/emendamenti/ostr/{leg}) li contiene comunque: fallback prima di
+      // concludere "nessun emendamento".
+      const ostrUrl = `${EME_BASE}ostr/${leg}?attoportante=leg.${leg}.eme.ac.${num}`;
+      const ostr = await fetchHtml(ostrUrl).catch(() => "");
+      listUrls = schedaListUrls(ostr);
     }
 
     if (input.countOnly) {
