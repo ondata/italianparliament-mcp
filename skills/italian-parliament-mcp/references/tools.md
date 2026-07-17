@@ -144,13 +144,13 @@ Documenti parlamentari Senato.
 - `legislature`: numero legislatura
 
 ### `senato-votes`
-Votazioni d'Assemblea del Senato: esito, contatori, tipo, data seduta, DDL collegato.
+Votazioni d'Assemblea del Senato: esito, contatori, tipo, data seduta, DDL collegato e relativo titolo.
 - `legislature`: numero legislatura (default 19)
-- `ddlUri`: filtra le votazioni collegate a un DDL
+- `ddlUri`: filtra le votazioni collegate a un DDL; da v0.26.0 include anche le fiducie collegate per numero, pure quando cadono su una seduta diversa dal voto fortemente collegato.
 - `dateFrom`/`dateTo`: intervallo data seduta (YYYY-MM-DD)
-- `keyword`: cerca nel label del voto **e** (da v0.20.0) nel titolo del DDL collegato (`osr:oggetto`/`osr:relativoA`/`osr:titolo`), in OR — un tema che sta solo nel titolo del provvedimento (es. `bilancio`) viene trovato anche quando il label del voto è generico (`Votazione finale`). Limite: se il voto non ha DDL collegato (alcune fiducie/mozioni) il tema resta irraggiungibile per keyword.
+- `keyword`: cerca nel label del voto **e** (da v0.20.0) nel titolo del DDL/documento collegato (`osr:oggetto`/`osr:relativoA`/`osr:titolo` **e**, da v0.26.0, `osr:titoloBreve`), in OR — un tema che sta solo nel titolo del provvedimento (es. `bilancio`) viene trovato anche quando il label del voto è generico (`Votazione finale`). Limite: se il voto non ha DDL collegato (alcune fiducie/mozioni) il tema resta irraggiungibile per keyword.
 - `confidenceVote` (true/false): voti di fiducia (label-based, esclude le mozioni di sfiducia); `finalVote` (true/false): `Votazione finale`. Il tipo semantico vive nel `rdfs:label`, non in `osr:tipoVotazione`.
-- Colonna `bill_number`: numero DDL citato nel label (es. `562-B`). `ddl_uri`: URI del DDL, popolato anche per le fiducie (prive di `osr:oggetto`) risolvendo il numero via `osr:fase`.
+- Colonna `bill_number`: numero DDL citato nel label (es. `562-B`). `ddl_uri`: URI del DDL/documento, popolato anche per le fiducie (prive di `osr:oggetto`) risolvendo il numero via `osr:fase`. `ddl_title` (da v0.26.0): titolo del DDL/documento collegato (`osr:titoloBreve`, fallback `osr:titolo`) — utile quando il label del voto è generico (es. un ODG su una risoluzione di commissione che non nomina il tema). Vuoto se `ddl_uri` è multiplo (testo unificato, ambiguo).
 
 ### `senato-vote-detail`
 Voto del singolo senatore in una votazione, con il gruppo di appartenenza alla data del voto (colonna `group_label`) — consente il voto per gruppo.
