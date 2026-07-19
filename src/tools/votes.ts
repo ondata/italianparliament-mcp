@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { cdQuery } from "../core/client.js";
 import { flattenBindings } from "../core/flatten.js";
+import { decodeHtml } from "../core/decode-html.js";
 import { OCD_PREFIXES } from "../core/prefixes.js";
 import { extractBillNumber, billBaseNumber } from "../core/bill-number.js";
 import type { Tool } from "./types.js";
@@ -96,6 +97,8 @@ const BOOL_COLS = new Set([
   "secret_vote",
   "final_vote",
 ]);
+
+const TEXT_COLS = new Set(["label", "title", "description"]);
 
 export const votesTool: Tool<typeof inputSchema> = {
   name: "votes",
@@ -237,7 +240,9 @@ ORDER BY DESC(?date)`;
             : v === "0"
               ? "false"
               : v
-          : v;
+          : TEXT_COLS.has(mapped)
+            ? decodeHtml(v)
+            : v;
       }
       return row;
     });
