@@ -148,6 +148,72 @@ describe("Camera tools", () => {
     expect(result.rows[0]).toHaveProperty("approved");
   }, 30000);
 
+  it("votes: seduta monotematica aggancia all'atto anche i voti a codice secco (EM 1.1077, 188-187)", async () => {
+    // Legge elettorale, 14/7/2026: l'intera seduta s19_689 è priva di
+    // rif_attoCamera alla fonte e solo due voti citano "PDL 2822-A" nel testo.
+    // Il voto decisivo sull'emendamento preferenze ("EM 1.1077") deve comunque
+    // risultare agganciato all'atto, altrimenti è invisibile a chi filtra per
+    // numero di provvedimento.
+    const result = await votesTool.execute({
+      dateFrom: "2026-07-14",
+      dateTo: "2026-07-14",
+      limit: 100,
+      offset: 0,
+    });
+    const em = result.rows.find((r) => r.uri.endsWith("vs19_689_012"));
+    expect(em?.bill_uri).toBe("http://dati.camera.it/ocd/attocamera.rdf/ac19_2822");
+    expect(em?.bill_number).toBe("2822");
+  }, 30000);
+
+  it("votes: seduta multi-atto non eredita l'atto (nessuna attribuzione ambigua)", async () => {
+    // 25/6/2025, seduta s19_499: quattro atti distinti nella stessa giornata.
+    // Gli agganci devono venire solo da rif_attoCamera o dal testo, mai
+    // dall'ereditarietà di seduta — un filtro per data potrebbe mostrarne uno
+    // solo e produrre attribuzioni sbagliate.
+    const result = await votesTool.execute({
+      dateFrom: "2025-06-25",
+      dateTo: "2025-06-25",
+      limit: 100,
+      offset: 0,
+    });
+    const byBill = new Set(result.rows.map((r) => r.bill_uri).filter(Boolean));
+    expect(byBill.size).toBeGreaterThan(1);
+    const art1 = result.rows.find((r) => r.uri.endsWith("vs19_499_014"));
+    expect(art1?.bill_uri).toBe("http://dati.camera.it/ocd/attocamera.rdf/ac19_1049");
+  }, 30000);
+
+  it("votes: su finestra a cavallo di due legislature l'atto resta nella legislatura giusta", async () => {
+    // Lug-dic 2022: la finestra contiene sia gli ultimi voti della 18 sia i
+    // primi della 19. I numeri d'atto si ripetono tra legislature ("100" esiste
+    // in entrambe): se la risoluzione numero → URI non è chiavata anche sulla
+    // legislatura, un voto della 18 si ritrova agganciato a un atto ac19_*.
+    const result = await votesTool.execute({
+      dateFrom: "2022-07-01",
+      dateTo: "2022-12-31",
+      limit: 600,
+      offset: 0,
+    });
+    const linked = result.rows.filter((r) => r.bill_uri);
+    expect(new Set(linked.map((r) => r.legislature_uri)).size).toBe(2);
+    for (const r of linked) {
+      const leg = r.legislature_uri.split("_").pop();
+      expect(r.bill_uri).toContain(`/ac${leg}_`);
+    }
+  }, 60000);
+
+  it("votes: mozioni e risoluzioni restano senza atto anche in seduta monotematica", async () => {
+    // 30/6/2026: solo RIS/MOZ. Sono AIC a sé stanti, ereditare l'atto della
+    // seduta le legherebbe a un provvedimento che non le riguarda.
+    const result = await votesTool.execute({
+      dateFrom: "2026-06-30",
+      dateTo: "2026-06-30",
+      limit: 100,
+      offset: 0,
+    });
+    expect(result.rows.length).toBeGreaterThan(0);
+    for (const r of result.rows) expect(r.bill_uri).toBeFalsy();
+  }, 30000);
+
   it("votes: date range uses STR() so it is not a silent empty (feb 2025 ≈ 436)", async () => {
     // Sentinella anti-regressione: il confronto data Camera va avvolto in STR().
     // Senza STR() Virtuoso fa un confronto numerico spurio → 0 righe mute pur
@@ -415,6 +481,23 @@ describe("Camera tools", () => {
     expect(result.rows.length).toBe(1);
     expect(result.rows[0].type).toBe("Progetto di Legge");
     expect(result.rows[0]).toHaveProperty("initiative");
+  }, 30000);
+
+  it("bill: ripulisce label e title da entità HTML, tag e suffisso ^^xsd (legge IA)", async () => {
+    // ac19_2316: il literal arriva dal grafo con &quot;/&lt;em&gt;/&nbsp; e con
+    // "^^http://www.w3.org/2001/XMLSchema#string" incollato dentro al valore.
+    // `bills list` lo ripuliva già, `bill show` no.
+    const result = await billTool.execute({
+      uri: "http://dati.camera.it/ocd/attocamera.rdf/ac19_2316",
+    });
+    const r = result.rows[0];
+    for (const field of ["label", "title", "description"] as const) {
+      expect(r[field]).not.toContain("^^");
+      expect(r[field]).not.toMatch(/&(?:quot|lt|gt|amp|nbsp|#\d+);/);
+      expect(r[field]).not.toMatch(/<[^>]+>/);
+    }
+    expect(r.label).toContain('"Disposizioni e deleghe al Governo in materia di intelligenza artificiale"');
+    expect(r.label).toContain("(approvato dal Senato)");
   }, 30000);
 
   it("search: finds Meloni in camera", async () => {

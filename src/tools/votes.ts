@@ -100,6 +100,9 @@ const BOOL_COLS = new Set([
 
 const TEXT_COLS = new Set(["label", "title", "description"]);
 
+/** Base dell'ontologia OCD della Camera. */
+const V = "http://dati.camera.it/ocd";
+
 export const votesTool: Tool<typeof inputSchema> = {
   name: "votes",
   description:
@@ -153,7 +156,6 @@ export const votesTool: Tool<typeof inputSchema> = {
     // tutti gli OPTIONAL su decine di migliaia di votazioni prima di ordinare e
     // limitare → ~33s (e timeout). Con la subquery: <1s.
     // NB: legislatura come triple vincolante, non FILTER su variabile OPTIONAL.
-    const V = "http://dati.camera.it/ocd";
     // ?vd = data interna alla subquery. Alcune votazioni hanno più dc:date:
     // GROUP BY ?s + MAX(?vd) garantisce una sola riga per voto (altrimenti i
     // duplicati consumano slot del LIMIT e tornano meno voti del richiesto).
@@ -298,16 +300,7 @@ ORDER BY DESC(?date)`;
       }
       for (const [legUri, group] of byLeg) {
         const bases = [...new Set(group.map((r) => billBaseNumber(r.bill_number)))];
-        const filter = bases.map((n) => `STR(?id) = "${n}"`).join(" || ");
-        const fbQuery = `${OCD_PREFIXES}
-SELECT ?a ?id WHERE {
-  ?a a <${V}/atto> ; <${V}/rif_leg> <${legUri}> ; dc:identifier ?id .
-  FILTER(${filter})
-}`;
-        const byId = new Map<string, string>();
-        for (const rr of flattenBindings(await cdQuery(fbQuery))) {
-          if (rr.id && rr.a && !byId.has(rr.id)) byId.set(rr.id, rr.a);
-        }
+        const byId = await resolveActUris(legUri, bases);
         for (const r of group) {
           const a = byId.get(billBaseNumber(r.bill_number));
           if (a) r.bill_uri = a;
@@ -319,6 +312,7 @@ SELECT ?a ?id WHERE {
         }
       }
     }
+    await inheritBillFromSession(deduped);
     return { rows: deduped, columns };
   },
 };
@@ -358,6 +352,133 @@ function recentWindowHint(dateFrom?: string, dateTo?: string): string | undefine
   const daysAgo = (Date.now() - boundMs) / 86_400_000;
   if (daysAgo > 14) return undefined;
   return "Nessuna votazione nell'intervallo. Attenzione: il LOD Camera è pubblicato a lotti e può essere indietro di alcuni giorni, quindi un voto molto recente potrebbe non essere ancora caricato — un 'non trovato' su una data recente NON equivale a 'non avvenuto'. Verifica sul resoconto d'Aula/scheda iter di camera.it e riprova più avanti. Non inventare numeri, date o esiti.";
+}
+
+/**
+ * Numero atto base → URI dell'atto, verificato via `dc:identifier` nella
+ * legislatura indicata: nessun URI fabbricato, i numeri senza riscontro
+ * semplicemente non compaiono nella mappa.
+ */
+async function resolveActUris(
+  legUri: string,
+  bases: string[],
+): Promise<Map<string, string>> {
+  const byId = new Map<string, string>();
+  const wanted = bases.filter((b) => b);
+  if (!wanted.length) return byId;
+  const filter = wanted.map((n) => `STR(?id) = "${n}"`).join(" || ");
+  const q = `${OCD_PREFIXES}
+SELECT ?a ?id WHERE {
+  ?a a <${V}/atto> ; <${V}/rif_leg> <${legUri}> ; dc:identifier ?id .
+  FILTER(${filter})
+}`;
+  for (const rr of flattenBindings(await cdQuery(q))) {
+    if (rr.id && rr.a && !byId.has(rr.id)) byId.set(rr.id, rr.a);
+  }
+  return byId;
+}
+
+/**
+ * Gli atti di sindacato ispettivo non hanno un atto collegato: sono AIC a sé
+ * stanti. In Aula si votano solo mozioni e risoluzioni — interrogazioni e
+ * interpellanze non vanno ai voti, e infatti sul grafo non esiste una sola
+ * `dc:description` che inizi per quei prefissi (su 257.751 votazioni). Sono
+ * elencati comunque: il costo è nullo e il modo di sbagliare di questa guardia
+ * è attribuire un provvedimento a un voto che non lo riguarda.
+ * Gli ordini del giorno restano fuori dall'elenco di proposito: `9/<atto>/<n>`
+ * cita esplicitamente il provvedimento, l'aggancio è corretto e voluto.
+ */
+const AIC_DESCRIPTION =
+  /^\s*(?:moz|ris|int|ipt|itr|mozione|risoluzione|interrogazion\w*|interpellanz\w*)\b/i;
+
+/**
+ * Ultimo fallback per le votazioni che restano senza atto: quelle con
+ * descrizione a codice secco ("EM 1.1077", "SUBEM 0.1.1077.4"), che non citano
+ * il provvedimento e — su alcune sedute — non hanno nemmeno `rif_attoCamera`
+ * popolato alla fonte (verificato: l'intera seduta s19_689 del 14/7/2026, legge
+ * elettorale, ne è priva). Se l'INTERA seduta verte su un solo atto, quello è
+ * l'atto anche dei voti muti: senza questo aggancio il voto sull'emendamento
+ * preferenze (188-187) resta invisibile a chi filtra per numero di atto.
+ *
+ * La monotematicità va verificata sull'endpoint, mai sulle righe già in
+ * memoria: un filtro per data o un LIMIT stretto possono mostrare un solo atto
+ * mentre la seduta ne tratta diversi, producendo attribuzioni sbagliate.
+ */
+async function inheritBillFromSession(rows: Record<string, string>[]): Promise<void> {
+  const needing = rows.filter(
+    (r) =>
+      !r.bill_uri &&
+      r.session_uri &&
+      r.legislature_uri &&
+      !AIC_DESCRIPTION.test(r.description ?? "") &&
+      !r.aic_code,
+  );
+  if (!needing.length) return;
+  // Il numero d'atto si ripete tra legislature ("100" esiste in 18 e in 19):
+  // ogni cache va chiavata anche sulla legislatura, altrimenti una richiesta a
+  // cavallo di due legislature attribuisce a un voto della 18 l'URI della 19.
+  const legBySession = new Map<string, string>();
+  for (const r of needing) {
+    if (!legBySession.has(r.session_uri)) legBySession.set(r.session_uri, r.legislature_uri);
+  }
+  const sessions = [...legBySession.keys()];
+  const values = sessions.map((s) => `<${s}>`).join(" ");
+  const q = `${OCD_PREFIXES}
+SELECT DISTINCT ?sed ?descr ?atto WHERE {
+  VALUES ?sed { ${values} }
+  ?v <${V}/rif_seduta> ?sed .
+  OPTIONAL { ?v dc:description ?descr }
+  OPTIONAL { ?v <${V}/rif_attoCamera> ?atto }
+}`;
+  // Per seduta: numeri base degli atti trattati, sia dai riferimenti espliciti
+  // sia da quelli citati nel testo delle altre votazioni della stessa seduta.
+  const basesBySession = new Map<string, Set<string>>();
+  const uriByBase = new Map<string, string>();
+  const key = (legUri: string, base: string) => `${legUri}|${base}`;
+  for (const rr of flattenBindings(await cdQuery(q))) {
+    if (!rr.sed) continue;
+    const set = basesBySession.get(rr.sed) ?? new Set<string>();
+    if (rr.atto) {
+      const n = rr.atto.match(/_(\d+)$/)?.[1];
+      if (n) {
+        set.add(n);
+        const k = key(legBySession.get(rr.sed) ?? "", n);
+        if (!uriByBase.has(k)) uriByBase.set(k, rr.atto);
+      }
+    }
+    const cited = billBaseNumber(extractBillNumber(decodeHtml(rr.descr ?? "")));
+    if (cited) set.add(cited);
+    basesBySession.set(rr.sed, set);
+  }
+  // Solo le sedute monotematiche danno un aggancio non ambiguo.
+  const baseBySession = new Map<string, string>();
+  for (const [sed, set] of basesBySession) {
+    if (set.size === 1) baseBySession.set(sed, [...set][0]);
+  }
+  if (!baseBySession.size) return;
+  // Gli atti citati solo nel testo vanno risolti a URI (per legislatura).
+  const byLeg = new Map<string, Set<string>>();
+  for (const r of needing) {
+    const base = baseBySession.get(r.session_uri);
+    if (!base || uriByBase.has(key(r.legislature_uri, base))) continue;
+    const g = byLeg.get(r.legislature_uri) ?? new Set<string>();
+    g.add(base);
+    byLeg.set(r.legislature_uri, g);
+  }
+  for (const [legUri, bases] of byLeg) {
+    for (const [id, uri] of await resolveActUris(legUri, [...bases])) {
+      const k = key(legUri, id);
+      if (!uriByBase.has(k)) uriByBase.set(k, uri);
+    }
+  }
+  for (const r of needing) {
+    const base = baseBySession.get(r.session_uri);
+    if (!base) continue;
+    const uri = uriByBase.get(key(r.legislature_uri, base));
+    if (!uri) continue;
+    r.bill_uri = uri;
+    r.bill_number = base;
+  }
 }
 
 /**

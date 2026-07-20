@@ -2,6 +2,7 @@ import { z } from "zod";
 import { cdQuery } from "../core/client.js";
 import { OCD_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
+import { decodeHtml } from "../core/decode-html.js";
 import { actHtmlUrl } from "../core/html-url.js";
 import type { Tool } from "./types.js";
 
@@ -82,11 +83,14 @@ SELECT ?contributor WHERE {
     const rows = [
       {
         uri: input.uri,
-        label: r.label ?? "",
-        title: r.title ?? "",
+        // I campi di testo arrivano dal grafo con entità HTML, tag <em> e — su
+        // circa 6.500 atti — il suffisso "^^http://...#string" incollato dentro
+        // al valore del literal: stessa pulizia già applicata da `bills list`.
+        label: decodeHtml(r.label ?? ""),
+        title: decodeHtml(r.title ?? ""),
         type: r.type ?? "",
         date: r.date ?? "",
-        description: r.description ?? "",
+        description: decodeHtml(r.description ?? ""),
         initiative: r.initiative ?? "",
         identifier: r.identifier ?? "",
         sponsor_uri: r.primo_firmatario ?? "",
