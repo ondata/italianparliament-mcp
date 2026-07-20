@@ -378,8 +378,18 @@ SELECT ?a ?id WHERE {
   return byId;
 }
 
-/** Mozioni e risoluzioni non hanno un atto: sono AIC a sé stanti. */
-const AIC_DESCRIPTION = /^\s*(?:moz|ris|mozione|risoluzione)\b/i;
+/**
+ * Gli atti di sindacato ispettivo non hanno un atto collegato: sono AIC a sé
+ * stanti. In Aula si votano solo mozioni e risoluzioni — interrogazioni e
+ * interpellanze non vanno ai voti, e infatti sul grafo non esiste una sola
+ * `dc:description` che inizi per quei prefissi (su 257.751 votazioni). Sono
+ * elencati comunque: il costo è nullo e il modo di sbagliare di questa guardia
+ * è attribuire un provvedimento a un voto che non lo riguarda.
+ * Gli ordini del giorno restano fuori dall'elenco di proposito: `9/<atto>/<n>`
+ * cita esplicitamente il provvedimento, l'aggancio è corretto e voluto.
+ */
+const AIC_DESCRIPTION =
+  /^\s*(?:moz|ris|int|ipt|itr|mozione|risoluzione|interrogazion\w*|interpellanz\w*)\b/i;
 
 /**
  * Ultimo fallback per le votazioni che restano senza atto: quelle con
