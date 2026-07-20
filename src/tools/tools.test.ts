@@ -148,6 +148,53 @@ describe("Camera tools", () => {
     expect(result.rows[0]).toHaveProperty("approved");
   }, 30000);
 
+  it("votes: seduta monotematica aggancia all'atto anche i voti a codice secco (EM 1.1077, 188-187)", async () => {
+    // Legge elettorale, 14/7/2026: l'intera seduta s19_689 è priva di
+    // rif_attoCamera alla fonte e solo due voti citano "PDL 2822-A" nel testo.
+    // Il voto decisivo sull'emendamento preferenze ("EM 1.1077") deve comunque
+    // risultare agganciato all'atto, altrimenti è invisibile a chi filtra per
+    // numero di provvedimento.
+    const result = await votesTool.execute({
+      dateFrom: "2026-07-14",
+      dateTo: "2026-07-14",
+      limit: 100,
+      offset: 0,
+    });
+    const em = result.rows.find((r) => r.uri.endsWith("vs19_689_012"));
+    expect(em?.bill_uri).toBe("http://dati.camera.it/ocd/attocamera.rdf/ac19_2822");
+    expect(em?.bill_number).toBe("2822");
+  }, 30000);
+
+  it("votes: seduta multi-atto non eredita l'atto (nessuna attribuzione ambigua)", async () => {
+    // 25/6/2025, seduta s19_499: quattro atti distinti nella stessa giornata.
+    // Gli agganci devono venire solo da rif_attoCamera o dal testo, mai
+    // dall'ereditarietà di seduta — un filtro per data potrebbe mostrarne uno
+    // solo e produrre attribuzioni sbagliate.
+    const result = await votesTool.execute({
+      dateFrom: "2025-06-25",
+      dateTo: "2025-06-25",
+      limit: 100,
+      offset: 0,
+    });
+    const byBill = new Set(result.rows.map((r) => r.bill_uri).filter(Boolean));
+    expect(byBill.size).toBeGreaterThan(1);
+    const art1 = result.rows.find((r) => r.uri.endsWith("vs19_499_014"));
+    expect(art1?.bill_uri).toBe("http://dati.camera.it/ocd/attocamera.rdf/ac19_1049");
+  }, 30000);
+
+  it("votes: mozioni e risoluzioni restano senza atto anche in seduta monotematica", async () => {
+    // 30/6/2026: solo RIS/MOZ. Sono AIC a sé stanti, ereditare l'atto della
+    // seduta le legherebbe a un provvedimento che non le riguarda.
+    const result = await votesTool.execute({
+      dateFrom: "2026-06-30",
+      dateTo: "2026-06-30",
+      limit: 100,
+      offset: 0,
+    });
+    expect(result.rows.length).toBeGreaterThan(0);
+    for (const r of result.rows) expect(r.bill_uri).toBeFalsy();
+  }, 30000);
+
   it("votes: date range uses STR() so it is not a silent empty (feb 2025 ≈ 436)", async () => {
     // Sentinella anti-regressione: il confronto data Camera va avvolto in STR().
     // Senza STR() Virtuoso fa un confronto numerico spurio → 0 righe mute pur
