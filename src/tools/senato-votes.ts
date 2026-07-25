@@ -5,17 +5,11 @@ import { flattenBindings } from "../core/flatten.js";
 import { actHtmlUrl, ddlRssUrl } from "../core/html-url.js";
 import { extractBillNumber } from "../core/bill-number.js";
 import { chunk } from "../core/chunk.js";
+import {
+  SENATO_MAX_OR_TERMS,
+  assertQueryFits,
+} from "../core/senato-query-size.js";
 import type { Tool } from "./types.js";
-
-/**
- * Numero massimo di termini per OR-chain in una singola query al Senato.
- * L'endpoint respinge con 403 (pagina HTML, non errore Virtuoso) le richieste
- * con query string oltre ~2 KB, e il POST è sempre rifiutato: l'unica strada è
- * tenere corta la GET. Misurato: 45 termini `STR(?f) = "S.<num>"` sfiorano la
- * soglia, 50 la superano. 25 lascia un margine ampio — la soglia osservata non
- * è netta — al costo di una query in più ogni 25 numeri (throttle 2s).
- */
-const SENATO_MAX_OR_TERMS = 25;
 
 /**
  * Cosa il grafo Senato contiene DAVVERO per l'intervallo di date interrogato,
@@ -470,30 +464,34 @@ SELECT DISTINCT ?date ?label WHERE {
     // set è piccolo: niente LIMIT/OFFSET server, paginiamo in TS dopo il
     // post-filtro (altrimenti il LIMIT taglierebbe prima del filtro).
     const paginate = input.ddlUri ? "" : `LIMIT ${input.limit}\nOFFSET ${input.offset}`;
-    const coreSelect = `SELECT DISTINCT ?v ?date ?numero ?tipo ?label ?esito
-                ?favorevoli ?contrari ?astenuti ?presenti ?votanti ?maggioranza
-                ?ddl ?oggetto
+    // Query scritta compatta di proposito: indentazione e a capo finiscono
+    // nella request-URI, che oltre 2047 byte viene respinta con 403 (vedi
+    // SENATO_MAX_OR_TERMS). La keyword entra tre volte — label, titolo e
+    // titoloBreve del DDL — quindi la lunghezza cresce di ~3 volte la keyword:
+    // il margine recuperato qui è ciò che permette le keyword multi-parola.
+    const coreSelect = `SELECT DISTINCT ?v ?date ?numero ?tipo ?label ?esito ?favorevoli ?contrari ?astenuti ?presenti ?votanti ?maggioranza ?ddl ?oggetto
 WHERE {
-  ?v a osr:Votazione ; osr:legislatura ${effectiveLeg} ; osr:seduta ?s .
-  OPTIONAL { ?s osr:dataSeduta ?date }
-  ${ddlTopicPattern}
-  ${needsLabel ? `?v rdfs:label ?label . ${labelFilter}` : "OPTIONAL { ?v rdfs:label ?label }"}
-  OPTIONAL { ?v osr:numero ?numero }
-  OPTIONAL { ?v osr:tipoVotazione ?tipo }
-  OPTIONAL { ?v osr:esito ?esito }
-  OPTIONAL { ?v osr:favorevoli ?favorevoli }
-  OPTIONAL { ?v osr:contrari ?contrari }
-  OPTIONAL { ?v osr:astenuti ?astenuti }
-  OPTIONAL { ?v osr:presenti ?presenti }
-  OPTIONAL { ?v osr:votanti ?votanti }
-  OPTIONAL { ?v osr:maggioranza ?maggioranza }
-  OPTIONAL { ?v osr:oggetto ?oggetto . OPTIONAL { ?oggetto osr:relativoA ?ddl } }
-  ${ddlDateFilter}
-  ${dateFromFilter}
-  ${dateToFilter}
+?v a osr:Votazione ; osr:legislatura ${effectiveLeg} ; osr:seduta ?s .
+OPTIONAL { ?s osr:dataSeduta ?date }
+${ddlTopicPattern}
+${needsLabel ? `?v rdfs:label ?label . ${labelFilter}` : "OPTIONAL { ?v rdfs:label ?label }"}
+OPTIONAL { ?v osr:numero ?numero } OPTIONAL { ?v osr:tipoVotazione ?tipo } OPTIONAL { ?v osr:esito ?esito }
+OPTIONAL { ?v osr:favorevoli ?favorevoli } OPTIONAL { ?v osr:contrari ?contrari } OPTIONAL { ?v osr:astenuti ?astenuti }
+OPTIONAL { ?v osr:presenti ?presenti } OPTIONAL { ?v osr:votanti ?votanti } OPTIONAL { ?v osr:maggioranza ?maggioranza }
+OPTIONAL { ?v osr:oggetto ?oggetto . OPTIONAL { ?oggetto osr:relativoA ?ddl } }
+${ddlDateFilter}
+${dateFromFilter}
+${dateToFilter}
 }`;
 
-    const query = `${OSR_PREFIXES}\n${coreSelect}\nORDER BY DESC(?date) DESC(?numero)\n${paginate}`;
+    const body = `${coreSelect}\nORDER BY DESC(?date) DESC(?numero)\n${paginate}`;
+    // Header prefissi minimo invece di OSR_PREFIXES (che ne dichiara quattro,
+    // ~180 byte): qui servono osr: e rdfs:, e xsd: solo quando un filtro data
+    // tipizza il letterale.
+    const query = `PREFIX osr: <http://dati.senato.it/osr/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>${body.includes("xsd:") ? '\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>' : ""}
+${body}`;
+    assertQueryFits(query, input.keyword);
 
     const results = await snQuery(query);
     const raw = flattenBindings(results);
