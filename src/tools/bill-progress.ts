@@ -273,10 +273,16 @@ async function cameraIterTimeline(
   // dedup (ogni risorsa-stato è unica) e reintrodurrebbe righe visivamente
   // duplicate quando due ?st hanno stessi titolo/date/stato. Serve solo come
   // tie-breaker deterministico in ORDER BY per stabilizzare la paginazione.
+  // ?pres e ?ini invece si possono proiettare: sono proprietà dell'atto, non
+  // dello stato, e hanno cardinalità 1 (verificato su leg. 17, 18 e 19: zero
+  // atti con più di un dc:date o più di un ocd:iniziativa), quindi non
+  // moltiplicano le righe della timeline.
   const query = `${OCD_PREFIXES}
-SELECT DISTINCT ?titolo ?date ?stato WHERE {
+SELECT DISTINCT ?titolo ?date ?stato ?pres ?ini WHERE {
   <${uri}> ocd:rif_statoIter ?st .
   OPTIONAL { <${uri}> dc:title ?titolo }
+  OPTIONAL { <${uri}> dc:date ?pres }
+  OPTIONAL { <${uri}> ocd:iniziativa ?ini }
   ?st dc:date ?date .
   ?st dc:title ?stato .
   ${filters.join("\n  ")}
@@ -305,8 +311,11 @@ OFFSET ${opts.offset ?? 0}`;
     title: decodeHtml(r.titolo ?? ""),
     status: decodeHtml(r.stato ?? ""),
     status_date: fmtDate(r.date),
-    presentation_date: "",
-    initiative_description: "",
+    // dc:date dell'atto è la data di presentazione (formato YYYYMMDD come
+    // ?date, quindi stesso fmtDate). Di norma coincide con il primo stato
+    // dell'iter, ma non sempre: in leg. 19 divergono su 23 atti.
+    presentation_date: fmtDate(r.pres),
+    initiative_description: r.ini ?? "",
     nature: "",
     legislature: leg,
     phase: id ? `C.${id}` : "",
