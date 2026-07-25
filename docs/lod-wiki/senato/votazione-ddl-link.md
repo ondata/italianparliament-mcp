@@ -4,7 +4,7 @@ title: Collegare una Votazione al suo DDL (Senato)
 description: Il link voto→DDL è parziale; per i voti senza osr:oggetto si risolve dal numero nel label via osr:fase="S.<num>".
 resource: http://dati.senato.it/osr/Votazione
 tags: [senato, osr, votazione, ddl, link]
-timestamp: 2026-07-01
+timestamp: 2026-07-25
 ---
 
 Il collegamento `osr:Votazione` → `osr:Ddl` passa per `?v osr:oggetto ?o . ?o osr:relativoA ?ddl`. È **parziale**: alcuni voti (tipicamente le **fiducie**) non hanno affatto `osr:oggetto`, e per essi il DDL è **irraggiungibile via grafo** (verificato per enumerazione: nessuna inverse, la seduta è un dead-end, il DDL non referenzia il voto).
@@ -36,7 +36,15 @@ Caveat: `STR()` obbligatorio (literal tipizzato, senza → 0 righe, cfr. [[trapp
 
 # Assenti
 
-Applicare il fallback **solo ai label che citano un DDL**: dei 461 voti leg.19 senza `osr:oggetto`, solo 109 nominano un DDL. Gli altri (controprova, verifica del numero legale, mozioni/risoluzioni/comunicazioni) sono voti **senza DDL** → restano correttamente vuoti, non sono un gap.
+Applicare il fallback **solo ai label che citano un DDL**: dei 461 voti leg.19 senza `osr:oggetto`, solo 109 nominano un DDL. Gli altri (controprova, verifica del numero legale, mozioni/risoluzioni/comunicazioni) restano vuoti.
+
+Attenzione però a non liquidarli tutti come "voti senza DDL": la **controprova** è la ripetizione di una votazione il cui esito era incerto, quindi quando segue un voto di merito riguarda esattamente quell'atto — ma il grafo non lo dice in nessun modo. Verificato il 25/7/2026 sul voto `votazione/19-438-5` chiedendo tutte le sue triple: ha `osr:seduta`, i contatori e i **voti individuali di ogni senatore** (`osr:favorevole` ecc.), ma **nessun `osr:oggetto`** e un `rdfs:label` che è la sola parola "Controprova" — nemmeno un numero da cui risalire. Si sa come ha votato ciascun senatore, non su cosa.
+
+Nella seduta del 16/7/2026 (`sedutaassemblea/24345`, autonomia differenziata, 4 atti trattati) i tre `controprova` — n. 2, 5, 11 — sono tutti senza `ddl_uri`. Ereditarlo dal voto immediatamente precedente sarebbe **sbagliato in due casi su tre**: solo il n. 5 segue un voto di merito (ODG G270 → `ddl/54204`), mentre n. 2 e n. 11 seguono una *verifica del numero legale*, che non verte sul merito di alcun atto. In una seduta con quattro atti diversi l'euristica appiccicherebbe l'atto sbagliato: il campo vuoto è preferibile.
+
+Da qui il comportamento dei tool: la propagazione per data (`senato-votes`, Fallback 2) aggancia il `controprova` quando la seduta è **monotematica** — es. `19-440` del 22/7/2026 — e si astiene quando la seduta tratta più atti. Non è una svista ma una scelta: l'alternativa è indovinare.
+
+**È un limite della fonte, non del tooling** (stessa famiglia delle fiducie prive di `osr:oggetto`): segnalato al Webmaster in [[corrispondenza-webmaster]] insieme a quel caso.
 
 Camera: analogo. Numero da `dc:description` (`DDL <num> - <VOTO FINALE|EM|ODG>`, es. "DDL 2920-A"); l'atto è il numero **base** (`2920-A` → `2920`). Non fabbricare l'URI `ac<LEG>_<NUM>`: **verificarne l'esistenza** via `?a a ocd:atto ; ocd:rif_leg <leg> ; dc:identifier "<NUM>"` (una query per legislatura, OR-chain su `dc:identifier`), così i voti che non risolvono restano vuoti invece di puntare a un URI inesistente.
 
