@@ -465,8 +465,8 @@ SELECT DISTINCT ?date ?label WHERE {
     // post-filtro (altrimenti il LIMIT taglierebbe prima del filtro).
     const paginate = input.ddlUri ? "" : `LIMIT ${input.limit}\nOFFSET ${input.offset}`;
     // Query scritta compatta di proposito: indentazione e a capo finiscono
-    // nella request-URI, che oltre 2047 byte viene respinta con 403 (vedi
-    // SENATO_MAX_OR_TERMS). La keyword entra tre volte — label, titolo e
+    // nella request-URI, che oltre SENATO_MAX_REQUEST_URI byte viene respinta
+    // con 403 (di qui assertQueryFits, sotto). La keyword entra tre volte — label, titolo e
     // titoloBreve del DDL — quindi la lunghezza cresce di ~3 volte la keyword:
     // il margine recuperato qui è ciò che permette le keyword multi-parola.
     const coreSelect = `SELECT DISTINCT ?v ?date ?numero ?tipo ?label ?esito ?favorevoli ?contrari ?astenuti ?presenti ?votanti ?maggioranza ?ddl ?oggetto
