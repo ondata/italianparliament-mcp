@@ -4,6 +4,11 @@ import { OSR_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
 import { actHtmlUrl, ddlRssUrl } from "../core/html-url.js";
 import { extractBillNumber } from "../core/bill-number.js";
+import { chunk } from "../core/chunk.js";
+import {
+  SENATO_MAX_OR_TERMS,
+  assertQueryFits,
+} from "../core/senato-query-size.js";
 import type { Tool } from "./types.js";
 
 /**
@@ -347,22 +352,24 @@ WHERE {
         .filter((v) => v.bill_number);
       if (cand.length === 0) return [];
       const nums = [...new Set(cand.map((v) => v.bill_number))];
-      const filter = nums.map((n) => `STR(?f) = "S.${n}"`).join(" || ");
-      const fq = `${OSR_PREFIXES}
+      const byNum = new Map<string, { ddl: string; titolo: string }>();
+      for (const batch of chunk(nums, SENATO_MAX_OR_TERMS)) {
+        const filter = batch.map((n) => `STR(?f) = "S.${n}"`).join(" || ");
+        const fq = `${OSR_PREFIXES}
 SELECT ?ddl ?f ?titolo ?titoloBreve WHERE {
   ?ddl a osr:Ddl ; osr:legislatura ${effectiveLeg} ; osr:fase ?f .
   OPTIONAL { ?ddl osr:titolo ?titolo }
   OPTIONAL { ?ddl osr:titoloBreve ?titoloBreve }
   FILTER(${filter})
 }`;
-      const byNum = new Map<string, { ddl: string; titolo: string }>();
-      for (const r of flattenBindings(await snQuery(fq))) {
-        const num = (r.f ?? "").replace(/^S\./, "");
-        if (num && r.ddl && !byNum.has(num))
-          byNum.set(num, {
-            ddl: r.ddl,
-            titolo: `${r.titolo ?? ""} ${r.titoloBreve ?? ""}`,
-          });
+        for (const r of flattenBindings(await snQuery(fq))) {
+          const num = (r.f ?? "").replace(/^S\./, "");
+          if (num && r.ddl && !byNum.has(num))
+            byNum.set(num, {
+              ddl: r.ddl,
+              titolo: `${r.titolo ?? ""} ${r.titoloBreve ?? ""}`,
+            });
+        }
       }
       const kw = input.keyword!.toLowerCase();
       return cand.filter((v) => {
@@ -457,30 +464,34 @@ SELECT DISTINCT ?date ?label WHERE {
     // set è piccolo: niente LIMIT/OFFSET server, paginiamo in TS dopo il
     // post-filtro (altrimenti il LIMIT taglierebbe prima del filtro).
     const paginate = input.ddlUri ? "" : `LIMIT ${input.limit}\nOFFSET ${input.offset}`;
-    const coreSelect = `SELECT DISTINCT ?v ?date ?numero ?tipo ?label ?esito
-                ?favorevoli ?contrari ?astenuti ?presenti ?votanti ?maggioranza
-                ?ddl ?oggetto
+    // Query scritta compatta di proposito: indentazione e a capo finiscono
+    // nella request-URI, che oltre SENATO_MAX_REQUEST_URI byte viene respinta
+    // con 403 (di qui assertQueryFits, sotto). La keyword entra tre volte — label, titolo e
+    // titoloBreve del DDL — quindi la lunghezza cresce di ~3 volte la keyword:
+    // il margine recuperato qui è ciò che permette le keyword multi-parola.
+    const coreSelect = `SELECT DISTINCT ?v ?date ?numero ?tipo ?label ?esito ?favorevoli ?contrari ?astenuti ?presenti ?votanti ?maggioranza ?ddl ?oggetto
 WHERE {
-  ?v a osr:Votazione ; osr:legislatura ${effectiveLeg} ; osr:seduta ?s .
-  OPTIONAL { ?s osr:dataSeduta ?date }
-  ${ddlTopicPattern}
-  ${needsLabel ? `?v rdfs:label ?label . ${labelFilter}` : "OPTIONAL { ?v rdfs:label ?label }"}
-  OPTIONAL { ?v osr:numero ?numero }
-  OPTIONAL { ?v osr:tipoVotazione ?tipo }
-  OPTIONAL { ?v osr:esito ?esito }
-  OPTIONAL { ?v osr:favorevoli ?favorevoli }
-  OPTIONAL { ?v osr:contrari ?contrari }
-  OPTIONAL { ?v osr:astenuti ?astenuti }
-  OPTIONAL { ?v osr:presenti ?presenti }
-  OPTIONAL { ?v osr:votanti ?votanti }
-  OPTIONAL { ?v osr:maggioranza ?maggioranza }
-  OPTIONAL { ?v osr:oggetto ?oggetto . OPTIONAL { ?oggetto osr:relativoA ?ddl } }
-  ${ddlDateFilter}
-  ${dateFromFilter}
-  ${dateToFilter}
+?v a osr:Votazione ; osr:legislatura ${effectiveLeg} ; osr:seduta ?s .
+OPTIONAL { ?s osr:dataSeduta ?date }
+${ddlTopicPattern}
+${needsLabel ? `?v rdfs:label ?label . ${labelFilter}` : "OPTIONAL { ?v rdfs:label ?label }"}
+OPTIONAL { ?v osr:numero ?numero } OPTIONAL { ?v osr:tipoVotazione ?tipo } OPTIONAL { ?v osr:esito ?esito }
+OPTIONAL { ?v osr:favorevoli ?favorevoli } OPTIONAL { ?v osr:contrari ?contrari } OPTIONAL { ?v osr:astenuti ?astenuti }
+OPTIONAL { ?v osr:presenti ?presenti } OPTIONAL { ?v osr:votanti ?votanti } OPTIONAL { ?v osr:maggioranza ?maggioranza }
+OPTIONAL { ?v osr:oggetto ?oggetto . OPTIONAL { ?oggetto osr:relativoA ?ddl } }
+${ddlDateFilter}
+${dateFromFilter}
+${dateToFilter}
 }`;
 
-    const query = `${OSR_PREFIXES}\n${coreSelect}\nORDER BY DESC(?date) DESC(?numero)\n${paginate}`;
+    const body = `${coreSelect}\nORDER BY DESC(?date) DESC(?numero)\n${paginate}`;
+    // Header prefissi minimo invece di OSR_PREFIXES (che ne dichiara quattro,
+    // ~180 byte): qui servono osr: e rdfs:, e xsd: solo quando un filtro data
+    // tipizza il letterale.
+    const query = `PREFIX osr: <http://dati.senato.it/osr/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>${body.includes("xsd:") ? '\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>' : ""}
+${body}`;
+    assertQueryFits(query, input.keyword);
 
     const results = await snQuery(query);
     const raw = flattenBindings(results);
@@ -526,22 +537,25 @@ WHERE {
     }
     // Fallback 1: alcuni voti (tipicamente le fiducie) non hanno osr:oggetto e
     // quindi nessun ddl_uri via grafo, ma citano il DDL nel label. Risolviamo il
-    // numero → URI in un'unica query via osr:fase="S.<num>" (univoco intra-leg;
-    // niente VALUES batch su Virtuoso → OR-chain). Solo per i label che citano
-    // davvero un DDL (bill_number non vuoto).
+    // numero → URI via osr:fase="S.<num>" (univoco intra-leg; niente VALUES
+    // batch su Virtuoso → OR-chain, spezzata in query da SENATO_MAX_OR_TERMS
+    // per non superare la soglia dei 2 KB). Solo per i label che citano davvero
+    // un DDL (bill_number non vuoto).
     let needing = [...byUri.values()].filter((v) => !v.ddl_uri && v.bill_number);
     const nums = [...new Set(needing.map((v) => v.bill_number))];
     if (nums.length) {
-      const filter = nums.map((n) => `STR(?f) = "S.${n}"`).join(" || ");
-      const fbQuery = `${OSR_PREFIXES}
+      const byFase = new Map<string, string>();
+      for (const batch of chunk(nums, SENATO_MAX_OR_TERMS)) {
+        const filter = batch.map((n) => `STR(?f) = "S.${n}"`).join(" || ");
+        const fbQuery = `${OSR_PREFIXES}
 SELECT ?ddl ?f WHERE {
   ?ddl a osr:Ddl ; osr:legislatura ${effectiveLeg} ; osr:fase ?f .
   FILTER(${filter})
 }`;
-      const byFase = new Map<string, string>();
-      for (const r of flattenBindings(await snQuery(fbQuery))) {
-        const num = (r.f ?? "").replace(/^S\./, "");
-        if (num && r.ddl && !byFase.has(num)) byFase.set(num, r.ddl);
+        for (const r of flattenBindings(await snQuery(fbQuery))) {
+          const num = (r.f ?? "").replace(/^S\./, "");
+          if (num && r.ddl && !byFase.has(num)) byFase.set(num, r.ddl);
+        }
       }
       for (const v of needing) {
         const ddl = byFase.get(v.bill_number);
