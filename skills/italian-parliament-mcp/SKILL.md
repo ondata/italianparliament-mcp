@@ -79,8 +79,18 @@ Use `search` first to resolve a name to a URI before calling `deputy` or `senato
 - **`sindacato-ispettivo` (Senato) is not searchable by topic**: the Senato LOD exposes no subject/text for these acts (only type, number, date, signatories). Don't promise thematic searches on it.
 - **`audizioni --committeeName` is literal**: it matches a substring against the official `rdfs:label` of the committee, which is the full formal name. "Covid" finds nothing — use "emergenza sanitaria" or "SARS-CoV-2". If a lookup returns empty, first inspect the actual labels with `committees list --chamber camera` + grep, then retry with the exact name.
 - **Question time by venue (`aic`)**: `type` also matches the act's label, and the venue is regular in the label, so no dedicated field is needed. `aic --type "immediata in assemblea"` = question time in Aula; `aic --type "immediata in commissione"` = in committee (combine with `keyword` for a topic).
+- **On Senato tools, a short root pays twice**: besides matching more word forms, it keeps the request under the size limit (see below). In `senato-votes` the keyword is interpolated **three times** (vote label, bill title, short title), so a long multi-word phrase grows the query fast.
 
-### 5. Output format
+### 5. Two different failures, one 403 (Senato only)
+
+The Senato endpoint accepts a request up to **2047 bytes** of URL and rejects longer ones, but answers `403` both in that case and when requests come too close together — with an identical error page. Tell them apart, because the right reaction is the opposite:
+
+- Error message **"Query troppo lunga per l'endpoint del Senato"** (raised before going out to the network): shorten the `keyword` — a short root is enough, the match is by substring — or narrow the date range. Retrying the same call is pointless.
+- A bare **`403` from the endpoint**: too many requests in a short time. Wait a few minutes; do not retry in a burst. The server already spaces its own Senato calls by 2s — the block comes from several tool calls stacking up.
+
+This limit is **Senato only**: the Camera endpoint accepts far larger requests. Never report either failure to the user as "the data is not available": nothing has been proven about the data.
+
+### 6. Output format
 
 Tools return CSV or JSONL. For display, format results as markdown tables. For analysis, summarize key figures.
 
@@ -104,6 +114,7 @@ Use `rank` with `rankBy`: `aic-primo-firmatario`, `aic-cofirmatario`, `bills-pri
 **Who voted how (Camera)**
 1. `votes` → get vote URI
 2. `vote-detail` with the URI
+   - **Secret ballot — a secret vote is secret, in any chamber or context:** by definition the individual choice is **never** recorded at the source, so never infer or invent how someone voted on a secret ballot; report "scelta individuale non registrata (scrutinio segreto)". How it surfaces on Camera (`secret_vote=true`): `vote-detail` shows in `vote` only `Ha votato` / `Non ha votato` / `Astensione`, never `Favorevole`/`Contrario` (a normal vote has `Favorevole`/`Contrario`). Same principle at the Senato (`type=segreta`, see below), where it surfaces as presence-only rows.
 
 **Who voted how (Senato)**
 1. `senato-votes` → get vote URI (filter by `ddlUri` for votes on a bill, or by date)
