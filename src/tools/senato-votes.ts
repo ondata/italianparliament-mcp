@@ -4,7 +4,18 @@ import { OSR_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
 import { actHtmlUrl, ddlRssUrl } from "../core/html-url.js";
 import { extractBillNumber } from "../core/bill-number.js";
+import { chunk } from "../core/chunk.js";
 import type { Tool } from "./types.js";
+
+/**
+ * Numero massimo di termini per OR-chain in una singola query al Senato.
+ * L'endpoint respinge con 403 (pagina HTML, non errore Virtuoso) le richieste
+ * con query string oltre ~2 KB, e il POST è sempre rifiutato: l'unica strada è
+ * tenere corta la GET. Misurato: 45 termini `STR(?f) = "S.<num>"` sfiorano la
+ * soglia, 50 la superano. 25 lascia un margine ampio — la soglia osservata non
+ * è netta — al costo di una query in più ogni 25 numeri (throttle 2s).
+ */
+const SENATO_MAX_OR_TERMS = 25;
 
 /**
  * Cosa il grafo Senato contiene DAVVERO per l'intervallo di date interrogato,
@@ -347,22 +358,24 @@ WHERE {
         .filter((v) => v.bill_number);
       if (cand.length === 0) return [];
       const nums = [...new Set(cand.map((v) => v.bill_number))];
-      const filter = nums.map((n) => `STR(?f) = "S.${n}"`).join(" || ");
-      const fq = `${OSR_PREFIXES}
+      const byNum = new Map<string, { ddl: string; titolo: string }>();
+      for (const batch of chunk(nums, SENATO_MAX_OR_TERMS)) {
+        const filter = batch.map((n) => `STR(?f) = "S.${n}"`).join(" || ");
+        const fq = `${OSR_PREFIXES}
 SELECT ?ddl ?f ?titolo ?titoloBreve WHERE {
   ?ddl a osr:Ddl ; osr:legislatura ${effectiveLeg} ; osr:fase ?f .
   OPTIONAL { ?ddl osr:titolo ?titolo }
   OPTIONAL { ?ddl osr:titoloBreve ?titoloBreve }
   FILTER(${filter})
 }`;
-      const byNum = new Map<string, { ddl: string; titolo: string }>();
-      for (const r of flattenBindings(await snQuery(fq))) {
-        const num = (r.f ?? "").replace(/^S\./, "");
-        if (num && r.ddl && !byNum.has(num))
-          byNum.set(num, {
-            ddl: r.ddl,
-            titolo: `${r.titolo ?? ""} ${r.titoloBreve ?? ""}`,
-          });
+        for (const r of flattenBindings(await snQuery(fq))) {
+          const num = (r.f ?? "").replace(/^S\./, "");
+          if (num && r.ddl && !byNum.has(num))
+            byNum.set(num, {
+              ddl: r.ddl,
+              titolo: `${r.titolo ?? ""} ${r.titoloBreve ?? ""}`,
+            });
+        }
       }
       const kw = input.keyword!.toLowerCase();
       return cand.filter((v) => {
@@ -526,22 +539,25 @@ WHERE {
     }
     // Fallback 1: alcuni voti (tipicamente le fiducie) non hanno osr:oggetto e
     // quindi nessun ddl_uri via grafo, ma citano il DDL nel label. Risolviamo il
-    // numero → URI in un'unica query via osr:fase="S.<num>" (univoco intra-leg;
-    // niente VALUES batch su Virtuoso → OR-chain). Solo per i label che citano
-    // davvero un DDL (bill_number non vuoto).
+    // numero → URI via osr:fase="S.<num>" (univoco intra-leg; niente VALUES
+    // batch su Virtuoso → OR-chain, spezzata in query da SENATO_MAX_OR_TERMS
+    // per non superare la soglia dei 2 KB). Solo per i label che citano davvero
+    // un DDL (bill_number non vuoto).
     let needing = [...byUri.values()].filter((v) => !v.ddl_uri && v.bill_number);
     const nums = [...new Set(needing.map((v) => v.bill_number))];
     if (nums.length) {
-      const filter = nums.map((n) => `STR(?f) = "S.${n}"`).join(" || ");
-      const fbQuery = `${OSR_PREFIXES}
+      const byFase = new Map<string, string>();
+      for (const batch of chunk(nums, SENATO_MAX_OR_TERMS)) {
+        const filter = batch.map((n) => `STR(?f) = "S.${n}"`).join(" || ");
+        const fbQuery = `${OSR_PREFIXES}
 SELECT ?ddl ?f WHERE {
   ?ddl a osr:Ddl ; osr:legislatura ${effectiveLeg} ; osr:fase ?f .
   FILTER(${filter})
 }`;
-      const byFase = new Map<string, string>();
-      for (const r of flattenBindings(await snQuery(fbQuery))) {
-        const num = (r.f ?? "").replace(/^S\./, "");
-        if (num && r.ddl && !byFase.has(num)) byFase.set(num, r.ddl);
+        for (const r of flattenBindings(await snQuery(fbQuery))) {
+          const num = (r.f ?? "").replace(/^S\./, "");
+          if (num && r.ddl && !byFase.has(num)) byFase.set(num, r.ddl);
+        }
       }
       for (const v of needing) {
         const ddl = byFase.get(v.bill_number);
