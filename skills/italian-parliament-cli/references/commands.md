@@ -316,12 +316,14 @@ italianparliament sessions list --legislature 19
 ```
 
 ### `committees list` (Camera + Senato)
-Commissioni parlamentari con categoria (permanente/speciale/inchiesta/comitato) e numero di sedute.
+Commissioni e giunte parlamentari con categoria (permanente/speciale/inchiesta/comitato/giunta) e numero di sedute.
 ```bash
 italianparliament committees list --legislature 19
 italianparliament committees list --chamber camera --legislature 19
 italianparliament committees list --chamber senato
+italianparliament committees list --chamber senato --legislature 19 --format jsonl | jq 'select(.category=="Giunte")'
 ```
+Al Senato le **giunte** (Regolamento, Elezioni e immunità parlamentari, …) hanno `session_count` **0**: nel LOD non risultano loro sedute, pur essendo organi attivi. Alcuni organi con molte sedute hanno invece i campi di testo **vuoti**: sono URI che la fonte referenzia senza descriverli, e il nome non è ricavabile dal dato — non dedurlo dall'URI.
 
 ---
 
