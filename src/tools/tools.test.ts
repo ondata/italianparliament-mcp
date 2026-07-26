@@ -452,6 +452,30 @@ describe("Camera tools", () => {
     expect(result.rows[0]).toHaveProperty("group_acronym");
   }, 30000);
 
+  it("vote-detail: --group-acronym resolves against the sigle present in the vote (#77)", async () => {
+    // Sigla scritta in minuscolo: deve risolvere e filtrare, non restare vuota.
+    const result = await voteDetailTool.execute({
+      voteUri: "http://dati.camera.it/ocd/votazione.rdf/vs19_456_018",
+      groupAcronym: "fdi",
+      limit: 700,
+    });
+    expect(result.rows.length).toBeGreaterThan(0);
+    expect(new Set(result.rows.map((r) => r.group_acronym))).toEqual(new Set(["FDI"]));
+    expect(result.hint).toBeUndefined();
+  }, 30000);
+
+  it("vote-detail: sigla di groups list non presente nel voto → vuoto con hint, non silenzio (#77)", async () => {
+    const result = await voteDetailTool.execute({
+      voteUri: "http://dati.camera.it/ocd/votazione.rdf/vs19_456_018",
+      groupAcronym: "AZ-PER-RE",
+      limit: 700,
+    });
+    expect(result.rows.length).toBe(0);
+    expect(result.hint).toContain("AZ-PER-RE");
+    // L'elenco viene dalla query, non da una lista scritta nel codice.
+    expect(result.hint).toContain("APERRE");
+  }, 30000);
+
   it("group-members: returns members for legislature 19", async () => {
     const result = await groupMembersTool.execute({ legislature: 19, limit: 3, offset: 0 });
     expect(result.rows.length).toBe(3);
