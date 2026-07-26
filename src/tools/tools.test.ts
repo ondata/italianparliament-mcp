@@ -659,6 +659,17 @@ describe("Senato tools", () => {
     }
   }, 30000);
 
+  it("committees (Senato): --limit tronca dopo il merge, non dentro le query (#82)", async () => {
+    // Il limite deve tagliare la classifica finale — i più attivi in testa — e
+    // non le due query intermedie, dove taglierebbe righe che l'ordinamento
+    // avrebbe promosso.
+    const result = await committeesTool.execute({ chamber: "senato", legislature: 19, limit: 5 });
+    expect(result.rows.length).toBe(5);
+    const counts = result.rows.map((r) => Number(r.session_count));
+    expect(counts).toEqual([...counts].sort((a, b) => b - a));
+    expect(counts[0]).toBeGreaterThan(500);
+  }, 30000);
+
   it("committees: returns Camera committees for leg 19", async () => {
     const result = await committeesTool.execute({ chamber: "camera", legislature: 19, limit: 300 });
     expect(result.rows.length).toBeGreaterThan(10);

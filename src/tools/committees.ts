@@ -145,6 +145,11 @@ async function querySenato(
 ): Promise<Row[]> {
   let query: string;
   if (legislature) {
+    // Le due query lavorano su insiemi piccoli e noti (nella leg. 19: 27 organi
+    // con sedute, 59 descritti attivi), quindi il `limit` dell'utente si applica
+    // DOPO il merge: troncare prima toglierebbe righe che l'ordinamento finale
+    // avrebbe messo in testa. Il tetto interno esiste solo come guardia.
+    const cap = 1000;
     // Organi con sedute nella legislatura. `titoloBreve` è OPTIONAL: quando
     // manca l'organo va mostrato lo stesso, altrimenti sparisce in silenzio
     // proprio chi ha più sedute (#82).
@@ -159,7 +164,7 @@ WHERE {
 }
 GROUP BY ?comm
 ORDER BY DESC(?n_sedute)
-LIMIT ${limit}`;
+LIMIT ${cap}`;
     const withSessions = toRows(flattenBindings(await snQuery(query)));
     const range = await senatoLegislatureRange(legislature);
     if (!range) return withSessions;
@@ -180,7 +185,8 @@ WHERE {
   FILTER(str(?ini) <= "${range.to}")
   FILTER(!BOUND(?fine) || str(?fine) >= "${range.from}")
 }
-LIMIT ${limit}`;
+ORDER BY ?comm
+LIMIT ${cap}`;
     const described = toRows(flattenBindings(await snQuery(activeQuery)));
     return mergeSenatoCommittees(withSessions, described).slice(0, limit);
   } else {
