@@ -68,6 +68,15 @@ describe("capabilityScore", () => {
     expect(best("immunità parlamentare").map((c) => c.cmd)).not.toContain("search find");
   });
 
+  it("'giunta' porta alle giunte parlamentari, ma non le giunte locali", () => {
+    // Il catalogo copre solo il Parlamento: consigliare `committees` a chi
+    // cerca una giunta regionale o comunale sarebbe lo stesso errore.
+    expect(best("giunta").map((c) => c.cmd)).toContain("committees list");
+    for (const q of ["giunta regionale", "delibera di giunta", "giunta comunale"]) {
+      expect(best(q).map((c) => c.cmd), `query "${q}"`).not.toContain("committees list");
+    }
+  });
+
   it("'gruppo parlamentare' resta sui gruppi, non sulla ricerca per nome", () => {
     const cmds = best("gruppo parlamentare").map((c) => c.cmd);
     expect(cmds).toContain("groups list");
