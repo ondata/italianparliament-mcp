@@ -65,6 +65,21 @@ senato-votes list --legislature 18 --date-from 2020-02-26 --date-to 2020-02-26  
 
 Conseguenza: qui la mancanza è di **una singola votazione** (la fiducia), non dell'intera seduta di voti. Il buco COVID (seduta con zero voti) e il buco chirurgico (seduta piena ma manca il target) hanno cause probabilmente diverse e vanno segnalati distintamente ai gestori.
 
+# Un quarto stato: falso vuoto da cache stantia dell'endpoint
+
+I tre stati sopra sono buchi **reali** della fonte. Ne esiste un quarto, subdolo, dove il dato **c'è ed è correttamente collegato** ma l'endpoint restituisce comunque vuoto: il Virtuoso Senato può servire un **risultato vuoto rimasto in cache**, generato mentre il grafo era in ricaricamento (finestra tipicamente correlata a uno storm di 403 / endpoint che "flappa"). Se una query per DDL o per data è stata interrogata quando il voto non era ancora caricato, quel vuoto resta cachato e viene riservito anche dopo che il dato è stato caricato.
+
+Firma diagnostica (test A/B/A): la **stessa query byte-per-byte** torna vuota in modo ripetibile, mentre una variante **semanticamente identica ma con testo diverso** (es. uno spazio in più dopo `WHERE`) torna il dato. La cache è keyed sul **testo esatto** della query: cambiando i byte si forza un cache miss → ricalcolo → dato fresco.
+
+```
+# stessa query esatta, ripetuta → 0 righe (stantio)
+# stessa query + 1 spazio dopo WHERE → 1 riga (dato live)
+```
+
+Ma ha anche una **dimensione temporale**: la voce di cache **scade**. Caso verificato 23–24/7/2026 su `senato-votes --ddl-uri http://dati.senato.it/ddl/60262` ("Liberi di scegliere", voto 19-437-4, 142-0-0 del 15/7/2026, con link forte `osr:oggetto → oggettotrattazione/1512289 → osr:relativoA → ddl/60262`): la `datesQuery` interna tornava vuota (stesso testo, ripetibile), mentre la variante con uno spazio tornava la data; ore dopo la **stessa identica query** tornava il dato 3 volte di fila, e il comando reale `--ddl-uri` funzionava di nuovo. Era transitorio e si è auto-risolto alla scadenza della cache.
+
+Regola operativa: se una query per DDL/data torna vuota ma il dato **dovrebbe** esserci (verificalo per altra via — ricerca per data, o SPARQL diretto), non concludere "buco della fonte" e **non** hackerare un cache-bust nel tool (vanificherebbe la cache dell'endpoint, già fragile): sospetta una cache stantia durante un reload e **ri-testa più tardi**. Il test A/B/A distingue subito questo caso dai tre buchi reali sopra.
+
 # Dove è implementato
 
 L'`emptyHint` di `senato-votes` (`src/tools/senato-votes.ts`) esegue questa sonda **al volo, solo sui risultati vuoti con vincolo di data** (2 COUNT leggeri, gate su `offset===0` per non affermare il falso oltre l'ultima pagina) e restituisce l'hint corrispondente allo stato osservato, invece di ripetere un elenco statico di buchi noti. È la funzione pura `buildSenatoVotesEmptyHint` + `probeSenatoDates`.

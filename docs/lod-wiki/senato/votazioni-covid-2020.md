@@ -13,6 +13,7 @@ timestamp: 2026-07-08
 
 - **Decreto Rilancio** (d.l. 19 maggio 2020 n. 34, S.1874): la fiducia votata al Senato il 16 luglio 2020 **non compare affatto** nel LOD. Le votazioni di luglio 2020 ci sono (57 in tutto il mese), ma sono tutte mozioni e comunicazioni del governo: nessuna riguarda il Rilancio (zero occorrenze di "fiducia"/"rilancio"/"decreto"/"34" tra i label). Le sedute del 16-17 luglio non hanno `osr:Votazione`.
 - **Decreto Agosto** (d.l. 14 agosto 2020 n. 104, S.1925): la votazione finale del 7 ottobre 2020 **esiste** nel LOD, ma **non è collegata al DDL** via `osr:oggetto`/`osr:relativoA`. `senato-votes --ddl-uri http://dati.senato.it/ddl/53249` torna vuoto; i voti della seduta n. 262 (7/10/2020) risultano collegati ai soli ddl 53220/53221 (Rendiconto/Assestamento bilancio).
+- **Decreto Lockdown/DPCM** (d.l. 25 marzo 2020 n. 19, S.1811): la fiducia votata al Senato il 21 maggio 2020 (esito noto da fonti terze: 155 sì, 123 no) **non è nel LOD** — verificato 2026-07-21 (`senato-votes --legislature 18 --date-from 2020-05-21 --date-to 2020-05-21` → buco "totale", seduta presente senza votazioni). È un buco chirurgico sul singolo giorno: la seduta del 20/5/2020 immediatamente precedente **ha** una votazione regolare sullo stesso ddl (`18-219-1`, questione pregiudiziale, 111 contro 141), quindi il buco colpisce puntualmente la seduta del 21/5 (voto finale), non l'intero DDL né l'intera settimana.
 
 # Le sedute esistono, i voti no
 

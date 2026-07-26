@@ -25,6 +25,8 @@ docs/gap-analysis-2026-06-28/
 docs/gap-analysis-2026-07-01/
 docs/note-gestori-lod/
 docs/news-agent/
+docs/campagna-ripartenza-dati.md
+docs/campagna-parlamento-aperto/
 
 # memoria orfana agente (ogni run è vergine)
 .claude/agent-memory/
