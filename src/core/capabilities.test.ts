@@ -48,6 +48,47 @@ describe("capabilityScore", () => {
     expect(capabilityScore(cap, "   ")).toBe(0);
   });
 
+  // Il tema Giunta per le autorizzazioni era scoperto, e "immunità
+  // parlamentare" veniva instradata su `search find` per via del term
+  // "parlamentare" nudo: un match sbagliato è peggio di nessun match (#78).
+  const best = (q: string) =>
+    CAPABILITIES.map((c) => ({ cmd: c.cmd, score: capabilityScore(c, q) }))
+      .filter((c) => c.score > 0)
+      .sort((a, b) => b.score - a.score);
+
+  it("le formulazioni sulla Giunta portano ai comandi su commissioni e giunte", () => {
+    for (const q of ["giunta per le autorizzazioni", "autorizzazione a procedere", "immunità parlamentare"]) {
+      const cmds = best(q).map((c) => c.cmd);
+      expect(cmds, `query "${q}"`).toContain("committee-members list");
+      expect(cmds, `query "${q}"`).toContain("committees list");
+    }
+  });
+
+  it("'immunità parlamentare' non instrada più su search find", () => {
+    expect(best("immunità parlamentare").map((c) => c.cmd)).not.toContain("search find");
+  });
+
+  it("'giunta' porta alle giunte parlamentari, ma non le giunte locali", () => {
+    // Il catalogo copre solo il Parlamento: consigliare `committees` a chi
+    // cerca una giunta regionale o comunale sarebbe lo stesso errore.
+    expect(best("giunta").map((c) => c.cmd)).toContain("committees list");
+    for (const q of ["giunta regionale", "delibera di giunta", "giunta comunale"]) {
+      expect(best(q).map((c) => c.cmd), `query "${q}"`).not.toContain("committees list");
+    }
+  });
+
+  it("'gruppo parlamentare' resta sui gruppi, non sulla ricerca per nome", () => {
+    const cmds = best("gruppo parlamentare").map((c) => c.cmd);
+    expect(cmds).toContain("groups list");
+    expect(cmds).not.toContain("search find");
+  });
+
+  it("non-regressione: cercare una persona porta ancora a search find", () => {
+    for (const q of ["cerca", "parlamentare", "nome", "trova persona"]) {
+      expect(best(q).map((c) => c.cmd), `query "${q}"`).toContain("search find");
+    }
+  });
+
   it("match case-insensitive sui terms", () => {
     const cap = CAPABILITIES.find((c) => c.cmd === "person-career show")!;
     expect(capabilityScore(cap, "CARRIERA")).toBe(100);

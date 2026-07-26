@@ -6,7 +6,10 @@
 export type Capability = { cmd: string; terms: string[]; desc: string; example: string };
 
 export const CAPABILITIES: Capability[] = [
-  { cmd: "search find", terms: ["cerca", "nome", "parlamentare", "trova persona", "search"], desc: "Cerca un parlamentare per nome (Camera+Senato)", example: 'italianparliament search find --name "rossi"' },
+  // "cerca parlamentare" e non "parlamentare" nudo: la parola sola compare in
+  // query di tutt'altro tema ("immunità parlamentare", "gruppo parlamentare")
+  // e le tirava qui con il match `q.includes(term)` (issue #78).
+  { cmd: "search find", terms: ["cerca", "nome", "cerca parlamentare", "trova persona", "search"], desc: "Cerca un parlamentare per nome (Camera+Senato)", example: 'italianparliament search find --name "rossi"' },
   { cmd: "person-career show", terms: ["carriera", "governo", "ministro", "doppio incarico", "legislature", "wikidata"], desc: "Carriera unificata di una persona (mandati + governo)", example: "italianparliament person-career show --uri http://dati.camera.it/ocd/persona.rdf/p302103" },
   { cmd: "deputy show", terms: ["scheda", "deputato", "anagrafica", "nascita"], desc: "Scheda di un deputato", example: "italianparliament deputy show --uri http://dati.camera.it/ocd/deputato.rdf/d306921_17" },
   { cmd: "senator show", terms: ["scheda", "senatore", "anagrafica", "nascita"], desc: "Scheda di un senatore", example: "italianparliament senator show --uri http://dati.senato.it/senatore/29110" },
@@ -35,8 +38,11 @@ export const CAPABILITIES: Capability[] = [
   { cmd: "rank list", terms: ["classifica", "ranking", "più attivi", "top"], desc: "Classifiche per parlamentare (aic, bills, speeches, ...)", example: "italianparliament rank list --rank-by speeches --legislature 19 --limit 10" },
   { cmd: "group-rank list", terms: ["classifica gruppi", "per gruppo", "gruppi più attivi"], desc: "Classifiche per gruppo con media per membro", example: "italianparliament group-rank list --rank-by aic --legislature 19" },
   { cmd: "gov-members list", terms: ["ministro", "governo", "sottosegretario", "rimpasto"], desc: "Membri del governo", example: "italianparliament gov-members list --legislature 19" },
-  { cmd: "committees list", terms: ["commissioni", "elenco commissioni"], desc: "Commissioni Camera+Senato", example: "italianparliament committees list --chamber both --legislature 19" },
-  { cmd: "committee-members list", terms: ["membri commissione", "composizione commissione"], desc: "Membri di una commissione con ruoli", example: "italianparliament committee-members list --committee-uri http://dati.senato.it/commissione/0-2 --chamber senato" },
+  // "giunta parlamentare" e non "giunta" nuda, per la stessa ragione del term
+  // "parlamentare" su `search find`: la parola sola tirerebbe qui anche
+  // "giunta regionale" o "delibera di giunta", che questo tool non copre.
+  { cmd: "committees list", terms: ["commissioni", "elenco commissioni", "giunta parlamentare", "giunta per le autorizzazioni", "autorizzazione a procedere", "immunità parlamentare", "insindacabilità"], desc: "Commissioni e giunte Camera+Senato", example: "italianparliament committees list --chamber both --legislature 19" },
+  { cmd: "committee-members list", terms: ["membri commissione", "composizione commissione", "membri giunta", "giunta per le autorizzazioni", "autorizzazione a procedere", "immunità parlamentare", "insindacabilità"], desc: "Membri di una commissione o giunta con ruoli", example: "italianparliament committee-members list --committee-uri http://dati.senato.it/commissione/0-2 --chamber senato" },
   { cmd: "speeches list", terms: ["intervento", "discorso", "aula"], desc: "Interventi in aula (Camera+Senato)", example: "italianparliament speeches list --deputy-uri http://dati.camera.it/ocd/deputato.rdf/d306921_17 --count-only" },
   { cmd: "sparql query", terms: ["sparql", "query libera", "dato non coperto"], desc: "Query SPARQL libera (ultima risorsa)", example: 'italianparliament sparql query --endpoint senato --query "PREFIX osr: <http://dati.senato.it/osr/> SELECT DISTINCT ?type WHERE { ?s a ?type } LIMIT 20"' },
 ];
