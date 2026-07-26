@@ -14,7 +14,7 @@ const inputSchema = z.object({
     .string()
     .optional()
     .describe(
-      "Filtra per sigla gruppo (es. 'FDI', 'M5S', 'APERRE'). Le sigle sono quelle del dataset votazioni, che NON sempre coincidono con l'acronym di `groups list` (es. AZ-PER-RE → APERRE, IV-CR → IVICRE) e in cui il gruppo Misto è disaggregato nelle sue componenti (M-ALT, M-MIN, …). Maiuscole/minuscole e punteggiatura sono irrilevanti; se la sigla non esiste in quella votazione il risultato è vuoto con l'elenco delle sigle presenti.",
+      "Filtra per sigla gruppo (es. 'FDI', 'M5S'). Le sigle sono quelle registrate sui voti, che non sempre coincidono con l'acronym di `groups list`, e il gruppo Misto può comparire disaggregato nelle sue componenti. Maiuscole/minuscole e punteggiatura sono irrilevanti; se la sigla non esiste in quella votazione il risultato è vuoto e l'elenco delle sigle presenti viene restituito come nota.",
     ),
   voteType: z
     .enum(["Favorevole", "Contrario", "Astensione", "Non ha votato"])
@@ -31,11 +31,12 @@ function stripLegLabel(label: string): string {
 
 const columns = ["deputy_uri", "deputy_name", "vote", "group_uri", "group_acronym", "html_url"];
 
-// Le sigle di `ocd:siglaGruppo` (dataset votazioni) non coincidono con
-// l'acronym di `groups list`: AZ-PER-RE → APERRE, IV-CR → IVICRE, e il Misto è
-// disaggregato per componente. Il confronto ignora quindi maiuscole e
-// punteggiatura, ma le differenze restanti non sono derivabili da una regola:
-// per quelle si mostra l'elenco delle sigle realmente presenti nel voto.
+// Le sigle di `ocd:siglaGruppo` (sui voti) non coincidono con l'acronym di
+// `groups list`: al 26/7/2026, in leg. 19, AZ-PER-RE → APERRE, IV-CR → IVICRE,
+// e il Misto è disaggregato per componente (issue #77, segnalato al gestore del
+// dato). Il confronto ignora quindi maiuscole e punteggiatura, ma le differenze
+// restanti non sono derivabili da una regola: per quelle si mostra l'elenco
+// delle sigle realmente presenti nel voto, senza codificarne nessuna qui.
 function normalizeAcronym(s: string): string {
   return s.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
@@ -84,14 +85,16 @@ export function buildGroupAcronymHint(requested: string, available: string[]): s
   const best = ranked[0];
   const parts = [
     `Nessun gruppo con sigla "${requested}" in questa votazione.`,
-    `Le sigle del dataset votazioni non coincidono sempre con l'acronym di 'groups list' (es. AZ-PER-RE → APERRE, IV-CR → IVICRE).`,
+    `Le sigle registrate sui voti non coincidono sempre con l'acronym di 'groups list'.`,
   ];
   if (similarity(norm, normalizeAcronym(best)) >= 0.4) {
     parts.push(`Forse cercavi "${best}".`);
   }
   parts.push(`Sigle presenti in questa votazione: ${ranked.join(", ")}.`);
-  if (available.some((a) => /^M-/.test(a))) {
-    parts.push(`Il gruppo Misto è disaggregato nelle sue componenti (le sigle "M-…"): non esiste una riga "MISTO".`);
+  // Condizione sulla richiesta, non sulla forma delle sigle disponibili: è un
+  // fatto su cosa ha chiesto l'utente, non un'assunzione sui dati della fonte.
+  if (norm === "MISTO") {
+    parts.push(`Il gruppo Misto può comparire disaggregato nelle sue componenti: cercale nell'elenco qui sopra.`);
   }
   return parts.join(" ");
 }
