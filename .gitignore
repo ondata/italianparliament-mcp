@@ -28,6 +28,9 @@ docs/news-agent/
 docs/campagna-ripartenza-dati.md
 docs/campagna-parlamento-aperto/
 
+# configurazione e memoria locale degli agenti
+.claude/
+
 # memoria orfana agente (ogni run è vergine)
 .claude/agent-memory/
 
