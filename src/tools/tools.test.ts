@@ -633,6 +633,43 @@ describe("Senato tools", () => {
     expect(Number(affari!.session_count)).toBeGreaterThan(100);
   }, 30000);
 
+  it("committees (Senato): le Giunte compaiono anche se nel LOD non hanno sedute (#82)", async () => {
+    const result = await committeesTool.execute({ chamber: "senato", legislature: 19, limit: 300 });
+    const giunte = result.rows.filter((r) => r.category === "Giunte");
+    expect(giunte.length).toBeGreaterThanOrEqual(2);
+    // La Giunta elezioni e immunità è l'organo delle autorizzazioni a procedere:
+    // prima del fix era invisibile con --legislature, perché il filtro passava
+    // dalle sedute e per le Giunte il LOD non ne espone nessuna.
+    const immunita = giunte.find((r) => r.short_title.includes("Giunta delle elezioni"));
+    expect(immunita).toBeDefined();
+    expect(immunita!.session_count).toBe("0");
+  }, 30000);
+
+  it("committees (Senato): gli organi privi di anagrafica nella fonte restano visibili, senza nome inventato (#82)", async () => {
+    const result = await committeesTool.execute({ chamber: "senato", legislature: 19, limit: 300 });
+    // URI referenziati dalle sedute ma inesistenti come risorse (commissione/2-*):
+    // devono comparire con le sedute e i campi di testo vuoti.
+    const orfani = result.rows.filter((r) => r.short_title === "" && Number(r.session_count) > 0);
+    expect(orfani.length).toBeGreaterThan(0);
+    expect(Math.max(...orfani.map((r) => Number(r.session_count)))).toBeGreaterThan(100);
+    for (const r of orfani) {
+      expect(r.title).toBe("");
+      expect(r.category).toBe("");
+      expect(r.uri).not.toBe("");
+    }
+  }, 30000);
+
+  it("committees (Senato): --limit tronca dopo il merge, non dentro le query (#82)", async () => {
+    // Il limite deve tagliare la classifica finale — i più attivi in testa — e
+    // non le due query intermedie, dove taglierebbe righe che l'ordinamento
+    // avrebbe promosso.
+    const result = await committeesTool.execute({ chamber: "senato", legislature: 19, limit: 5 });
+    expect(result.rows.length).toBe(5);
+    const counts = result.rows.map((r) => Number(r.session_count));
+    expect(counts).toEqual([...counts].sort((a, b) => b - a));
+    expect(counts[0]).toBeGreaterThan(500);
+  }, 30000);
+
   it("committees: returns Camera committees for leg 19", async () => {
     const result = await committeesTool.execute({ chamber: "camera", legislature: 19, limit: 300 });
     expect(result.rows.length).toBeGreaterThan(10);
