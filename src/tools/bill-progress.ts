@@ -6,21 +6,8 @@ import { decodeHtml } from "../core/decode-html.js";
 import { htmlEntityKeywordVariants } from "../core/html-entity-variants.js";
 import { ddlRssUrl } from "../core/html-url.js";
 import { currentLegislature } from "../core/current-legislature.js";
+import { sparqlStringLiteral } from "../core/sparql-literal.js";
 import type { Tool } from "./types.js";
-
-// Costruisce un letterale-stringa SPARQL valido escapando solo i caratteri che
-// la grammatica STRING_LITERAL2 vieta (\, ", newline, CR). Non usare
-// JSON.stringify: emette \uXXXX per i caratteri di controllo, sequenza che
-// alcuni parser SPARQL rifiutano nel corpo del letterale (o cercano un valore
-// diverso), rompendo il filtro keyword invece di fare il match atteso.
-const SPARQL_ESC: Record<string, string> = {
-  "\\": "\\\\",
-  '"': '\\"',
-  "\n": "\\n",
-  "\r": "\\r",
-};
-const sparqlStringLiteral = (value: string): string =>
-  `"${value.replace(/[\\"\n\r]/g, (c) => SPARQL_ESC[c] ?? c)}"`;
 
 const inputSchema = z.object({
   ddlUri: z

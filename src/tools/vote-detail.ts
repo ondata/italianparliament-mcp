@@ -3,6 +3,7 @@ import { cdQuery } from "../core/client.js";
 import { OCD_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
 import { personHtmlUrl } from "../core/html-url.js";
+import { sparqlStringLiteral } from "../core/sparql-literal.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -76,7 +77,7 @@ function similarity(a: string, b: string): number {
 /** Nota mostrata quando la sigla richiesta non esiste in quella votazione. */
 export function buildGroupAcronymHint(requested: string, available: string[]): string {
   if (available.length === 0) {
-    return `Nessuna sigla di gruppo registrata in questa votazione: il filtro --group-acronym non è applicabile.`;
+    return `Nessuna sigla di gruppo registrata in questa votazione: il filtro per gruppo non è applicabile.`;
   }
   const norm = normalizeAcronym(requested);
   const ranked = [...available].sort(
@@ -135,7 +136,7 @@ export const voteDetailTool: Tool<typeof inputSchema> = {
       if (!resolved) {
         return { rows: [], columns, hint: buildGroupAcronymHint(input.groupAcronym, available) };
       }
-      filters.push(`?v ocd:siglaGruppo ?_sg . FILTER(STR(?_sg) = "${resolved}")`);
+      filters.push(`?v ocd:siglaGruppo ?_sg . FILTER(STR(?_sg) = ${sparqlStringLiteral(resolved)})`);
     }
     if (input.voteType) filters.push(`FILTER(?type = "${input.voteType}")`);
 
