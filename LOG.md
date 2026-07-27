@@ -2,6 +2,10 @@
 
 > I riferimenti a `docs/note-gestori-lod/` e `docs/campagna-parlamento-aperto/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati e materiali di campagna, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione.
 
+## 2026-07-27
+
+- **`amendments --count-only`** (PR #85) — conteggio totale degli emendamenti senza scaricare le righe: colonne `source,count`, utile per confronti tra DDL o legislature (es. leg. 19: 123.006 emendamenti nel LOD). Due percorsi alternativi, mai sommati: `COUNT` SPARQL sul LOD come fonte primaria; se il LOD è vuoto e c'è `--ddl-uri`, il totale arriva dal listing del bulk AKN. Dalla review tre sistemazioni: la describe suggeriva una somma delle due fonti che non avviene (riformulata come either/or); l'hint sulla legislatura mancante citava il flag CLI `--legislature` ma arriva identico via MCP, dove il parametro è `legislature` (ora in forma neutra); e i percorsi count non avevano test — aggiunti tre live, incluso il fallback AKN reso deterministico con un ddl inesistente (LOD 0 → listing 404 → `source "akn"`, count 0). Tolto anche il `.default(false)` da `countOnly`, fuori convenzione rispetto agli altri cinque tool con lo stesso flag e causa di errori tsc sui test esistenti.
+
 ## 2026-07-26
 
 - **v0.27.0** — release minor. Tre fix nati dalla gap analysis news-driven della mattina, tutti sulla stessa famiglia di difetto: **un vuoto che sembra un'assenza di dato ma è un problema di identificatori o di criterio**. In `vote-detail` una sigla di gruppo che non esiste nel dataset votazioni dava zero righe senza dirlo; in `committees` il Senato mostrava 12 organi su 27; in `which` la Giunta per le autorizzazioni non era raggiungibile e "immunità parlamentare" portava alla ricerca per nome. 43 tool invariati, 219/219 test verdi. In tutti e tre i casi il codice si limita a interrogare il dato e a rendere visibile ciò che manca: nessuna mappatura inventata a valle, e i buchi della fonte finiti nelle note ai gestori e nel wiki LOD.
