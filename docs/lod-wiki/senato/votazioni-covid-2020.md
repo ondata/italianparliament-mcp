@@ -1,7 +1,7 @@
 ---
 type: Gotcha
 title: Votazioni d'Assemblea assenti o scollegate dai DDL nel 2020 (leg.18) — finestra COVID estesa
-description: le sedute d'Assemblea del periodo COVID esistono nel LOD (con osr:Intervento) ma non hanno alcuna osr:Votazione collegata, compresa la fiducia sul Cura Italia del 9/4/2020. Il buco non è limitato a mar-apr 2020: la fiducia sul Decreto Rilancio (16/7/2020) è del tutto assente, e la votazione finale sul Decreto Agosto (S.1925, 7/10/2020) esiste ma non è collegata al DDL. Gap di dataset, non di query.
+description: le sedute d'Assemblea del periodo COVID esistono nel LOD (con osr:Intervento) ma non hanno alcuna osr:Votazione collegata, compresa la fiducia sul Cura Italia del 9/4/2020. Il buco non è limitato a mar-apr 2020: le fiducie su Decreto Rilancio (16/7/2020) e Decreto Semplificazioni (4/9/2020) sono del tutto assenti, e la votazione finale sul Decreto Agosto (S.1925, 7/10/2020) esiste ma non è collegata al DDL. Gap di dataset, non di query.
 resource: https://dati.senato.it/sparql
 tags: [senato, osr, votazioni, freschezza, assenti, covid]
 timestamp: 2026-07-08
@@ -14,6 +14,7 @@ timestamp: 2026-07-08
 - **Decreto Rilancio** (d.l. 19 maggio 2020 n. 34, S.1874): la fiducia votata al Senato il 16 luglio 2020 **non compare affatto** nel LOD. Le votazioni di luglio 2020 ci sono (57 in tutto il mese), ma sono tutte mozioni e comunicazioni del governo: nessuna riguarda il Rilancio (zero occorrenze di "fiducia"/"rilancio"/"decreto"/"34" tra i label). Le sedute del 16-17 luglio non hanno `osr:Votazione`.
 - **Decreto Agosto** (d.l. 14 agosto 2020 n. 104, S.1925): la votazione finale del 7 ottobre 2020 **esiste** nel LOD, ma **non è collegata al DDL** via `osr:oggetto`/`osr:relativoA`. `senato-votes --ddl-uri http://dati.senato.it/ddl/53249` torna vuoto; i voti della seduta n. 262 (7/10/2020) risultano collegati ai soli ddl 53220/53221 (Rendiconto/Assestamento bilancio).
 - **Decreto Lockdown/DPCM** (d.l. 25 marzo 2020 n. 19, S.1811): la fiducia votata al Senato il 21 maggio 2020 (esito noto da fonti terze: 155 sì, 123 no) **non è nel LOD** — verificato 2026-07-21 (`senato-votes --legislature 18 --date-from 2020-05-21 --date-to 2020-05-21` → buco "totale", seduta presente senza votazioni). È un buco chirurgico sul singolo giorno: la seduta del 20/5/2020 immediatamente precedente **ha** una votazione regolare sullo stesso ddl (`18-219-1`, questione pregiudiziale, 111 contro 141), quindi il buco colpisce puntualmente la seduta del 21/5 (voto finale), non l'intero DDL né l'intera settimana.
+- **Decreto Semplificazioni** (d.l. 16 luglio 2020 n. 76, S.1883): la fiducia votata al Senato il 4 settembre 2020 sull'em. 1.900 interamente sostitutivo (esito noto da fonti terze, tra cui conoscere.camera.it: 157 sì, 82 no, 1 astenuto) **non è nel LOD** — verificato 2026-07-27. La seduta n. 254 esiste (`sedutaassemblea/22155`) ma ha zero `osr:Votazione`; nella finestra 28/8-11/9 il grafo espone votazioni solo il 2/9 (6), l'8/9 (2) e il 9/9 (28). Emerso dal run news-driven `docs/news-agent/2026-07-27_13-32.md`.
 
 # Le sedute esistono, i voti no
 
@@ -85,7 +86,7 @@ Questa nota documenta il buco **"totale"** — sedute con **zero** `osr:Votazion
 
 # Conseguenza per il tooling
 
-Un vuoto da `senato-votes` in questa finestra **non significa "nessuna votazione avvenuta"** — le fonti terze (stampa, OpenParlamento) confermano che le sedute prevedevano voti regolari, incluse fiducie importanti (Cura Italia 9/4, Liquidità inizio aprile, Rilancio 16/7). Significa che questo specifico dataset LOD non li registra per il periodo, o non li collega al DDL (caso Decreto Agosto).
+Un vuoto da `senato-votes` in questa finestra **non significa "nessuna votazione avvenuta"** — le fonti terze (stampa, OpenParlamento) confermano che le sedute prevedevano voti regolari, incluse fiducie importanti (Cura Italia 9/4, Liquidità inizio aprile, Rilancio 16/7, Semplificazioni 4/9). Significa che questo specifico dataset LOD non li registra per il periodo, o non li collega al DDL (caso Decreto Agosto).
 
 In particolare:
 - `senato-votes --confidence-vote true` torna vuoto su **tutto il 2020** leg.18 — non perché il filtro sia rotto (su leg.19 trova regolarmente le fiducie), ma perché le fiducie Senato 2020 non sono nel LOD o non hanno "fiducia" nel label.
@@ -104,3 +105,5 @@ Il filtro `--confidence-vote` funziona correttamente su leg.19 (verificato: trov
 [4] Conteggio voti Senato leg.18 per mese 2020 via `senato-votes --count-only`, verificato 2026-07-08: luglio 2020 = 57 voti, ma nessuno con label contenente "fiducia"/"rilancio"/"decreto"/"34". Sedute 16-17 luglio 2020 senza `osr:Votazione`. Fiducia Decreto Rilancio (d.l. 34/2020, conversione 16/7/2020) assente dal LOD.
 
 [5] Query `osr:relativoA <http://dati.senato.it/ddl/53249>` (Decreto Agosto, S.1925), verificata 2026-07-08: 0 votazioni collegate. Votazione finale del 7/10/2020 (seduta 262) esiste ma collegata ai soli ddl 53220/53221. `senato-votes --ddl-uri http://dati.senato.it/ddl/53249` torna vuoto.
+
+[6] Seduta `sedutaassemblea/22155` (n. 254, 2020-09-04, fiducia Decreto Semplificazioni S.1883), verificata 2026-07-27: esiste con `osr:dataSeduta` e `osr:numeroSeduta` 254, zero `osr:Votazione` con `osr:seduta` verso di essa; conteggio per data nella finestra 2020-08-28/2020-09-11: solo 2/9 (6), 8/9 (2), 9/9 (28). Esito noto da fonti terze (conoscere.camera.it, Il Fatto Quotidiano, Finanza&Fisco): 157-82-1.
