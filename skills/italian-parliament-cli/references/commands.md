@@ -17,7 +17,7 @@ Common options available on most commands:
 
 Comandi di scoperta (`guide`, `which`, `--help`) documentati nel SKILL.
 
-- `bills`/`aic`/`votes`/`senato-votes` accettano `--count-only` (solo il totale).
+- `bills`/`aic`/`votes`/`senato-votes`/`amendments` accettano `--count-only` (solo il totale).
 - Su un valore enum errato (`--vote-type`, `--rank-by`, ...) l'errore elenca i valori validi.
 - **`html_url`**: i tool su persone e atti/DDL espongono una colonna `html_url` con il link alla scheda istituzionale su `camera.it`/`senato.it`, accanto all'URI SPARQL.
 - **`rss_url`**: i tool sui DDL del Senato (`amendments`, `senato-votes`, `bill-progress`) espongono `rss_url`, il feed RSS con l'iter dettagliato (fasi, sedute, voto finale).
@@ -165,11 +165,12 @@ italianparliament bill-committees list --bill-uri http://dati.camera.it/ocd/atto
 ```
 
 ### `amendments list`
-Emendamenti Senato; `--ddl-uri` per gli emendamenti a un DDL specifico. Ogni riga espone `akn_xml_url` (testo AKN raw dal bulk GitHub del Senato, senza WAF). Se il LOD è indietro, con `--ddl-uri` il tool passa da solo al bulk AKN (`source=akn`). `--with-proponents` aggiunge primo firmatario e cofirmatari (nome + URI persona, colonne `first_proponent`/`first_proponent_uri`/`proponents`/`proponents_uri`) dal testo AKN (il proponente NON è nel LOD; un fetch per emendamento, più lento: richiede `--limit<=100`, errore esplicito oltre). Popola anche la colonna `date` (data di presentazione) quando il LOD non ce l'ha. `type` (E/G/Q, dal LOD) e `sede` (commissione/assemblea) sono colonne distinte: `type` resta vuota sulle righe `source=akn`.
+Emendamenti Senato; `--ddl-uri` per gli emendamenti a un DDL specifico. Ogni riga espone `akn_xml_url` (testo AKN raw dal bulk GitHub del Senato, senza WAF). Se il LOD è indietro, con `--ddl-uri` il tool passa da solo al bulk AKN (`source=akn`). `--with-proponents` aggiunge primo firmatario e cofirmatari (nome + URI persona, colonne `first_proponent`/`first_proponent_uri`/`proponents`/`proponents_uri`) dal testo AKN (il proponente NON è nel LOD; un fetch per emendamento, più lento: richiede `--limit<=100`, errore esplicito oltre). Popola anche la colonna `date` (data di presentazione) quando il LOD non ce l'ha. `type` (E/G/Q, dal LOD) e `sede` (commissione/assemblea) sono colonne distinte: `type` resta vuota sulle righe `source=akn`. `--count-only` restituisce solo il totale (colonne `source,count`): LOD se ha risultati, altrimenti con `--ddl-uri` il conteggio arriva dal bulk AKN (fonti alternative, mai sommate).
 ```bash
 italianparliament amendments list --legislature 19
 italianparliament amendments list --ddl-uri http://dati.senato.it/ddl/56260 --format jsonl
 italianparliament amendments list --ddl-uri http://dati.senato.it/ddl/60233 --with-proponents --limit 20
+italianparliament amendments list --ddl-uri http://dati.senato.it/ddl/60233 --count-only
 ```
 
 ### `camera-amendments list`

@@ -4,6 +4,8 @@
 
 ## 2026-07-27
 
+- **v0.28.0** — release minor per `amendments --count-only` (sotto). Skill CLI e MCP e README aggiornati con il flag e con la lista dei tool che accettano il conteggio; 43 tool invariati.
+
 - **`amendments --count-only`** (PR #85) — conteggio totale degli emendamenti senza scaricare le righe: colonne `source,count`, utile per confronti tra DDL o legislature (es. leg. 19: 123.006 emendamenti nel LOD). Due percorsi alternativi, mai sommati: `COUNT` SPARQL sul LOD come fonte primaria; se il LOD è vuoto e c'è `--ddl-uri`, il totale arriva dal listing del bulk AKN. Dalla review tre sistemazioni: la describe suggeriva una somma delle due fonti che non avviene (riformulata come either/or); l'hint sulla legislatura mancante citava il flag CLI `--legislature` ma arriva identico via MCP, dove il parametro è `legislature` (ora in forma neutra); e i percorsi count non avevano test — aggiunti tre live, incluso il fallback AKN reso deterministico con un ddl inesistente (LOD 0 → listing 404 → `source "akn"`, count 0). Tolto anche il `.default(false)` da `countOnly`, fuori convenzione rispetto agli altri cinque tool con lo stesso flag e causa di errori tsc sui test esistenti.
 
 ## 2026-07-26

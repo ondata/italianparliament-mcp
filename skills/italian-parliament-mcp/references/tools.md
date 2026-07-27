@@ -126,6 +126,7 @@ Emendamenti Senato con DDL collegato. Ogni riga espone `akn_xml_url` (testo AKN 
 - `legislature`: numero legislatura
 - `ddlUri`: filtra gli emendamenti a un DDL specifico
 - `withProponents`: aggiunge primo firmatario e cofirmatari (nome + URI persona, colonne `first_proponent`/`first_proponent_uri`/`proponents`/`proponents_uri`) dal testo AKN (il proponente NON è nel LOD; un fetch per emendamento, più lento: richiede `limit<=100`, errore esplicito oltre). Popola anche la colonna `date` (data di presentazione) quando il LOD non ce l'ha.
+- `countOnly`: solo il conteggio totale (colonne `source,count`), senza scaricare le righe — per "quanti emendamenti ha ricevuto il DDL X". Fonti alternative, mai sommate: LOD se ha risultati, altrimenti con `ddlUri` il totale arriva dal bulk AKN (`source=akn`).
 
 `type` (E/G/Q, dal LOD) e `sede` (commissione/assemblea, da entrambe le fonti) sono colonne distinte: `type` non è deducibile in modo affidabile dal solo bulk AKN e resta vuota nelle righe `source=akn`.
 
@@ -243,7 +244,7 @@ Classifica i gruppi Camera per AIC o DDL (via gruppo del primo firmatario), con 
 - `order`: desc | asc
 - Colonna `count_per_member`: utile per confrontare gruppi di dimensioni diverse.
 
-Nota: i tool lista `bills`/`aic`/`votes`/`senato-votes` accettano `countOnly` (solo il totale, colonna count).
+Nota: i tool lista `bills`/`aic`/`votes`/`senato-votes`/`amendments` accettano `countOnly` (solo il totale, colonna count).
 
 ### `rank`
 Ranking parlamentari per attività.
