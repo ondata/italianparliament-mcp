@@ -885,6 +885,48 @@ describe("Senato tools", () => {
     expect(result.hint).toContain("bulk AKN");
   }, 30000);
 
+  it("amendments: countOnly su legislatura restituisce il conteggio LOD", async () => {
+    const result = await amendmentsTool.execute({
+      legislature: 19,
+      countOnly: true,
+      limit: 100,
+      offset: 0,
+    });
+    expect(result.columns).toEqual(["source", "count"]);
+    expect(result.rows.length).toBe(1);
+    expect(result.rows[0].source).toBe("lod");
+    expect(Number(result.rows[0].count)).toBeGreaterThan(0);
+  }, 30000);
+
+  it("amendments: countOnly su ddl reale conta da LOD o da fallback AKN", async () => {
+    // Stessa intermittenza di freschezza LOD di ddl/60233 (vedi sopra): non si
+    // assume la sorgente, solo che il totale sia positivo e la forma corretta.
+    const result = await amendmentsTool.execute({
+      ddlUri: "http://dati.senato.it/ddl/60233",
+      countOnly: true,
+      limit: 100,
+      offset: 0,
+    });
+    expect(result.columns).toEqual(["source", "count"]);
+    expect(result.rows.length).toBe(1);
+    expect(["lod", "akn"]).toContain(result.rows[0].source);
+    expect(Number(result.rows[0].count)).toBeGreaterThan(0);
+  }, 30000);
+
+  it("amendments: countOnly con LOD vuoto passa al fallback AKN (deterministico: ddl inesistente)", async () => {
+    // DDL inesistente + legislatura esplicita: LOD 0 → listing AKN 404 →
+    // conteggio 0 ma con source "akn", prova che il ramo di fallback è attivo.
+    const result = await amendmentsTool.execute({
+      ddlUri: "http://dati.senato.it/ddl/99999999",
+      legislature: 19,
+      countOnly: true,
+      limit: 100,
+      offset: 0,
+    });
+    expect(result.rows).toEqual([{ source: "akn", count: "0" }]);
+    expect(result.columns).toEqual(["source", "count"]);
+  }, 30000);
+
   it("aknEmptyHint: vuoto genuino (entriesLength 0) vs pagina oltre la fine (entriesLength > 0)", () => {
     // Vuoto genuino: nessuna fonte ha nulla per l'atto.
     expect(aknEmptyHint(0, 0)).toContain("né nel LOD né nel bulk");

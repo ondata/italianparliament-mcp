@@ -41,10 +41,9 @@ const inputSchema = z.object({
   countOnly: z
     .boolean()
     .optional()
-    .default(false)
     .describe(
-      "Restituisce solo il conteggio totale (colonna count). Con ddlUri il conteggio include " +
-        "sia il LOD che il fallback AKN; senza ddlUri conta solo i risultati LOD.",
+      "Restituisce solo il conteggio totale (colonna count). Fonte primaria il LOD; con ddlUri, " +
+        "se il LOD è vuoto il conteggio arriva dal fallback sul bulk AKN (mai sommati).",
     ),
   limit: z.number().int().min(1).max(1000).default(100),
   offset: z.number().int().min(0).default(0),
@@ -210,7 +209,8 @@ export const amendmentsTool: Tool<typeof inputSchema> = {
           `risultato vuoto qui non significa assenza di emendamenti alla Camera.`,
       );
     }
-    // countOnly: conteggio senza scaricare tutte le righe. Due percorsi distinti:
+    // countOnly: conteggio senza scaricare tutte le righe. Due percorsi alternativi
+    // (mai sommati):
     // - se il LOD ha risultati, SPARQL COUNT sulla stessa query
     // - se il LOD è vuoto e c'è ddlUri, il conteggio reale è nel bulk AKN (listing GitHub)
     if (input.countOnly) {
@@ -242,7 +242,7 @@ SELECT (COUNT(DISTINCT ?s) AS ?count) WHERE {
             columns: countColumns,
             hint:
               "Nessun emendamento nel LOD e legislatura del DDL non determinabile per il conteggio AKN. " +
-              "Ripetere passando --legislature.",
+              "Ripetere indicando la legislatura (parametro legislature, es. 19).",
           };
         }
         const attoPath = aknAttoPath(input.ddlUri, legislature);
