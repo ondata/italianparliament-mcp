@@ -38,9 +38,18 @@ const inputSchema = z.object({
         "persona) estratti dal testo AKN del bulk GitHub del Senato: un fetch puntuale per " +
         "emendamento, quindi più lento. Il proponente NON è nel LOD.",
     ),
+  countOnly: z
+    .boolean()
+    .optional()
+    .describe(
+      "Restituisce solo il conteggio totale (colonna count). Fonte primaria il LOD; con ddlUri, " +
+        "se il LOD è vuoto il conteggio arriva dal fallback sul bulk AKN (mai sommati).",
+    ),
   limit: z.number().int().min(1).max(1000).default(100),
   offset: z.number().int().min(0).default(0),
 });
+
+const countColumns = ["source", "count"];
 
 const columns = [
   "uri",
@@ -200,6 +209,59 @@ export const amendmentsTool: Tool<typeof inputSchema> = {
           `risultato vuoto qui non significa assenza di emendamenti alla Camera.`,
       );
     }
+    // countOnly: conteggio senza scaricare tutte le righe. Due percorsi alternativi
+    // (mai sommati):
+    // - se il LOD ha risultati, SPARQL COUNT sulla stessa query
+    // - se il LOD è vuoto e c'è ddlUri, il conteggio reale è nel bulk AKN (listing GitHub)
+    if (input.countOnly) {
+      const countQuery = `${OSR_PREFIXES}
+SELECT (COUNT(DISTINCT ?s) AS ?count) WHERE {
+  ?s a osr:Emendamento .
+  ${input.ddlUri ? `?s osr:oggetto ?oggetto . ?oggetto osr:relativoA ?ddl . FILTER(?ddl = <${input.ddlUri}>)` : ""}
+  ${input.legislature ? `?s osr:legislatura ${input.legislature} .` : ""}
+}`;
+      const countResults = await snQuery(countQuery);
+      const lodCount = Number(flattenBindings(countResults)[0]?.count ?? 0);
+
+      // Se il LOD ha risultati, restituiamo il conteggio LOD (è la fonte primaria).
+      if (lodCount > 0) {
+        return {
+          rows: [{ source: "lod", count: String(lodCount) }],
+          columns: countColumns,
+        };
+      }
+
+      // LOD vuoto: se c'è ddlUri, il conteggio reale è nel bulk AKN.
+      if (input.ddlUri) {
+        const legislature = input.legislature
+          ? String(input.legislature)
+          : await ddlLegislature(input.ddlUri);
+        if (!legislature) {
+          return {
+            rows: [{ source: "lod", count: "0" }],
+            columns: countColumns,
+            hint:
+              "Nessun emendamento nel LOD e legislatura del DDL non determinabile per il conteggio AKN. " +
+              "Ripetere indicando la legislatura (parametro legislature, es. 19).",
+          };
+        }
+        const attoPath = aknAttoPath(input.ddlUri, legislature);
+        const aula = await listAknDir(`${attoPath}/emend`);
+        const comm = await listAknDir(`${attoPath}/emendc`);
+        const aknTotal = aula.totalCount + comm.totalCount;
+        return {
+          rows: [{ source: "akn", count: String(aknTotal) }],
+          columns: countColumns,
+        };
+      }
+
+      // Senza ddlUri e LOD vuoto: il conteggio è zero.
+      return {
+        rows: [{ source: "lod", count: "0" }],
+        columns: countColumns,
+      };
+    }
+
     if (input.withProponents && input.limit > WITH_PROPONENTS_MAX_LIMIT) {
       throw new Error(
         `withProponents fa un fetch HTTP per ogni emendamento: con limit=${input.limit} sarebbero ` +

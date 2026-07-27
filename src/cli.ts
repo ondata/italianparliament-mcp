@@ -1028,6 +1028,7 @@ const amendmentsList = defineCommand({
   args: {
     legislature: { type: "string", description: "Legislature number" },
     "ddl-uri": { type: "string", description: "Filter amendments to a specific bill (Senato ddl URI)" },
+    "count-only": { type: "boolean", description: "Return only the total count (column count)" },
     "with-proponents": {
       type: "boolean",
       default: false,
@@ -1042,6 +1043,7 @@ const amendmentsList = defineCommand({
     const result = await runTool(amendmentsTool, {
       legislature: parseIntFlag(args.legislature as string, "legislature"),
       ddlUri: (args["ddl-uri"] as string) || undefined,
+      countOnly: Boolean(args["count-only"]),
       withProponents: Boolean(args["with-proponents"]),
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,
       offset: Number(args.offset ?? 0),
