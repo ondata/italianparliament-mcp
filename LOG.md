@@ -6,6 +6,8 @@
 
 - **Skill CLI — ricetta "risolvi il nome ufficiale della commissione"** — dal report news-agent del 28/7: la ricerca della commissione Covid fallisce con la parola giornalistica ("covid" non compare mai nel label, il nome ufficiale usa «SARS-CoV-2»). La skill MCP aveva già l'avvertenza, quella CLI no: aggiunta regola d'oro con la pipeline `committees list … | grep -i <radice>` → nome/URI da passare a `audizioni`/`committee-sessions`/`committee-members`. Nessun tool nuovo: l'elenco è ~85 righe, il grep basta.
 
+- **Skill CLI+MCP — conversioni di DL: cercare col numero del decreto** — secondo lessico-gap dal report del 28/7: `bills --keyword "maturità"` dà zero perché il titolo formale è «Conversione in legge del decreto-legge 9 settembre 2025, n. 127…». Aggiunta regola d'oro in entrambe le skill: per le conversioni il numero del decreto (+ intervallo di date) è l'aggancio più affidabile. Verificato sul caso reale: `--keyword "127"` trova C.2662 al primo colpo.
+
 ## 2026-07-27
 
 - **v0.28.0** — release minor per `amendments --count-only` (sotto). Skill CLI e MCP e README aggiornati con il flag e con la lista dei tool che accettano il conteggio; 43 tool invariati.
