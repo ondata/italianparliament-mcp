@@ -2,6 +2,10 @@
 
 > I riferimenti a `docs/note-gestori-lod/` e `docs/campagna-parlamento-aperto/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati e materiali di campagna, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione.
 
+## 2026-07-28
+
+- **Skill CLI — ricetta "risolvi il nome ufficiale della commissione"** — dal report news-agent del 28/7: la ricerca della commissione Covid fallisce con la parola giornalistica ("covid" non compare mai nel label, il nome ufficiale usa «SARS-CoV-2»). La skill MCP aveva già l'avvertenza, quella CLI no: aggiunta regola d'oro con la pipeline `committees list … | grep -i <radice>` → nome/URI da passare a `audizioni`/`committee-sessions`/`committee-members`. Nessun tool nuovo: l'elenco è ~85 righe, il grep basta.
+
 ## 2026-07-27
 
 - **v0.28.0** — release minor per `amendments --count-only` (sotto). Skill CLI e MCP e README aggiornati con il flag e con la lista dei tool che accettano il conteggio; 43 tool invariati.
