@@ -45,3 +45,13 @@ Il dettaglio tecnico estratto da ogni scambio è documentato nella pagina wiki p
 | — | Borruso → Webmaster | Segnala che le votazioni d'Assemblea sui principali decreti COVID (Cura Italia S.1766, Liquidità S.1829, decreto lockdown S.1811, Rilancio S.1874) risultano assenti dal grafo tra marzo e luglio 2020, pur essendo avvenute: aprile 2020 ha 1 sola votazione contro le 70-79 dei mesi adiacenti; la finestra 14-21 maggio 2020 (voto finale/fiducia sul decreto lockdown) ha solo la questione pregiudiziale, nessun voto finale. Query di verifica allegata (conteggio SPARQL sulla finestra 14-21/5/2020, risultato: 1). **Contenuto tecnico integrale → punto 1 di [note-gestori-lod/senato-webmaster.md](../../note-gestori-lod/senato-webmaster.md).** Issue collegata: [#36](https://github.com/ondata/italianparliament-mcp/issues/36). |
 
 *Prossimo passo: inviare la bozza in [note-gestori-lod/senato-webmaster-voti-covid.md](../../note-gestori-lod/senato-webmaster-voti-covid.md).*
+
+# Thread 4 — Perimetro di `osr:Votazione`: richiesta di conferma sull'alzata di mano
+
+**Stato: bozza pronta, non ancora inviata.**
+
+| Data | Da → A | Oggetto |
+|------|--------|---------|
+| — | Borruso → Webmaster | Richiesta di **conferma**, non segnalazione: chiede se `osr:Votazione` abbia lo stesso perimetro delle pagine "Votazione" del sito (sole votazioni con rilevazione dei voti, escluse le deliberazioni per alzata di mano ex art. 113 c.2 Reg.), e se esista un'indicazione di quanto pesi la quota non rilevata. La seconda domanda ha la ricaduta pratica: ogni indicatore costruito contando `osr:Votazione` (es. la partecipazione alle votazioni) ha per denominatore le sole votazioni rilevate, senza che chi riusa il dato possa accorgersene. Esempi allegati: seduta 333 del 24/7/2025 (articoli del DDL 1566 assenti, voto finale presente) e 26/11/2025 (DDL 1714 assente). **Contenuto tecnico integrale → [Voto per alzata di mano](voto-alzata-di-mano.md).** |
+
+*Prossimo passo: inviare la bozza in [note-gestori-lod/senato-webmaster-alzata-di-mano.md](../../note-gestori-lod/senato-webmaster-alzata-di-mano.md).*

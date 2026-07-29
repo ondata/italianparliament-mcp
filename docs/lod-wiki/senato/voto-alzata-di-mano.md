@@ -57,9 +57,18 @@ bill-progress list --ddl-uri http://dati.senato.it/ddl/59715
 
 Regola operativa per l'orchestratore/LLM: se `senato-votes` è vuoto ma il provvedimento risulta approvato, **la domanda giusta cambia**. «Con quali numeri è passato?» non ha risposta — i numeri non esistono, e vanno cercati nel resoconto stenografico solo per sapere se c'è stato dibattito, non per un conteggio. «Quando e con quale esito è stato approvato?» ha risposta piena via `bill-progress`. **NON** dedurre né inventare un conteggio.
 
+# Stato della regola: verificata, non ancora confermata dalla fonte
+
+Attenzione al livello di certezza. Il disclaimer citato sopra riguarda le **pagine web** delle schede DDL; che il grafo RDF abbia lo stesso perimetro è un'**induzione** dai due casi qui documentati, non una dichiarazione del Senato sul LOD. Regge bene, ma finché non arriva una conferma va usata come regola di lavoro, non citata come specifica ufficiale.
+
 # Cosa vale la pena chiedere ai gestori
 
-Non i numeri: per un'alzata di mano non esistono e nessuno può pubblicarli. Il punto segnalabile è più sottile: oggi, nel LOD, una deliberazione per alzata di mano è **indistinguibile da una deliberazione mai avvenuta**. Modellare l'evento (data, oggetto, esito proclamato) anche senza conteggi renderebbe distinguibili i due casi, che per un riuso automatico sono opposti. È materiale da proporre come domanda, non come segnalazione di bug — la fonte qui si comporta esattamente come dichiara.
+Non i numeri: per un'alzata di mano non esistono e nessuno può pubblicarli. Nemmeno l'esito, che è già ricostruibile dall'iter. Restano due domande che solo la fonte può chiudere, ed è una richiesta di **conferma**, non una segnalazione di anomalia — qui il dato si comporta esattamente come dichiarato:
+
+1. **Il perimetro**: `osr:Votazione` copre davvero le sole votazioni con rilevazione dei voti, come le pagine del sito? Serve a trasformare l'induzione qui sopra in regola documentata.
+2. **Il peso della quota non rilevata**, anche solo in ordine di grandezza. È la domanda con la ricaduta più concreta: qualunque indicatore costruito contando `osr:Votazione` — la partecipazione di un senatore alle votazioni che il tool `senato-attendance` aggrega, per esempio — ha per denominatore le sole votazioni rilevate, non le deliberazioni dell'Aula, e chi riusa il dato non ha modo di accorgersene. Quanto sia ampio lo scarto dall'esterno non è stimabile.
+
+Bozza pronta in `docs/note-gestori-lod/senato-webmaster-alzata-di-mano.md` (cartella non versionata).
 
 # Rapporto con le votazioni COVID 2020
 
