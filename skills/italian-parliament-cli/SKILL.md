@@ -127,6 +127,7 @@ Quando ricostruisci iter, voti o schede, il rischio è la **confabulazione su sc
 - **Aggancia gli atti per identificatore, non per keyword.** Il DDL Senato di un atto Camera va risolto per numero (`bill-progress --number … --branch S`), così non si confondono atti omonimi.
 - **Distingui "Dato" (da tool) da "Sintesi/interpretazione" (tua).** Le deduzioni (es. data di entrata in vigore calcolata, sigle di gruppo espanse) vanno dichiarate come tali.
 - **Cita per riga**: l'URL della votazione/atto/scheda accanto al dato, non un'unica fonte cumulativa in fondo.
+- **Senato: "non trovo il voto" spesso significa "quel voto non ha numeri".** L'Aula del Senato vota *normalmente* per alzata di mano (art. 113 c.2 del Regolamento) e quel voto non produce conteggi, quindi non esiste come votazione nel dato: `senato-votes` elenca le sole votazioni **elettroniche**, come dichiara senato.it. Se un provvedimento risulta approvato ma `senato-votes` è vuoto, **cambia domanda**: «con quali numeri è passato?» non ha risposta, «quando e con quale esito?» ce l'ha piena via `bill-progress list --ddl-uri <U>` (campi `status` e `status_date`). Non dedurre un conteggio, e non presentarlo come dato mancante o censurato. Eccezione: i voti finali su leggi costituzionali, elettorali, di delega, di bilancio e di conversione in materia di ordine pubblico sono **sempre** elettronici (art. 120 c.3) — lì un'assenza è davvero anomala.
 
 ## Tips
 
