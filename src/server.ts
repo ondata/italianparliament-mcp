@@ -47,7 +47,7 @@ import { toJsonl } from "./core/format.js";
 import { SparqlError } from "./core/client.js";
 import { ZodError } from "zod";
 import { formatZodError } from "./core/zod-error.js";
-import { withTruncationNotice } from "./core/truncation.js";
+import { withTruncationNotice, limitCeiling } from "./core/truncation.js";
 
 function describe(tool: Tool): string {
   return `${tool.description}\n\nExamples:\n${tool.examples
@@ -77,9 +77,12 @@ function makeHandler(tool: Tool) {
       // qui è il chokepoint unico che protegge tutti i tool da input non
       // conformi che finirebbero interpolati nelle query SPARQL.
       const parsed = tool.inputSchema.parse(input);
+      const { limit, offset } = parsed as { limit?: number; offset?: number };
       const result = withTruncationNotice(
         await tool.execute(parsed),
-        (parsed as { limit?: number }).limit,
+        limit,
+        offset,
+        limitCeiling(tool.inputSchema),
       );
       return {
         content: [

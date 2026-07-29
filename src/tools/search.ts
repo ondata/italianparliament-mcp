@@ -156,20 +156,25 @@ export const searchTool: Tool<typeof inputSchema> = {
   ],
   async execute(input) {
     const rows = [];
+    // `--limit` vale PER RAMO, non sul totale: con `--chamber both` l'output può
+    // arrivare al doppio. Il troncamento va quindi valutato ramo per ramo — su
+    // `rows.length >= limit` un totale di 100 su due rami da 50 sembrerebbe
+    // tagliato anche quando entrambe le ricerche sono complete.
+    let truncated = false;
     if (input.chamber === "camera" || input.chamber === "both") {
-      rows.push(
-        ...(await searchCamera(input.name, input.legislature, input.limit)),
-      );
+      const camera = await searchCamera(input.name, input.legislature, input.limit);
+      truncated ||= camera.length >= input.limit;
+      rows.push(...camera);
     }
     if (input.chamber === "senato" || input.chamber === "both") {
-      rows.push(
-        ...(await searchSenato(
-          input.name,
-          input.legislature,
-          input.activeOnly,
-          input.limit,
-        )),
+      const senato = await searchSenato(
+        input.name,
+        input.legislature,
+        input.activeOnly,
+        input.limit,
       );
+      truncated ||= senato.length >= input.limit;
+      rows.push(...senato);
     }
     // Ranking lato TS: match esatto cognome/token finale + preferenza per la
     // legislatura corrente (risolta dinamicamente dall'endpoint Camera).
@@ -180,7 +185,7 @@ export const searchTool: Tool<typeof inputSchema> = {
     rows.sort(
       (a, b) => scoreRow(b, input.name, currentLeg) - scoreRow(a, input.name, currentLeg),
     );
-    return { rows, columns };
+    return { rows, columns, truncated };
   },
 };
 

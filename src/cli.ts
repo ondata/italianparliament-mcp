@@ -50,7 +50,7 @@ import { ZodError } from "zod";
 import { formatZodError } from "./core/zod-error.js";
 import type { ToolResult } from "./tools/types.js";
 import { withEmptyHint } from "./core/empty-hint.js";
-import { withTruncationNotice } from "./core/truncation.js";
+import { withTruncationNotice, limitCeiling } from "./core/truncation.js";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json") as { version: string };
@@ -101,7 +101,8 @@ async function runTool(tool: { inputSchema: { parse(i: unknown): any }; execute(
   const result = withEmptyHint(await tool.execute(parsed), tool.emptyHint);
   // Il limite effettivo è quello VALIDATO dallo schema, non il flag grezzo:
   // include i default dei tool (100, 200, 700...) e le coercizioni.
-  return withTruncationNotice(result, (parsed as { limit?: number }).limit);
+  const { limit, offset } = parsed as { limit?: number; offset?: number };
+  return withTruncationNotice(result, limit, offset, limitCeiling(tool.inputSchema));
 }
 
 function parseFormat(raw: string): Format {
