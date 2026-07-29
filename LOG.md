@@ -2,6 +2,10 @@
 
 > I riferimenti a `docs/note-gestori-lod/` e `docs/campagna-parlamento-aperto/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati e materiali di campagna, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione.
 
+## 2026-07-29 — release v0.29.0
+
+- **v0.29.0 rilasciata** — avviso di troncamento su tutti i tool (PR #86) e documentazione del voto per alzata di mano al Senato. Minor e non patch perché l'avviso non ripara un comportamento previsto che si era rotto: aggiunge un output che prima non esisteva e cambia il modo in cui si legge un elenco. Due voci nuove in "Note sui dati" del README: elenchi troncati e voti per alzata di mano.
+
 ## 2026-07-29
 
 - **Wiki LOD — il voto per alzata di mano non esiste come `osr:Votazione`, e non è un buco** — dal report news-agent del 29/7 (gap #2, decreto flussi assente da `senato-votes`). Verificato che non è una lacuna della fonte: l'art. 113 c.2 del Regolamento fa dell'alzata di mano la modalità *ordinaria* dell'Aula, quel voto non produce conteggi, e senato.it dichiara in chiaro che le pagine "Votazione" elencano le sole votazioni *elettroniche*. Prova decisiva: seduta 333 del 24/7/2025, dove sullo stesso DDL 1566 convivono 7 voti per alzata di mano (assenti) e il voto finale elettronico ex art. 120 c.3 (presente). L'esito resta leggibile da `bill-progress` (`appr. definit. Legge`, con data). Nuova pagina `docs/lod-wiki/senato/voto-alzata-di-mano.md`, più rimandi da `votazione-tipo-semantico` e `vuoto-votazioni-diagnosi` (il "terzo stato" della sonda va ora letto prima come modalità, poi come buco). Niente da segnalare ai gestori come bug: resta una domanda legittima, cioè che oggi una delibera per alzata di mano è indistinguibile da una mai avvenuta.
