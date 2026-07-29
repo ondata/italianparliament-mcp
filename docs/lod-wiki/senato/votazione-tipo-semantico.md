@@ -21,6 +21,8 @@ timestamp: 2026-07-11
 
 Filtrare `--type` o `osr:tipoVotazione` per "finale" o "fiducia" restituisce **0 righe** — non perché il dato manchi, ma perché è la proprietà sbagliata.
 
+L'enumerazione è **esaustiva delle votazioni esistenti nel LOD, non delle deliberazioni dell'Aula**: manca "alzata di mano", che al Senato è la modalità *ordinaria* (art. 113 c.2 Reg.) e non produce alcuna `osr:Votazione` perché non produce conteggi. Vedi [[voto-alzata-di-mano]] — è la spiegazione più frequente di un voto che "non si trova".
+
 Nota Virtuoso: il literal di `osr:tipoVotazione` è tipizzato `xsd:string`, quindi il match con un literal **semplice** (`osr:tipoVotazione "elettronica"`) torna **vuoto** — è un problema di uguaglianza di *term* (`"elettronica"` ≠ `"elettronica"^^xsd:string`). Due forme che funzionano (verificato leg. 19: 7821 vs 0): tipizzare il literal nel triple pattern — `osr:tipoVotazione "elettronica"^^xsd:string` — oppure filtrare con `FILTER(STR(?t) = "elettronica")` (cfr. [[trappole]]).
 
 # Dettaglio nominativo per tipo (roll call): la scelta individuale c'è solo per i voti di merito

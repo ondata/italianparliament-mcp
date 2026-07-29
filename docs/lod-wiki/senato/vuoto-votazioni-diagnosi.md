@@ -44,9 +44,13 @@ Il range filter su `?d` è anche la forma performante su Virtuoso Senato (meglio
 |---|---|---|---|
 | `0` | `0` | Nessuna seduta d'Assemblea nell'intervallo | Probabilmente non si è votato in Aula (o le sedute non sono ancora caricate). Verifica le date. |
 | `>0` | `0` | Le sedute esistono ma **nessuna** votazione è collegata | **Buco della fonte "totale"** — le votazioni non sono nel LOD. Un vuoto qui NON significa che non si sia votato. Vedi [votazioni-covid-2020.md](votazioni-covid-2020.md). |
-| `>0` | `>0` | Ci sono votazioni, ma nessuna che matcha i filtri (fiducia/keyword) | **Dato pieno** → è il filtro. Oppure **buco "chirurgico"**: la singola votazione cercata (es. una fiducia) manca pur essendoci le altre della seduta. |
+| `>0` | `>0` | Ci sono votazioni, ma nessuna che matcha i filtri (fiducia/keyword) | **Dato pieno** → è il filtro. Oppure **voto per alzata di mano** (spiegazione più frequente, e **non** un buco: vedi sotto). Oppure **buco "chirurgico"**: la singola votazione cercata (es. una fiducia) manca pur essendoci le altre della seduta. |
 
 Il punto chiave: gli stati si distinguono **senza sapere in anticipo** quale data cade in quale buco. La sonda lo rileva per costruzione, quindi vale anche per date future non ancora note.
+
+# Prima di gridare al buco: il terzo stato spesso non è un buco
+
+Nel terzo stato (`sedute>0, votazioni>0`, target assente) l'ipotesi da escludere **per prima** non è il buco chirurgico ma la modalità di voto: al Senato l'Assemblea vota *normalmente* per alzata di mano, e un voto per alzata di mano non genera alcuna `osr:Votazione` perché non produce conteggi. Vedi [[voto-alzata-di-mano]], che documenta una seduta (24/7/2025) in cui voti presenti e voti assenti convivono e a distinguerli è solo la modalità. Il buco chirurgico del Milleproroghe qui sotto resta valido — è una **fiducia**, che per appello nominale i conteggi li produce — ma è il caso raro, non quello tipico.
 
 # Esempio di buco "totale" — 9 aprile 2020 (Cura Italia)
 

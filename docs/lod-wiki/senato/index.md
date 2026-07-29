@@ -21,6 +21,7 @@ Endpoint SPARQL: `https://dati.senato.it/sparql`. Ontologia OSR (namespace `http
 
 # Diagnostica
 
+* [Voto per alzata di mano — non esiste come osr:Votazione](voto-alzata-di-mano.md) - l'Assemblea vota *normalmente* per alzata di mano (art. 113 c.2 Reg.) e quel voto non produce conteggi, quindi nessuna `osr:Votazione`: il LOD enumera le sole votazioni **elettroniche**, come dichiarano le pagine di senato.it. Un voto "che non si trova" di solito è questo, non un buco. L'esito resta leggibile dall'iter (`bill-progress`).
 * [Interpretare un vuoto di senato-votes — i tre stati](vuoto-votazioni-diagnosi.md) - sondando sedute (`osr:SedutaAssemblea`) vs votazioni si distinguono nessuna-seduta / buco "totale" (sedute senza voti) / buco "chirurgico" (voti presenti ma il target — es. una fiducia — manca, come il Milleproroghe del 26/2/2020). Metodo che l'`emptyHint` di `senato-votes` sonda al volo.
 
 # Fonti complementari
