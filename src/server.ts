@@ -47,6 +47,7 @@ import { toJsonl } from "./core/format.js";
 import { SparqlError } from "./core/client.js";
 import { ZodError } from "zod";
 import { formatZodError } from "./core/zod-error.js";
+import { withTruncationNotice } from "./core/truncation.js";
 
 function describe(tool: Tool): string {
   return `${tool.description}\n\nExamples:\n${tool.examples
@@ -59,7 +60,12 @@ const DEFAULT_EMPTY =
 
 function formatResult(result: ToolResult, emptyHint?: string): string {
   if (result.rows.length === 0) return result.hint ?? emptyHint ?? DEFAULT_EMPTY;
-  return toJsonl(result.rows);
+  // L'avviso di troncamento va accodato al JSONL, non sostituito: qui le righe
+  // ci sono, manca solo la coda dell'intervallo. Il lettore è un LLM, che senza
+  // questa riga presenterebbe un elenco tagliato come se fosse completo.
+  return result.notice
+    ? `${toJsonl(result.rows)}\n${result.notice}`
+    : toJsonl(result.rows);
 }
 
 function makeHandler(tool: Tool) {
@@ -71,7 +77,10 @@ function makeHandler(tool: Tool) {
       // qui è il chokepoint unico che protegge tutti i tool da input non
       // conformi che finirebbero interpolati nelle query SPARQL.
       const parsed = tool.inputSchema.parse(input);
-      const result = await tool.execute(parsed);
+      const result = withTruncationNotice(
+        await tool.execute(parsed),
+        (parsed as { limit?: number }).limit,
+      );
       return {
         content: [
           { type: "text" as const, text: formatResult(result, tool.emptyHint) },

@@ -313,7 +313,10 @@ ORDER BY DESC(?date)`;
       }
     }
     await inheritBillFromSession(deduped);
-    return { rows: deduped, columns };
+    // Il troncamento va misurato PRIMA del dedup: se la query ha riempito il
+    // LIMIT ma le righe duplicate sono state fuse, `deduped.length < limit` e
+    // il troncamento passerebbe inosservato (cfr. core/truncation.ts).
+    return { rows: deduped, columns, truncated: rows.length >= input.limit };
   },
 };
 

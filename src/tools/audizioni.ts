@@ -288,6 +288,8 @@ export const audizioniTool: Tool<typeof inputSchema> = {
         "Nessuna audizione trovata per i criteri indicati (prova a variare --committee-name, --keyword, l'intervallo date o --legislature).",
       );
     }
-    return { rows: filtered, columns };
+    // Come in votes: in leg. 14 il filtro date gira lato TS DOPO il LIMIT,
+    // quindi il troncamento si misura sulle righe grezze (cfr. core/truncation.ts).
+    return { rows: filtered, columns, truncated: rows.length >= input.limit };
   },
 };
