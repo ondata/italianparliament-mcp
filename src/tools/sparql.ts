@@ -82,6 +82,11 @@ export const sparqlTool: Tool<typeof inputSchema> = {
       return { rows: [], columns: [] };
     }
     const columns = Object.keys(raw[0]);
-    return { rows: raw, columns };
+    // Se la query porta già il suo LIMIT, `--limit` non è stato applicato: il
+    // confronto `rows.length >= limit` parlerebbe di un taglio che non c'è
+    // (o citerebbe il numero sbagliato). Il troncamento lo dichiara chi sa se
+    // il limite è stato davvero iniettato (cfr. core/truncation.ts).
+    const injected = limitedQuery !== input.query;
+    return { rows: raw, columns, truncated: injected && raw.length >= input.limit };
   },
 };

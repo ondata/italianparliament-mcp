@@ -50,6 +50,7 @@ import { ZodError } from "zod";
 import { formatZodError } from "./core/zod-error.js";
 import type { ToolResult } from "./tools/types.js";
 import { withEmptyHint } from "./core/empty-hint.js";
+import { withTruncationNotice, limitCeiling } from "./core/truncation.js";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json") as { version: string };
@@ -73,6 +74,11 @@ function emit(result: ToolResult, format: Format): void {
   if (result.rows.length === 0 && result.hint) {
     process.stderr.write(result.hint + "\n");
   }
+  // Avviso di troncamento: caso opposto (risultato pieno), stessa regola di
+  // igiene — su stderr, così `| jq` e `> out.csv` restano intatti.
+  if (result.notice) {
+    process.stderr.write(result.notice + "\n");
+  }
 }
 
 // Valida l'input con lo schema Zod del tool PRIMA di eseguirlo: così gli enum
@@ -92,7 +98,11 @@ async function runTool(tool: { inputSchema: { parse(i: unknown): any }; execute(
   // Fallback allineato al path MCP (result.hint ?? emptyHint): su risultato
   // vuoto senza hint dinamico, usa l'emptyHint statico del tool così emit()
   // lo scrive su stderr.
-  return withEmptyHint(await tool.execute(parsed), tool.emptyHint);
+  const result = withEmptyHint(await tool.execute(parsed), tool.emptyHint);
+  // Il limite effettivo è quello VALIDATO dallo schema, non il flag grezzo:
+  // include i default dei tool (100, 200, 700...) e le coercizioni.
+  const { limit, offset } = parsed as { limit?: number; offset?: number };
+  return withTruncationNotice(result, limit, offset, limitCeiling(tool.inputSchema));
 }
 
 function parseFormat(raw: string): Format {
