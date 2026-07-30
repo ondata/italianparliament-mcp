@@ -35,25 +35,53 @@ describe("buildFreshnessNote", () => {
     expect(note?.text).toContain("non è ancora coperta da un caricamento");
   });
 
-  it("esclude la latenza quando la finestra è precedente al lotto", () => {
+  it("esclude la latenza quando la finestra è interamente precedente al lotto", () => {
     const note = buildFreshnessNote("2026-07-28T13:16:06Z", {
       areaLabel: area,
       dateFrom: "2026-07-20",
       dateTo: "2026-07-22",
     });
     expect(note?.covered).toBe(true);
-    expect(note?.text).toContain("è coperta");
+    expect(note?.text).toContain("interamente coperta");
     expect(note?.text).toContain("NON si spiega con il ritardo");
   });
 
-  // Con la sola dateTo la finestra è aperta a sinistra: il confronto usa
-  // comunque l'unico estremo disponibile.
-  it("usa dateTo quando dateFrom manca", () => {
+  // Guardare solo dateFrom dichiarerebbe coperta tutta la finestra, escludendo a
+  // torto la latenza per la sua coda; guardare solo dateTo farebbe l'errore
+  // opposto su un intervallo storico lunghissimo. Il caso a cavallo va detto
+  // per quello che è (review Greptile P1 su PR #87).
+  it("riconosce la finestra a cavallo del lotto: coperta solo in parte", () => {
+    const note = buildFreshnessNote("2026-07-28T13:16:06Z", {
+      areaLabel: area,
+      dateFrom: "2026-06-01",
+      dateTo: "2026-07-31",
+    });
+    expect(note?.covered).toBe(false);
+    expect(note?.text).toContain("coperta solo fino al 2026-07-28");
+    expect(note?.text).toContain("per i giorni successivi");
+  });
+
+  // Finestra aperta a destra: se comincia prima del lotto include per
+  // costruzione anche i giorni non caricati.
+  it("tratta una finestra senza dateTo come aperta oltre il lotto", () => {
+    const note = buildFreshnessNote("2026-07-28T13:16:06Z", {
+      areaLabel: area,
+      dateFrom: "2026-07-01",
+    });
+    expect(note?.covered).toBe(false);
+    expect(note?.text).toContain("va dal 2026-07-01 in avanti");
+  });
+
+  // Con la sola dateTo la finestra è aperta a sinistra: il messaggio deve dire
+  // "fino al", non "parte dal" (review Copilot su PR #87).
+  it("con la sola dateTo parla della fine della finestra, non dell'inizio", () => {
     const note = buildFreshnessNote("2026-06-18T13:34:35Z", {
       areaLabel: "l'area dei lavori d'Aula",
       dateTo: "2026-07-01",
     });
     expect(note?.covered).toBe(false);
+    expect(note?.text).toContain("va fino al 2026-07-01");
+    expect(note?.text).not.toContain("parte dal");
   });
 
   // Le aree divergono: al 2026-07-29 gli atti erano al 28/07 e le sedute al

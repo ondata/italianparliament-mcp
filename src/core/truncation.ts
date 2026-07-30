@@ -112,5 +112,11 @@ export function withTruncationNotice(
   const truncated = result.truncated ?? result.rows.length >= limit;
   if (!truncated) return result;
   const from = typeof offset === "number" && offset > 0 ? offset : 0;
-  return { ...result, notice: truncationNotice(limit, from, maxLimit) };
+  // Il notice del tool (se c'è) NON va sostituito: è l'unica spiegazione di che
+  // righe siano quelle. Caso reale: `bill-progress --number 2669 --branch S
+  // --limit 2` restituisce le due fasi del DDL — esattamente `limit`, quindi
+  // "troncato" — e senza concatenazione l'utente vedrebbe righe C.2669 dopo aver
+  // chiesto il ramo S, senza sapere che il numero cambia tra le camere.
+  const own = result.notice ? `${result.notice}\n` : "";
+  return { ...result, notice: `${own}${truncationNotice(limit, from, maxLimit)}` };
 }

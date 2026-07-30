@@ -93,17 +93,45 @@ export function buildFreshnessNote(
   // Il confronto è sul giorno del lotto, non sull'istante: un lotto caricato
   // il 28/07 contiene gli atti fino al 27/07, quindi chiedere il 28 o dopo
   // cade già nella zona ambigua.
-  const windowStart = opts.dateFrom ?? opts.dateTo;
-  const beyond = !!windowStart && windowStart >= loadDay;
-  if (beyond) {
+  //
+  // Servono TRE esiti, non due: guardare solo `dateFrom` dichiara coperta anche
+  // una finestra 01/06→29/07 che oltrepassa il lotto (e quindi esclude a torto
+  // la latenza per la sua coda); guardare solo `dateTo` fa l'errore opposto,
+  // dichiarando non coperta una finestra 2020→oggi di cui il 99% è caricato. Il
+  // caso a cavallo del lotto è reale e va detto per quello che è.
+  const start = opts.dateFrom;
+  const end = opts.dateTo;
+  const startsBeyond = !!start && start >= loadDay;
+  // Senza `dateTo` la finestra è aperta a destra: se comincia prima del lotto,
+  // include per costruzione anche i giorni non ancora caricati.
+  const endsBeyond = end ? end >= loadDay : true;
+  const area = `${capitalize(opts.areaLabel)} del LOD Camera risulta caricata fino al ${loadDay}`;
+  const prefix = `${area} (ultimo lotto: ${lastLoad}).`;
+  const nonConcludere =
+    "questo vuoto può essere dato non ancora pubblicato, NON assenza dell'atto. Verifica alla fonte (camera.it/senato.it) prima di concludere, e non dedurre che non sia avvenuto nulla.";
+
+  if (startsBeyond) {
     return {
       covered: false,
-      text: `${capitalize(opts.areaLabel)} del LOD Camera risulta caricata fino al ${loadDay} (ultimo lotto: ${lastLoad}). La finestra richiesta parte dal ${windowStart}, quindi non è ancora coperta da un caricamento: questo vuoto può essere dato non ancora pubblicato, NON assenza dell'atto. Verifica alla fonte (camera.it/senato.it) prima di concludere, e non dedurre che non sia avvenuto nulla.`,
+      text: `${prefix} La finestra richiesta parte dal ${start}, quindi non è ancora coperta da un caricamento: ${nonConcludere}`,
+    };
+  }
+  if (endsBeyond) {
+    // A cavallo del lotto: parte della finestra è caricata, parte no. `covered:
+    // false` perché la latenza resta una spiegazione possibile del vuoto.
+    const estremi = start
+      ? end
+        ? `dal ${start} al ${end}`
+        : `dal ${start} in avanti`
+      : `fino al ${end}`;
+    return {
+      covered: false,
+      text: `${prefix} La finestra richiesta va ${estremi}, quindi è coperta solo fino al ${loadDay}: per i giorni successivi ${nonConcludere}`,
     };
   }
   return {
     covered: true,
-    text: `${capitalize(opts.areaLabel)} del LOD Camera risulta caricata fino al ${loadDay}, quindi la finestra richiesta è coperta: il vuoto NON si spiega con il ritardo di pubblicazione. Cerca la causa nei filtri attivi o in un'assenza strutturale del dato, non nella latenza.`,
+    text: `${area}, quindi la finestra richiesta è interamente coperta: il vuoto NON si spiega con il ritardo di pubblicazione. Cerca la causa nei filtri attivi o in un'assenza strutturale del dato, non nella latenza.`,
   };
 }
 

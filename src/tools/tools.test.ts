@@ -321,7 +321,7 @@ describe("Camera tools", () => {
     });
     expect(result.rows.length).toBe(0);
     expect(result.hint).not.toMatch(/giorno PRIMA/);
-    expect(result.hint).toMatch(/è coperta/);
+    expect(result.hint).toMatch(/interamente coperta/);
   }, 30000);
 
   it("speeches: returns speeches for legislature 19", async () => {

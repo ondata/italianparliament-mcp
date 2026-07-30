@@ -698,10 +698,9 @@ const aicList = defineCommand({
     format: { type: "string", default: "csv", description: "csv | jsonl" },
   },
   async run({ args }) {
-    const chamber = (args.chamber as string) || undefined;
-    if (chamber !== undefined && chamber !== "camera" && chamber !== "senato") {
-      throw new Error(`Invalid --chamber "${chamber}". Expected: camera, senato.`);
-    }
+    // Nessuna validazione manuale del valore: `runTool` lo passa allo schema Zod
+    // del tool, che è un enum, e `formatZodError` produce già il messaggio in
+    // stile flag ("--chamber: valore non valido …. Ammessi: …").
     const result = await runTool(aicTool, {
       countOnly: args["count-only"] === true,
       legislature: parseIntFlag(args.legislature as string, "legislature"),
@@ -709,7 +708,7 @@ const aicList = defineCommand({
       primaryOnly: args["primary-only"] === true,
       keyword: (args.keyword as string) || undefined,
       type: (args.type as string) || undefined,
-      chamber,
+      chamber: (args.chamber as string) || undefined,
       dateFrom: (args["date-from"] as string) || undefined,
       dateTo: (args["date-to"] as string) || undefined,
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,
