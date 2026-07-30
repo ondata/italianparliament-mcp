@@ -3,6 +3,10 @@ import { cdQuery, snQuery } from "../core/client.js";
 import { OCD_PREFIXES, OSR_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
 import { currentLegislature } from "../core/current-legislature.js";
+import {
+  excludeInterventoNull,
+  SENATO_INTERVENTO_NULL,
+} from "../core/senato-intervento-null.js";
 import type { Tool } from "./types.js";
 
 const RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
@@ -226,6 +230,28 @@ LIMIT 1`;
   return { uri: raw[0].commissione ?? "", label: raw[0].label ?? "" };
 }
 
+/**
+ * Sonda per qualificare un vuoto: l'atto è collegato a interventi, ma solo
+ * tramite la risorsa senza identità? In quel caso la trattazione risulta
+ * avvenuta e a mancare è l'aggancio alla seduta, non l'esame. Eseguita SOLO sul
+ * risultato vuoto, per non aggiungere una query alle chiamate che hanno righe.
+ */
+async function hasOnlyNullIntervento(ddlUri: string): Promise<boolean> {
+  const query = `${OSR_PREFIXES}
+SELECT (COUNT(*) AS ?n) WHERE {
+  <${SENATO_INTERVENTO_NULL}> osr:oggetto ?o .
+  ?o osr:relativoA <${ddlUri}> .
+}`;
+  try {
+    const n = flattenBindings(await snQuery(query))[0]?.n ?? "0";
+    return Number(n) > 0;
+  } catch {
+    // La sonda è accessoria: se l'endpoint non risponde si ripiega sul
+    // messaggio generico invece di far fallire il comando.
+    return false;
+  }
+}
+
 /** Modalità "iter di un DDL": sedute in cui il DDL è stato trattato (query originale). */
 async function querySenatoByDdl(
   ddlUri: string,
@@ -235,6 +261,7 @@ async function querySenatoByDdl(
 SELECT ?seduta ?date ?tipo ?comm (MIN(?tb) AS ?commName) (COUNT(DISTINCT ?int) AS ?interventi)
 WHERE {
   ?int a osr:Intervento ; osr:oggetto ?o ; osr:seduta ?seduta .
+  ${excludeInterventoNull()}
   ?o osr:relativoA <${ddlUri}> .
   ?seduta osr:dataSeduta ?date .
   OPTIONAL { ?seduta osr:tipoSeduta ?tipo }
@@ -290,7 +317,7 @@ WHERE {
           osr:dataSeduta ?date .
   OPTIONAL { ?seduta osr:tipoSeduta ?tipo }
   OPTIONAL { <${commissioneUri}> osr:titoloBreve ?tb }
-  OPTIONAL { ?int a osr:Intervento ; osr:seduta ?seduta . }
+  OPTIONAL { ?int a osr:Intervento ; osr:seduta ?seduta . ${excludeInterventoNull()} }
   ${filters.join("\n  ")}
 }
 GROUP BY ?seduta ?date ?tipo
@@ -318,6 +345,7 @@ async function countSenatoByDdl(ddlUri: string): Promise<string> {
 SELECT (COUNT(DISTINCT ?seduta) AS ?count)
 WHERE {
   ?int a osr:Intervento ; osr:oggetto ?o ; osr:seduta ?seduta .
+  ${excludeInterventoNull()}
   ?o osr:relativoA <${ddlUri}> .
 }`;
   const results = await snQuery(query);
@@ -376,9 +404,28 @@ export const committeeSessionsTool: Tool<typeof inputSchema> = {
     if (input.ddlUri) {
       if (input.countOnly) {
         const c = await countSenatoByDdl(input.ddlUri);
+        // Uno zero muto qui è pericoloso come il vuoto dell'elenco: va letto
+        // come "nessuna seduta ricostruibile", non come "non esaminato". Il
+        // messaggio va in `notice` e non in `hint` perché una riga di conteggio
+        // non è un risultato vuoto (`withTruncationNotice` lascia intatto il
+        // notice sui risultati di conteggio).
+        const notice =
+          c === "0" && (await hasOnlyNullIntervento(input.ddlUri))
+            ? `NOTA: zero sedute ricostruibili, ma NON significa che l'atto non sia stato esaminato: l'unico intervento che il LOD collega a questo atto è la risorsa senza identità <${SENATO_INTERVENTO_NULL}>, quindi la trattazione risulta avvenuta e a mancare è l'aggancio alla seduta. Verifica sul resoconto o sul bollettino delle Giunte e Commissioni di senato.it.`
+            : undefined;
         return {
           rows: [{ chamber: "senato", count: c }],
           columns: ["chamber", "count"],
+          // Un aggregato non è una pagina di elenco, ma la guardia di
+          // `withTruncationNotice` riconosce i conteggi solo se hanno la sola
+          // colonna `count`: qui ce n'è anche `chamber`, quindi con `--limit 1`
+          // la riga singola farebbe scattare `rows.length >= limit` e comparire
+          // un avviso di troncamento su un totale esatto. Non si può
+          // generalizzare la guardia a "ha una colonna count", perché `rank` e
+          // `group-rank` sono elenchi che quella colonna ce l'hanno e lì
+          // l'avviso serve: la dichiarazione spetta al tool.
+          truncated: false,
+          ...(notice ? { notice } : {}),
         };
       }
       const rows = await querySenatoByDdl(input.ddlUri, {
@@ -386,8 +433,15 @@ export const committeeSessionsTool: Tool<typeof inputSchema> = {
         offset: input.offset,
       });
       if (rows.length === 0) {
+        // Il vuoto ha due cause opposte e va distinto, altrimenti si conclude
+        // "non è ancora stato esaminato" su un atto che l'esame l'ha avuto: se
+        // l'unico intervento collegato è il nodo senza identità, la trattazione
+        // risulta avvenuta ma la seduta non è ricostruibile dal grafo.
+        const onlyNull = await hasOnlyNullIntervento(input.ddlUri);
         throw new Error(
-          `Nessuna seduta di commissione trovata per il DDL: ${input.ddlUri} (potrebbe non essere ancora stato esaminato in commissione).`,
+          onlyNull
+            ? `Nessuna seduta ricostruibile per ${input.ddlUri}, ma NON significa che non sia stato esaminato: nel LOD l'unico intervento collegato a questo atto è la risorsa senza identità <${SENATO_INTERVENTO_NULL}>, in cui la fonte fa collassare gli interventi privi di id. La trattazione risulta quindi avvenuta, mentre la seduta in cui è avvenuta non è deducibile dal grafo. Non concludere che l'esame non ci sia stato: verifica sul resoconto o sul bollettino delle Giunte e Commissioni di senato.it, oppure segui la commissione con --committee-uri/--committee-name e le date.`
+            : `Nessuna seduta di commissione trovata per il DDL: ${input.ddlUri} (potrebbe non essere ancora stato esaminato in commissione).`,
         );
       }
       return { rows, columns };
@@ -462,7 +516,9 @@ export const committeeSessionsTool: Tool<typeof inputSchema> = {
           "Nessuna commissione risolta per il conteggio (verifica --committee-uri / --committee-name e --chamber).",
         );
       }
-      return { rows: countRows, columns: ["chamber", "count"] };
+      // `truncated: false` per la stessa ragione del ramo --ddl-uri: è un
+      // aggregato (una riga per ramo), non una pagina di elenco.
+      return { rows: countRows, columns: ["chamber", "count"], truncated: false };
     }
 
     if ((chamber === "camera" || chamber === "both") && camUri) {
