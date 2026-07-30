@@ -230,10 +230,12 @@ describe("Camera tools", () => {
     expect(Number(result.rows[0].count)).toBeGreaterThan(400);
   }, 30000);
 
-  it("votes: empty result on a recent window surfaces the Camera-staleness hint (and not on historical)", async () => {
-    // Data futura prossima: nessun voto esiste ancora (vuoto garantito) ma la
-    // finestra è "recente" → deve comparire l'hint di freschezza del LOD Camera,
-    // così il vuoto non è muto. Su una finestra storica l'hint NON deve comparire.
+  it("votes: empty result qualifies the window against the last load (recent vs historical)", async () => {
+    // Data futura prossima: nessun voto esiste ancora (vuoto garantito) e la
+    // finestra è oltre l'ultimo lotto caricato → il vuoto va attribuito al
+    // ritardo di pubblicazione. Su una finestra storica il verdetto è l'opposto:
+    // l'area è già stata caricata, quindi la causa NON è la latenza (prima di
+    // core/freshness.ts qui non compariva alcun hint).
     const soon = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
     const recent = await votesTool.execute({
       legislature: 19,
@@ -244,6 +246,7 @@ describe("Camera tools", () => {
     });
     expect(recent.rows.length).toBe(0);
     expect(recent.hint).toMatch(/LOD Camera/);
+    expect(recent.hint).toMatch(/non ancora pubblicato/);
 
     const historical = await votesTool.execute({
       legislature: 18,
@@ -253,7 +256,7 @@ describe("Camera tools", () => {
       offset: 0,
     });
     expect(historical.rows.length).toBe(0);
-    expect(historical.hint).toBeUndefined();
+    expect(historical.hint).toMatch(/NON si spiega con il ritardo/);
   }, 30000);
 
   it("votes: --confidence-vote empty on the press-reported date surfaces the day-before hint (DL Rilancio 2020)", async () => {
@@ -304,8 +307,10 @@ describe("Camera tools", () => {
   it("votes: --confidence-vote on a wide historical date range does not surface the gg-1 hint (review fix)", async () => {
     // Il gg-1 è specifico del pattern "singolo giorno sbagliato": su un
     // intervallo ampio "in questa data" e "riprova gg-1" sarebbero fuorvianti,
-    // quindi l'hint non deve comparire (nessuno staleness hint qui: intervallo
-    // storico, non recente).
+    // quindi non deve comparire. Su un intervallo storico la nota di freschezza
+    // ora dice l'opposto dello staleness: la finestra è già stata caricata,
+    // quindi il vuoto NON si spiega con il ritardo di pubblicazione (prima di
+    // core/freshness.ts qui non compariva alcun hint).
     const result = await votesTool.execute({
       legislature: 18,
       dateFrom: "2019-06-01",
@@ -315,7 +320,8 @@ describe("Camera tools", () => {
       offset: 0,
     });
     expect(result.rows.length).toBe(0);
-    expect(result.hint).toBeUndefined();
+    expect(result.hint).not.toMatch(/giorno PRIMA/);
+    expect(result.hint).toMatch(/è coperta/);
   }, 30000);
 
   it("speeches: returns speeches for legislature 19", async () => {
@@ -440,6 +446,49 @@ describe("Camera tools", () => {
     const qt = result.rows.find((r) => r.identifier === "3/02077");
     expect(qt).toBeDefined();
     expect(qt?.date).toBe("2025-07-08 (modificato 2025-07-09)");
+  }, 30000);
+
+  it("aic: exposes the chamber and filters on it (the Camera dataset also holds Senato acts)", async () => {
+    // Il dataset AIC della Camera pubblica anche il sindacato ispettivo del
+    // Senato (URI a suffisso _S): senza il campo chamber i due rami sono
+    // indistinguibili nell'output.
+    const senato = await aicTool.execute({
+      legislature: 19,
+      chamber: "senato",
+      primaryOnly: false,
+      limit: 5,
+      offset: 0,
+    });
+    expect(senato.rows.length).toBe(5);
+    expect(senato.rows.every((r) => r.chamber === "senato")).toBe(true);
+    expect(senato.rows.every((r) => r.uri.endsWith("_S"))).toBe(true);
+
+    const camera = await aicTool.execute({
+      legislature: 19,
+      chamber: "camera",
+      primaryOnly: false,
+      limit: 5,
+      offset: 0,
+    });
+    expect(camera.rows.every((r) => r.chamber === "camera")).toBe(true);
+    expect(camera.rows.some((r) => r.uri.endsWith("_S"))).toBe(false);
+  }, 30000);
+
+  it("aic: keyword matches the act text, so it reaches Senato acts too", async () => {
+    // Il termine sta nel testo (dc:description), non nel label (che porta solo
+    // tipo, cognome, gruppo e data): se il match fosse sul label questi atti
+    // non tornerebbero.
+    const result = await aicTool.execute({
+      legislature: 19,
+      keyword: "Navene",
+      primaryOnly: false,
+      limit: 20,
+      offset: 0,
+    });
+    expect(result.rows.length).toBeGreaterThan(0);
+    const senatoActs = result.rows.filter((r) => r.chamber === "senato");
+    expect(senatoActs.length).toBeGreaterThan(0);
+    expect(senatoActs.every((r) => !r.label.toLowerCase().includes("navene"))).toBe(true);
   }, 30000);
 
   it("vote-detail: returns individual votes", async () => {
@@ -761,6 +810,42 @@ describe("Senato tools", () => {
     // deve contenere lo stato finale "Legge"
     expect(result.rows.some((r) => /Legge/.test(r.status))).toBe(true);
   }, 30000);
+
+  it("bill-progress: a Camera number on branch S falls back to all phases of the same DDL", async () => {
+    // La numerazione non si conserva tra i rami: il DDL delega sul nucleare è
+    // C.2669 alla Camera e S.1924 al Senato. Chiedere S.2669 dava un vuoto letto
+    // come "il Senato non ha ancora l'atto" (report del 29/07/2026). Ora si
+    // risale all'idDdl dalla fase C.2669 e si mostrano tutte le fasi.
+    const result = await billProgressTool.execute({
+      number: "2669",
+      branch: "S",
+      legislature: 19,
+      limit: 100,
+      offset: 0,
+    });
+    expect(result.rows.length).toBeGreaterThanOrEqual(2);
+    expect(result.rows.some((r) => r.phase === "C.2669")).toBe(true);
+    expect(result.rows.some((r) => r.phase === "S.1924")).toBe(true);
+    // Le righe non sono vuote, quindi la spiegazione va in `notice` (hint per
+    // contratto parla solo sul vuoto).
+    expect(result.notice).toMatch(/non esiste un DDL S\.2669/);
+    expect(result.hint).toBeUndefined();
+  }, 60000);
+
+  it("bill-progress: a number that exists on branch S is NOT overridden by the fallback", async () => {
+    // S.1511 (leg. 18) esiste come DDL autonomo, diverso da C.1511: il fallback
+    // non deve scattare e non deve comparire alcuna nota cross-ramo.
+    const result = await billProgressTool.execute({
+      number: "1511",
+      branch: "S",
+      legislature: 18,
+      limit: 10,
+      offset: 0,
+    });
+    expect(result.rows.length).toBeGreaterThan(0);
+    expect(result.rows.every((r) => r.phase.startsWith("S.1511"))).toBe(true);
+    expect(result.notice).toBeUndefined();
+  }, 60000);
 
   it("bill-progress: --number + --branch C honours pagination filters", async () => {
     const result = await billProgressTool.execute({

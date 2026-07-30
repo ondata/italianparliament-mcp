@@ -689,6 +689,7 @@ const aicList = defineCommand({
     "primary-only": { type: "boolean", description: "Only primary signatory matches" },
     keyword: { type: "string", description: "Search in the act text/object (label, title, description), word-boundary match" },
     type: { type: "string", description: "Filter by act type (partial match on dc:type, e.g. 'immediata' for question time)" },
+    chamber: { type: "string", description: "Filter by originating chamber: camera | senato (the Camera dataset also publishes ~160k Senato acts)" },
     "date-from": { type: "string", description: "Start date YYYY-MM-DD" },
     "date-to": { type: "string", description: "End date YYYY-MM-DD" },
     "count-only": { type: "boolean", description: "Return only the total count (column count)" },
@@ -697,6 +698,10 @@ const aicList = defineCommand({
     format: { type: "string", default: "csv", description: "csv | jsonl" },
   },
   async run({ args }) {
+    const chamber = (args.chamber as string) || undefined;
+    if (chamber !== undefined && chamber !== "camera" && chamber !== "senato") {
+      throw new Error(`Invalid --chamber "${chamber}". Expected: camera, senato.`);
+    }
     const result = await runTool(aicTool, {
       countOnly: args["count-only"] === true,
       legislature: parseIntFlag(args.legislature as string, "legislature"),
@@ -704,6 +709,7 @@ const aicList = defineCommand({
       primaryOnly: args["primary-only"] === true,
       keyword: (args.keyword as string) || undefined,
       type: (args.type as string) || undefined,
+      chamber,
       dateFrom: (args["date-from"] as string) || undefined,
       dateTo: (args["date-to"] as string) || undefined,
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,

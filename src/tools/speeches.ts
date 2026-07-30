@@ -2,6 +2,7 @@ import { z } from "zod";
 import { cdQuery, snQuery } from "../core/client.js";
 import { OCD_PREFIXES, OSR_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
+import { cameraFreshnessHint } from "../core/freshness.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -192,6 +193,19 @@ ORDER BY DESC(?s)`;
       document_url: r.relation ?? "",
       modified: r.modified ?? "",
     });
+  }
+  if (rows.length === 0) {
+    // L'area dei lavori d'Aula è la più indietro del LOD Camera (a fine luglio
+    // 2026 gli interventi erano fermi al 18 giugno, mentre gli atti erano al 28
+    // luglio): qui un vuoto su date recenti è quasi sempre latenza, e senza
+    // l'avviso verrebbe letto come "non ha parlato".
+    const hint = await cameraFreshnessHint({
+      ocdClass: "intervento",
+      areaLabel: "l'area degli interventi in Aula",
+      dateFrom: input.dateFrom,
+      dateTo: input.dateTo,
+    });
+    if (hint) return { rows, columns: cameraColumns, hint };
   }
   return { rows, columns: cameraColumns };
 }

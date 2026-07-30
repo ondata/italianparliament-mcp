@@ -89,7 +89,7 @@ italianparliament bill show --uri <uri>
 ```
 
 ### `aic list`
-Atti di indirizzo e controllo. `--keyword` cerca nel testo (label/titolo/description, a confini di parola: "CETA" non matcha "Acetamiprid"). `--type` filtra per tipo (match parziale su `dc:type`, con fallback sul label — per la leg. 19 "a risposta immediata"/question time non è distinto da "a risposta orale" nel `dc:type`, la differenza è solo testuale). `--date-from/--date-to` combacia sia sulla presentazione sia sulla modifica: per i question time la modifica è la **data di trattazione in Aula**, quindi filtra per quel giorno per ricostruirli.
+Atti di indirizzo e controllo, **di entrambe le camere**. `--keyword` cerca nel testo (label/titolo/description, a confini di parola: "CETA" non matcha "Acetamiprid"). `--type` filtra per tipo (match parziale su `dc:type`, con fallback sul label — per la leg. 19 "a risposta immediata"/question time non è distinto da "a risposta orale" nel `dc:type`, la differenza è solo testuale). `--date-from/--date-to` combacia sia sulla presentazione sia sulla modifica: per i question time la modifica è la **data di trattazione in Aula**, quindi filtra per quel giorno per ricostruirli.
 ```bash
 italianparliament aic list --legislature 19 --limit 200 --format csv
 italianparliament aic list --legislature 19 --keyword xylella
@@ -97,7 +97,11 @@ italianparliament aic list --legislature 19 --type immediata --limit 20
 # question time di un giorno d'Aula preciso (es. 9 luglio 2025):
 italianparliament aic list --legislature 19 --type immediata --date-from 2025-07-09 --date-to 2025-07-09
 italianparliament aic list --deputy-uri <uri>
+# interrogazioni dei SENATORI su un tema (il dataset Camera le contiene, col testo):
+italianparliament aic list --legislature 19 --chamber senato --keyword nucleare
 ```
+
+> **Il dataset AIC della Camera contiene anche il sindacato ispettivo del Senato**: 160.746 atti con URI a suffisso `_S` e `ocd:ramo` = "Senato della Repubblica", col **testo integrale** in `description`. È quindi qui, e non in `sindacato-ispettivo`, che si cerca **per argomento** un'interrogazione di un senatore — cosa che il LOD del Senato non permette. La colonna `chamber` dice il ramo di ogni riga, `--chamber camera|senato` filtra. Due avvertenze: in leg. 17 il 4,5% degli atti non dichiara il ramo e il filtro li esclude (non è deducibile); per gli atti `_S` `html_url` è vuoto perché nessun pattern di scheda è verificabile — il riferimento navigabile è la colonna `url`, che porta al PDF ufficiale dell'atto.
 
 ### `votes list`
 ```bash
@@ -139,9 +143,13 @@ italianparliament bill-progress list --number 1809 --branch S --legislature 19
 italianparliament bill-progress list --number 2617 --branch C --legislature 18   # timeline Camera dl Covid 2020
 italianparliament bill-progress list --ddl-uri http://dati.senato.it/ddl/25597
 italianparliament bill-progress list --uri http://dati.camera.it/ocd/attocamera.rdf/ac19_2822
+# fase Senato di un atto Camera: il numero cambia, il tool ci arriva da sé
+italianparliament bill-progress list --number 2669 --branch S --legislature 19   # → C.2669 + S.1924
 ```
 
 > Nota: lo stesso numero può esistere in entrambi i rami (`C.1809` e `S.1809`), perciò `--branch` disambigua (default `S`). Attenzione all'asimmetria: `--branch S` restituisce **una riga** (stato corrente del DDL al Senato), `--branch C` restituisce **la timeline** (una riga per stato, con date) — riflette ciò che le due fonti pubblicano (la Camera lo storico degli stati, il Senato solo lo stato corrente; la timeline Senato vive nel feed RSS).
+
+> **Il numero non si conserva nel passaggio tra i rami.** Un atto approvato alla Camera e trasmesso al Senato riceve un numero nuovo: la delega sul nucleare è `C.2669` alla Camera e `S.1924` al Senato. Quindi `--number <numero Camera> --branch S` non trova un omonimo, e non va letto come "il Senato non ha ancora l'atto" (errore commesso da un report automatico il 29/07/2026, quando il DDL era già al Senato da due mesi). In quel caso il tool risale da sé alla fase `C.<numero>` nel repertorio Senato e restituisce **tutte le fasi dello stesso DDL** nei due rami, in ordine di iter, con un `NOTA:` su stderr che spiega perché il numero mostrato è un altro. Utile anche per le **navette a più letture**: il DDL sul voto ai diciottenni torna come `C.1511 → S.1440 → C.1511-…-B → S.1440-B`. Rovescio della medaglia: quando un `S.<numero>` esiste davvero, il fallback non scatta e potresti avere in mano un atto **diverso** (`S.1511` in leg. 18 è un DDL sulla protezione internazionale, nulla a che vedere con `C.1511`) — controlla che il titolo coincida.
 
 ### `bill-signatories show`
 Firmatari di un DDL, **Camera o Senato** (riconosciuto dall'URI): primo firmatario e cofirmatari con nome e link al profilo.

@@ -66,9 +66,14 @@ export const sindacatoIspettivoTool: Tool<typeof inputSchema> = {
   description:
     "[SENATO] Atti di sindacato ispettivo del Senato: interrogazioni (orali e scritte), " +
     "interpellanze, mozioni, risoluzioni. Equivalente Senato degli AIC Camera. " +
-    "Filtrabile per legislatura, senatore firmatario, tipo di atto e keyword.",
+    "Filtrabile per legislatura, senatore firmatario, tipo di atto e keyword. " +
+    "PER ARGOMENTO USA INVECE `aic` CON --chamber senato: qui il LOD Senato non " +
+    "espone l'oggetto dell'atto, mentre il dataset AIC della Camera pubblica anche " +
+    "gli atti del Senato (URI con suffisso _S) CON il testo integrale, quindi la " +
+    "ricerca tematica sugli atti dei senatori si fa lì. Questo tool resta il modo " +
+    "giusto per elencare gli atti di un senatore o per tipo e data.",
   emptyHint:
-    "Nessun atto trovato. Attenzione: il label contiene solo tipo e numero dell'atto (es. 'Interrogazione 3-02021'), NON l'oggetto/tema — quindi --keyword su un argomento (es. 'ius scholae') dà spesso vuoto anche se l'atto esiste. Il testo dell'atto vive solo nella pagina HTML esterna (colonna url). Per trovarlo, filtra per senatore e/o data invece che per keyword tematica.",
+    "Nessun atto trovato. Attenzione: il label contiene solo tipo e numero dell'atto (es. 'Interrogazione 3-02021'), NON l'oggetto/tema — quindi --keyword su un argomento (es. 'ius scholae') dà spesso vuoto anche se l'atto esiste. Per una ricerca TEMATICA usa `aic --chamber senato --keyword <tema>`: il dataset AIC della Camera contiene anche gli atti del Senato con il testo integrale. Qui invece filtra per senatore e/o data.",
   inputSchema,
   examples: [
     "italianparliament sindacato-ispettivo list --legislature 19 --limit 10",
