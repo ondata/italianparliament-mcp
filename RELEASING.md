@@ -82,11 +82,17 @@ più server MCP HTTP su Cloudflare Worker, skill e pacchetto `.dxt`.
      "https://italianparliament-mcp.andy-pr.workers.dev/?t=$(date +%s)"   # version + tools
    ```
 
-   **Il cache-buster serve**: subito dopo il deploy un `curl` nudo può servire
-   la risposta *precedente* dalla cache CDN e far sembrare fallito un deploy
-   riuscito (visto con 0.29.0 → 0.30.0: `wrangler` confermava l'upload, l'info
-   endpoint rispondeva ancora `0.29.0`). Prima di sospettare il deploy, controlla
-   la versione nel bundle: `grep -o '"0\.[0-9]*\.[0-9]*"' dist/worker.js | sort -u`.
+   **Il cache-buster serve, e non basta**: subito dopo il deploy l'info endpoint
+   può rispondere con la versione *precedente* — sia per la cache CDN sia perché
+   la nuova versione non è ancora propagata. Visto due volte di fila (0.29.0 →
+   0.30.0 e 0.30.0 → 0.30.1): `wrangler` confermava l'upload, l'endpoint dava
+   ancora la vecchia, e con il cache-buster la nuova compariva dopo **~20
+   secondi**. Regola: prima di sospettare il deploy, verifica che il bundle
+   locale sia giusto e poi riprova dopo mezzo minuto.
+
+   ```bash
+   grep -o '"0\.[0-9]*\.[0-9]*"' dist/worker.js | sort -u   # deve essere X.Y.Z
+   ```
 
 ## Note
 
