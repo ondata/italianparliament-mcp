@@ -2,6 +2,7 @@ import { z } from "zod";
 import { cdQuery } from "../core/client.js";
 import { OCD_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
+import { cameraFreshnessHint } from "../core/freshness.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -32,6 +33,12 @@ const inputSchema = z.object({
     .describe(
       "Filtra per tipo di atto (match parziale case-insensitive su dc:type e, in fallback, sul label). Es. 'immediata' per interrogazioni a risposta immediata/question time (dc:type non le distingue dalle orali per leg. 19: il match scatta sul label), 'scritta', 'commissione', 'mozione', 'interpellanza', 'odg'. Per la SEDE del question time il label è regolare, quindi filtrabile qui: 'immediata in assemblea' = question time in Aula, 'immediata in commissione' = question time in commissione (nessun campo/flag dedicato necessario).",
     ),
+  chamber: z
+    .enum(["camera", "senato"])
+    .optional()
+    .describe(
+      "Filtra per ramo di provenienza dell'atto (ocd:ramo). Il dataset AIC della Camera contiene ANCHE il sindacato ispettivo del Senato (~160.000 atti, URI con suffisso _S): senza questo filtro si vedono entrambi i rami, come è sempre stato. Attenzione: in legislatura 17 circa il 4,5% degli atti non dichiara il ramo, e il filtro li esclude (il ramo non è deducibile).",
+    ),
   dateFrom: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -55,6 +62,7 @@ const columns = [
   "label",
   "title",
   "type",
+  "chamber",
   "date",
   "identifier",
   "sponsor_uri",
@@ -67,7 +75,7 @@ const columns = [
 export const aicTool: Tool<typeof inputSchema> = {
   name: "aic",
   description:
-    "[CAMERA] Atti di indirizzo e controllo: interrogazioni (orali, scritte, in commissione), interpellanze, mozioni. Include il testo/oggetto dell'atto nel campo description. Filtrabile per legislatura, deputato (primo firmatario o cofirmatario). Il filtro per data (--date-from/--date-to) combacia sia sulla data di presentazione sia su quella di modifica: per i question time (interrogazioni a risposta immediata) la modifica è la data di TRATTAZIONE IN AULA, quindi filtra per quel giorno per trovarli.",
+    "[CAMERA+SENATO] Atti di indirizzo e controllo: interrogazioni (orali, scritte, in commissione), interpellanze, mozioni. Include il testo/oggetto dell'atto nel campo description. Filtrabile per legislatura, deputato (primo firmatario o cofirmatario). Il filtro per data (--date-from/--date-to) combacia sia sulla data di presentazione sia su quella di modifica: per i question time (interrogazioni a risposta immediata) la modifica è la data di TRATTAZIONE IN AULA, quindi filtra per quel giorno per trovarli. IMPORTANTE: il dataset della Camera pubblica ANCHE il sindacato ispettivo del SENATO (~160.000 atti in leg. 17-19, URI con suffisso _S, primo firmatario su senatore.rdf), quindi questo è il modo per cercare per ARGOMENTO le interrogazioni dei senatori: --keyword cerca nel testo (dc:description) e trova anche gli atti Senato. Il campo chamber dice il ramo di ogni riga, --chamber lo filtra. Per gli atti Senato html_url resta vuoto (nessuna scheda verificata su aic.camera.it): il riferimento navigabile è la colonna url, che restituisce il PDF ufficiale dell'atto.",
   inputSchema,
   examples: [
     "italianparliament aic list --legislature 19 --limit 10",
@@ -77,6 +85,7 @@ export const aicTool: Tool<typeof inputSchema> = {
     "italianparliament aic list --legislature 19 --date-from 2026-01-01 --date-to 2026-03-31 --format jsonl",
     "italianparliament aic list --legislature 19 --type immediata --limit 20",
     "italianparliament aic list --legislature 19 --type \"immediata in assemblea\" --limit 20",
+    "italianparliament aic list --legislature 19 --chamber senato --keyword nucleare --limit 20",
   ],
   async execute(input) {
     let signatoryPattern: string;
@@ -152,12 +161,25 @@ export const aicTool: Tool<typeof inputSchema> = {
     const typeFilter = input.type !== undefined
       ? `FILTER(CONTAINS(LCASE(COALESCE(STR(?type), "")), LCASE("${typeEsc}")) || CONTAINS(LCASE(COALESCE(STR(?label), "")), LCASE("${typeEsc}")))`
       : "";
+    // ocd:ramo distingue gli atti della Camera da quelli del Senato, che il
+    // dataset AIC della Camera pubblica insieme (URI con suffisso _S). Resta
+    // OPTIONAL perché in leg. 17 il 4,5% degli atti non lo dichiara: renderlo
+    // obbligatorio perderebbe quelle righe anche quando nessuno ha chiesto un
+    // ramo. Il filtro, quando c'è, li esclude per forza: senza ocd:ramo il
+    // ramo non è deducibile e non va indovinato.
+    // Il valore è già ristretto dall'enum Zod a camera|senato, quindi entra
+    // nella query senza escape aggiuntivo. Il match è per sottostringa perché
+    // il dato è testo istituzionale ("Camera dei Deputati").
+    const chamberFilter = input.chamber
+      ? `FILTER(CONTAINS(LCASE(STR(?ramo)), "${input.chamber}"))`
+      : "";
 
-    const coreSelect = `SELECT DISTINCT ?s ?label ?title ?type ?date ?identifier ?sponsor_uri ?rif_leg ?description ?url
+    const coreSelect = `SELECT DISTINCT ?s ?label ?title ?type ?ramo ?date ?identifier ?sponsor_uri ?rif_leg ?description ?url
 WHERE {
   ?s a ocd:aic .
   ?s rdfs:label ?label .
   ${signatoryPattern}
+  OPTIONAL { ?s ocd:ramo ?ramo }
   OPTIONAL { ?s dc:title ?title }
   OPTIONAL { ?s dc:type ?type }
   OPTIONAL { ?s dc:date ?date }
@@ -169,6 +191,7 @@ WHERE {
   ${dateFilter}
   ${keywordFilter}
   ${typeFilter}
+  ${chamberFilter}
 }`;
 
     const query = input.countOnly
@@ -183,6 +206,12 @@ WHERE {
     const raw = flattenBindings(results);
     const rows = raw.map((r) => {
       const uri = r.s ?? "";
+      // Gli atti del Senato (suffisso _S) non matchano di proposito: la scheda
+      // aic.camera.it risponde 200 a qualsiasi combinazione di parametri, quindi
+      // non è stato possibile verificare un pattern valido per il ramo Senato e
+      // un URL inventato sarebbe peggio di uno assente. Per quegli atti il
+      // riferimento umano è la colonna url (dcterms:isReferencedBy), verificata:
+      // restituisce il PDF "ATTO SENATO Sindacato Ispettivo" con testo e iter.
       const m = uri.match(/aic(\d+)_(\d+)_(\d+)$/);
       const html_url = m
         ? `https://aic.camera.it/aic/scheda.html?core=aic&numero=${m[1]}/${m[2]}&ramo=CAMERA&leg=${m[3]}`
@@ -202,6 +231,7 @@ WHERE {
         label: r.label ?? "",
         title: r.title ?? "",
         type: r.type ?? "",
+        chamber: normalizeChamber(r.ramo),
         date,
         identifier: r.identifier ?? "",
         sponsor_uri: r.sponsor_uri ?? "",
@@ -211,6 +241,31 @@ WHERE {
         html_url,
       };
     });
+    if (rows.length === 0) {
+      // Il vuoto su una finestra di date è ambiguo: può essere latenza di
+      // pubblicazione. L'hint lo qualifica con l'ultimo lotto caricato.
+      const hint = await cameraFreshnessHint({
+        ocdClass: "aic",
+        areaLabel: "l'area degli atti di indirizzo e controllo (aic)",
+        dateFrom: input.dateFrom,
+        dateTo: input.dateTo,
+      });
+      if (hint) return { rows, columns, hint };
+    }
     return { rows, columns };
   },
 };
+
+/**
+ * `ocd:ramo` è testo istituzionale ("Camera dei Deputati", "Senato della
+ * Repubblica"): si normalizza a camera/senato per renderlo filtrabile a valle
+ * (grep, jq, --chamber). Un valore non riconosciuto si restituisce grezzo
+ * invece di essere forzato in una delle due categorie.
+ */
+function normalizeChamber(ramo?: string): string {
+  if (!ramo) return "";
+  const r = ramo.toLowerCase();
+  if (r.includes("senato")) return "senato";
+  if (r.includes("camera")) return "camera";
+  return ramo;
+}

@@ -4,6 +4,7 @@ import { flattenBindings } from "../core/flatten.js";
 import { decodeHtml } from "../core/decode-html.js";
 import { OCD_PREFIXES } from "../core/prefixes.js";
 import { extractBillNumber, billBaseNumber } from "../core/bill-number.js";
+import { cameraFreshnessNote } from "../core/freshness.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -262,13 +263,32 @@ ORDER BY DESC(?date)`;
     // può essere indietro di giorni. Segnaliamo che un "non trovato" recente non
     // equivale a "non avvenuto", invece di restituire un elenco vuoto silenzioso.
     if (deduped.length === 0) {
-      // Precedenza allo staleness hint: su una finestra recente il vuoto è più
-      // probabilmente ritardo di pubblicazione del LOD Camera che giorno
-      // sbagliato — il gg-1 su quella finestra fuorvierebbe verso la causa
-      // sbagliata (review Copilot su PR #46).
+      // Freschezza misurata invece di euristica: `ods:modified` dice fino a
+      // quando l'area delle votazioni è stata caricata, quindi si sa se la
+      // finestra chiesta è coperta o no (vedi core/freshness.ts). Precedenza
+      // allo staleness quando la finestra NON è coperta: lì il vuoto è più
+      // probabilmente ritardo di pubblicazione che giorno sbagliato, e il gg-1
+      // porterebbe verso la causa sbagliata (review Copilot su PR #46).
+      // Quando invece la finestra è coperta, il gg-1 della fiducia è l'ipotesi
+      // migliore e passa davanti.
+      const fresh = await cameraFreshnessNote({
+        ocdClass: "votazione",
+        areaLabel: "l'area delle votazioni d'Assemblea",
+        dateFrom: input.dateFrom,
+        dateTo: input.dateTo,
+      });
+      const dayBefore = confidenceVoteDayBeforeHint(
+        input.confidenceVote,
+        input.dateFrom,
+        input.dateTo,
+      );
       const hint =
-        recentWindowHint(input.dateFrom, input.dateTo) ??
-        confidenceVoteDayBeforeHint(input.confidenceVote, input.dateFrom, input.dateTo);
+        (fresh && !fresh.covered ? fresh.text : undefined) ??
+        dayBefore ??
+        fresh?.text ??
+        // Fallback se la sonda di freschezza non risponde: meglio l'avviso
+        // generico sul ritardo di pubblicazione che un vuoto muto.
+        recentWindowHint(input.dateFrom, input.dateTo);
       if (hint) return { rows: deduped, columns, hint };
     }
     // bill_number dal testo della descrizione ("DDL 2920-A - VOTO FINALE" → "2920-A").

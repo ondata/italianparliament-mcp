@@ -62,13 +62,15 @@ Scheda di un atto Camera.
 - `uri` (required): URI dell'atto
 
 ### `aic`
-Atti di indirizzo e controllo (interrogazioni, interpellanze, mozioni). Il testo è in `description`.
+Atti di indirizzo e controllo (interrogazioni, interpellanze, mozioni). Il testo è in `description`. **Copre entrambe le camere**: il dataset della Camera pubblica anche il sindacato ispettivo del Senato (~160.000 atti, URI a suffisso `_S`), quindi è qui — e non in `sindacato-ispettivo` — che si cercano per ARGOMENTO le interrogazioni dei senatori.
 - `legislature`: numero legislatura
 - `deputyUri`: filtra per deputato
-- `keyword`: cerca nel testo (label/titolo/description) a confini di parola, es. un tema ("CETA" non matcha "Acetamiprid")
+- `keyword`: cerca nel testo (label/titolo/description) a confini di parola, es. un tema ("CETA" non matcha "Acetamiprid"). Il match sul testo raggiunge anche gli atti del Senato, il cui label contiene solo tipo, cognome, gruppo e data.
 - `type`: filtra per tipo (match parziale su `dc:type`, fallback sul label — "immediata" trova le interrogazioni a risposta immediata/question time anche quando `dc:type` le etichetta genericamente "orale")
+- `chamber`: `camera` | `senato`. Senza il filtro si vedono entrambi i rami. La colonna `chamber` dice il ramo di ogni riga. In leg. 17 il 4,5% degli atti non dichiara il ramo e il filtro li esclude (non è deducibile).
 - `dateFrom`/`dateTo`: intervallo data. Combacia sia sulla presentazione sia sulla modifica: per i question time (a risposta immediata) la modifica è la data di **trattazione in Aula**, quindi filtra per quel giorno per ricostruirli (es. `type: "immediata"`, `dateFrom`/`dateTo` = giorno d'Aula).
 - `limit`: max risultati
+- Per gli atti del Senato `html_url` è vuoto (nessun pattern di scheda verificato): il riferimento navigabile è `url`, che porta al PDF ufficiale dell'atto.
 
 ### `votes`
 Votazioni Camera.
@@ -104,7 +106,7 @@ Iter di un disegno di legge, Camera o Senato (stesse colonne in entrambi i casi)
   - `legislature`: numero legislatura
   - `ddlUri`: singolo DDL Senato
   - `keyword`: cerca nel titolo del DDL
-  - `number`: numero dell'atto (es. `1809` → S.1809), da abbinare a `branch`. Se ometti `legislature`, usa la legislatura corrente (risolta dinamicamente). Lo stesso numero può esistere in entrambi i rami (C.1809 e S.1809).
+  - `number`: numero dell'atto (es. `1809` → S.1809), da abbinare a `branch`. Se ometti `legislature`, usa la legislatura corrente (risolta dinamicamente). **Il numero non si conserva tra i rami**: lo stesso numero esiste spesso in entrambi come atti DIVERSI (C.1809 e S.1809), e l'atto Camera trasmesso al Senato riceve un numero nuovo (C.2669 → S.1924). Se `branch: S` non trova un `S.<numero>`, il tool risale da sé alla fase `C.<numero>` e restituisce **tutte le fasi dello stesso DDL** nei due rami (legate da `osr:idDdl`), in ordine di iter, spiegando nell'avviso perché il numero mostrato è un altro: è così che si passa da un atto Camera alla sua lettura al Senato e si ricostruisce una navetta a più letture.
   - `branch`: ramo per `number`. `S` (default): repertorio Senato, **stato corrente** del DDL (una riga). `C`: risolve l'atto Camera `ac<leg>_<n>` e ne restituisce la **timeline completa** degli stati (una riga per stato, con date). L'asimmetria riflette la fonte: la Camera pubblica lo storico degli stati, il Senato solo lo stato corrente (la sua timeline vive nel feed RSS).
   - `dateFrom`/`dateTo`: intervallo data presentazione
 - **Camera** — timeline completa di tutti gli stati attraversati, in ordine cronologico: con `uri` = atto Camera `attocamera.rdf/...`, oppure con `number` + `branch: C`.

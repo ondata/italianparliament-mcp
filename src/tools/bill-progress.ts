@@ -31,7 +31,7 @@ const inputSchema = z.object({
     .regex(/^\d+$/)
     .optional()
     .describe(
-      "Numero dell'atto (es. 1809), da usare insieme al campo branch. Con branch=S interroga il repertorio Senato (S.1809); con branch=C risolve l'atto Camera C.1809 e ne restituisce la timeline degli stati. Per branch=S include automaticamente le letture successive della navetta con suffisso (es. number=1353 torna S.1353 e S.1353-B). Se legislature è assente, con number si usa di default la legislatura corrente (risolta dinamicamente dall'endpoint Camera) per ridurre omonimi storici. Lo stesso numero può esistere in entrambi i rami (C.1809 e S.1809).",
+      "Numero dell'atto (es. 1809), da usare insieme al campo branch. Con branch=S interroga il repertorio Senato (S.1809); con branch=C risolve l'atto Camera C.1809 e ne restituisce la timeline degli stati. Per branch=S include automaticamente le letture successive della navetta con suffisso (es. number=1353 torna S.1353 e S.1353-B). Se legislature è assente, con number si usa di default la legislatura corrente (risolta dinamicamente dall'endpoint Camera) per ridurre omonimi storici. Lo stesso numero può esistere in entrambi i rami come atti DIVERSI (C.1809 e S.1809): il numero NON si conserva nel passaggio da un ramo all'altro. Se con branch=S il numero di un atto Camera non dà nulla, il tool cerca da sé la fase C.<numero> nel repertorio Senato e restituisce tutte le fasi dello stesso DDL (vedi description).",
     ),
   branch: z
     .enum(["S", "C"])
@@ -81,9 +81,9 @@ const columns = [
 export const billProgressTool: Tool<typeof inputSchema> = {
   name: "bill-progress",
   description:
-    "Iter legislativo di un disegno di legge. È la SPINA DORSALE per ricostruire l'iter completo di una legge: usalo per le date reali di ogni fase, non generare la timeline a memoria. [SENATO] senza --uri: lista DDL al Senato con stato corrente dell'iter (assegnato, esame in commissione, approvato, ecc.), filtrabile per legislatura, numero atto (--number 1809 --branch S), parola chiave nel titolo e intervallo date. Con --number ma senza --legislature, il default è la legislatura corrente per evitare omonimi storici rumorosi. [CAMERA] cronologia completa (timeline) di tutti gli stati attraversati dall'atto, in ordine cronologico, in DUE modi: con --uri <atto Camera>, oppure con --number <n> --branch C (risolve l'atto Camera ac<leg>_<n>). Stesse colonne in entrambi i casi. NB: --branch C dà la timeline Camera (una riga per stato), --branch S dà lo stato corrente del DDL al Senato (una riga): l'asimmetria riflette ciò che le due fonti pubblicano. Per collegare un atto Camera al suo DDL Senato usa --number (il numero letto dalla timeline Camera) + --branch S: MAI per keyword, per non pescare un atto omonimo diverso.",
+    "Iter legislativo di un disegno di legge. È la SPINA DORSALE per ricostruire l'iter completo di una legge: usalo per le date reali di ogni fase, non generare la timeline a memoria. [SENATO] senza --uri: lista DDL al Senato con stato corrente dell'iter (assegnato, esame in commissione, approvato, ecc.), filtrabile per legislatura, numero atto (--number 1809 --branch S), parola chiave nel titolo e intervallo date. Con --number ma senza --legislature, il default è la legislatura corrente per evitare omonimi storici rumorosi. [CAMERA] cronologia completa (timeline) di tutti gli stati attraversati dall'atto, in ordine cronologico, in DUE modi: con --uri <atto Camera>, oppure con --number <n> --branch C (risolve l'atto Camera ac<leg>_<n>). Stesse colonne in entrambi i casi. NB: --branch C dà la timeline Camera (una riga per stato), --branch S dà lo stato corrente del DDL al Senato (una riga): l'asimmetria riflette ciò che le due fonti pubblicano. Per seguire un atto da un ramo all'altro NON usare il numero dell'altro ramo: la numerazione non si conserva (il DDL nucleare è C.2669 alla Camera e S.1924 al Senato). Il legame è nel dato: le fasi dello stesso DDL condividono osr:idDdl, e il repertorio Senato contiene anche le fasi Camera (osr:ramo=\"C\"). Perciò --number <n> --branch S, se non trova un DDL S.<n>, cerca da sé la fase C.<n> e restituisce TUTTE le fasi di quel DDL nei due rami, in ordine di iter: è il modo per passare da un atto Camera alla sua lettura al Senato e per ricostruire una navetta a più letture.",
   emptyHint:
-    "Nessun DDL trovato. Se cercavi il DDL Senato di un atto Camera, aggancialo PER NUMERO (--number <n> --branch S), non per keyword. Se usavi --keyword, prova il termine normativo o una radice più corta. Non dedurre l'iter: se non torna, non inventare fasi, date o esiti.",
+    "Nessun DDL trovato. Se cercavi il DDL Senato di un atto Camera: il numero NON si conserva tra i due rami, quindi il numero Camera non ha un DDL S. omonimo (il tool prova già da sé la fase C.<numero>). Cercalo per titolo con --keyword sul repertorio Senato, oppure parti dal ramo Camera con --number <n> --branch C. Se usavi --keyword, prova il termine normativo o una radice più corta. Non dedurre l'iter: se non torna, non inventare fasi, date o esiti.",
   inputSchema,
   examples: [
     "italianparliament bill-progress list --legislature 19 --limit 20",
@@ -176,7 +176,51 @@ export const billProgressTool: Tool<typeof inputSchema> = {
       filters.push(`FILTER(STR(?dataPresentazione) <= "${input.dateTo}")`);
     }
 
-    const query = `${OSR_PREFIXES}
+    const rows = await runSenatoDdlQuery(filters, {
+      limit: input.limit,
+      offset: input.offset,
+    });
+
+    // Aggancio cross-ramo. Chi parte da un atto Camera prova istintivamente il
+    // numero Camera sul ramo S, ma la numerazione NON si conserva nel passaggio
+    // (C.2669 diventa S.1924): il vuoto che ne segue è stato letto come "il
+    // Senato non ha ancora numerato l'atto" in un report del 29/07/2026, mentre
+    // il DDL era lì. Il legame esiste nel dato: le fasi dello stesso DDL
+    // condividono osr:idDdl, e il repertorio Senato contiene anche le fasi
+    // Camera (osr:ramo="C"). Quindi invece di restituire un vuoto ambiguo si
+    // risale all'idDdl dalla fase C.<numero> e si mostrano tutte le fasi.
+    // `offset === 0`: oltre la prima pagina un risultato vuoto significa "pagina
+    // finita", non "numero inesistente al Senato". Senza questa guardia
+    // `--number 1809 --branch S --offset 50` mostrerebbe le fasi cross-ramo come
+    // se il numero non esistesse.
+    if (
+      rows.length === 0 &&
+      input.number &&
+      (input.branch ?? "S") === "S" &&
+      input.offset === 0
+    ) {
+      const cross = await crossBranchPhases(
+        input.number,
+        effectiveLegislature,
+        input.limit,
+      );
+      if (cross) return cross;
+    }
+
+    return { rows, columns };
+  },
+};
+
+/**
+ * Esegue la query sul repertorio DDL del Senato con i filtri dati.
+ * Estratta per essere riusata dall'aggancio cross-ramo, che cambia solo i
+ * filtri e l'ordinamento.
+ */
+async function runSenatoDdlQuery(
+  filters: string[],
+  opts: { limit: number; offset?: number; orderBy?: string },
+) {
+  const query = `${OSR_PREFIXES}
 PREFIX dc: <http://purl.org/dc/elements/1.1/>
 SELECT ?s ?titolo ?statoDdl ?dataStatoDdl ?dataPresentazione
        ?descrIniziativa ?natura ?legislatura ?fase ?numeroFase
@@ -193,36 +237,100 @@ WHERE {
   OPTIONAL { ?s osr:numeroFase ?numeroFase }
   ${filters.join("\n  ")}
 }
-ORDER BY DESC(?dataPresentazione)
-LIMIT ${input.limit}
-OFFSET ${input.offset}`;
+ORDER BY ${opts.orderBy ?? "DESC(?dataPresentazione)"}
+LIMIT ${opts.limit}
+OFFSET ${opts.offset ?? 0}`;
 
-    const results = await snQuery(query);
-    const raw = flattenBindings(results);
-    const rows = raw.map((r) => {
-      const ddl_uri = r.s ?? "";
-      const idMatch = ddl_uri.match(/\/ddl\/(\d+)$/);
-      const html_url = idMatch
-        ? `https://www.senato.it/leggi-e-documenti/disegni-di-legge/scheda-ddl?tab=datiGenerali&did=${idMatch[1]}`
-        : "";
-      return {
-        ddl_uri,
-        title: r.titolo ?? "",
-        status: r.statoDdl ?? "",
-        status_date: r.dataStatoDdl ?? "",
-        presentation_date: r.dataPresentazione ?? "",
-        initiative_description: r.descrIniziativa ?? "",
-        nature: r.natura ?? "",
-        legislature: r.legislatura ?? "",
-        phase: r.fase ?? "",
-        phase_number: r.numeroFase ?? "",
-        html_url,
-        rss_url: ddlRssUrl(ddl_uri, r.legislatura),
-      };
-    });
-    return { rows, columns };
-  },
-};
+  const raw = flattenBindings(await snQuery(query));
+  return raw.map((r) => {
+    const ddl_uri = r.s ?? "";
+    const idMatch = ddl_uri.match(/\/ddl\/(\d+)$/);
+    const html_url = idMatch
+      ? `https://www.senato.it/leggi-e-documenti/disegni-di-legge/scheda-ddl?tab=datiGenerali&did=${idMatch[1]}`
+      : "";
+    return {
+      ddl_uri,
+      title: r.titolo ?? "",
+      status: r.statoDdl ?? "",
+      status_date: r.dataStatoDdl ?? "",
+      presentation_date: r.dataPresentazione ?? "",
+      initiative_description: r.descrIniziativa ?? "",
+      nature: r.natura ?? "",
+      legislature: r.legislatura ?? "",
+      phase: r.fase ?? "",
+      phase_number: r.numeroFase ?? "",
+      html_url,
+      rss_url: ddlRssUrl(ddl_uri, r.legislatura),
+    };
+  });
+}
+
+/**
+ * Dato un numero d'atto Camera, restituisce tutte le fasi del DDL a cui
+ * appartiene (Camera e Senato), in ordine di iter.
+ *
+ * Due query piccole invece di una con anchor: su Virtuoso Senato un URI di
+ * richiesta oltre ~2047 byte torna 403, e la query del repertorio è già lunga.
+ * La prima risolve l'idDdl, la seconda riusa la query principale.
+ * `undefined` quando la fase C.<numero> non esiste: lì il vuoto è genuino e
+ * deve restare vuoto, con l'emptyHint statico.
+ */
+async function crossBranchPhases(
+  number: string,
+  legislature: number | undefined,
+  limit: number,
+) {
+  const legFilter = legislature ? `?a osr:legislatura ${legislature} .` : "";
+  const idQuery = `${OSR_PREFIXES}
+SELECT DISTINCT ?id WHERE {
+  ?a osr:idDdl ?id ; osr:numeroFase ?n ; osr:ramo ?r .
+  ${legFilter}
+  FILTER(REGEX(STR(?n), "^${number}(-[A-Z])?$") && STR(?r) = "C")
+}
+LIMIT 5`;
+  const ids = flattenBindings(await snQuery(idQuery))
+    .map((r) => r.id)
+    .filter((v): v is string => !!v);
+  if (ids.length === 0) return undefined;
+
+  // Più di un idDdl significa numeri Camera omonimi in legislature diverse
+  // (possibile quando legislature è assente): si tengono tutti, l'utente vede
+  // le legislature nella colonna e può restringere.
+  const idFilter = `?s osr:idDdl ?idd . FILTER(${ids
+    .map((id) => `STR(?idd) = "${id.replace(/"/g, "")}"`)
+    .join(" || ")})`;
+  const rows = await runSenatoDdlQuery([idFilter], {
+    limit,
+    orderBy: "?dataPresentazione ?fase",
+  });
+  if (rows.length === 0) return undefined;
+
+  const senatoPhases = rows.filter((r) => r.phase.startsWith("S."));
+  const elenco = rows
+    .map((r) => `${r.phase} (${r.status || "stato non dichiarato"}${r.status_date ? `, ${r.status_date}` : ""})`)
+    .join(" → ");
+  // Il notice NON deve promettere completezza quando la pagina è piena: con
+  // `--limit 1` su una navetta a quattro letture si vedrebbe una fase sola
+  // sotto la dicitura "TUTTE le fasi", e un iter incompleto letto come completo
+  // è esattamente l'errore che questo tool esiste per evitare.
+  const maybeTruncated = rows.length >= limit;
+  const insieme = maybeTruncated
+    ? `Le righe qui sopra sono fasi dello stesso DDL (osr:idDdl ${ids.join(", ")}), nei due rami e in ordine di iter, ma l'elenco è tagliato dal limite di ${limit} righe: NON dedurne l'iter completo, rilancia con --limit più alto prima di ricostruire la timeline. Fasi mostrate: ${elenco}.`
+    : `Le righe qui sopra sono TUTTE le fasi dello stesso DDL (osr:idDdl ${ids.join(", ")}), nei due rami e in ordine di iter: ${elenco}.`;
+  // La lettura al Senato si può affermare solo su un elenco completo: su una
+  // pagina tagliata l'assenza di fasi S. non significa che non ce ne siano.
+  const letturaSenato =
+    senatoPhases.length > 0
+      ? ` La lettura al Senato è ${senatoPhases.map((r) => r.phase).join(", ")}.`
+      : maybeTruncated
+        ? ""
+        : " Nessuna fase al Senato risulta ancora aperta per questo DDL.";
+  // `notice` e non `hint`: qui le righe ci sono, e `hint` per contratto parla
+  // solo sul risultato vuoto (vedi ToolResult). Senza spiegazione l'utente
+  // vedrebbe righe C.<numero> senza capire perché il ramo chiesto era S.
+  const notice = `NOTA: al Senato non esiste un DDL S.${number}. ${number} è il numero dell'atto alla CAMERA e la numerazione non si conserva nel passaggio tra i due rami, quindi il ramo S per quel numero è vuoto. ${insieme}${letturaSenato}`;
+  return { rows, columns, notice };
+}
 
 /**
  * Camera: cronologia completa dell'iter di un atto via `ocd:rif_statoIter`.

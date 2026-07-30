@@ -2,6 +2,7 @@ import { z } from "zod";
 import { cdQuery } from "../core/client.js";
 import { flattenBindings } from "../core/flatten.js";
 import { OCD_PREFIXES } from "../core/prefixes.js";
+import { cameraFreshnessHint } from "../core/freshness.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -82,6 +83,17 @@ OFFSET ${input.offset}`;
           : "";
       return { uri: s ?? "", legislature_uri: rif_leg ?? "", ...rest, html_url };
     });
+    if (rows.length === 0) {
+      // Stessa ragione di speeches: le sedute sono nell'area più in ritardo del
+      // LOD Camera, quindi un vuoto su date recenti è quasi sempre latenza.
+      const hint = await cameraFreshnessHint({
+        ocdClass: "seduta",
+        areaLabel: "l'area delle sedute",
+        dateFrom: input.dateFrom,
+        dateTo: input.dateTo,
+      });
+      if (hint) return { rows, columns, hint };
+    }
     return { rows, columns };
   },
 };
