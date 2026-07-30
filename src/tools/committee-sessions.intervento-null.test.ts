@@ -75,3 +75,37 @@ describe("committee-sessions --count-only: uno zero non va letto come 'non esami
     expect(result.notice).toBeUndefined();
   }, 60000);
 });
+
+/**
+ * `withTruncationNotice` riconosce i conteggi solo se hanno la SOLA colonna
+ * `count`, mentre qui le colonne sono `chamber`+`count`: con `--limit 1` la riga
+ * singola faceva scattare `rows.length >= limit` e comparire un avviso di
+ * troncamento su un totale esatto (review Copilot su PR #88). La guardia non si
+ * può generalizzare a "ha una colonna count", perché `rank`/`group-rank` sono
+ * elenchi che quella colonna ce l'hanno: la dichiarazione spetta al tool.
+ */
+describe("committee-sessions --count-only: un aggregato non è una pagina troncata", () => {
+  it("dichiara truncated:false sul conteggio per DDL, anche con limit basso", async () => {
+    const result = await committeeSessionsTool.execute({
+      ddlUri: "http://dati.senato.it/ddl/60187",
+      chamber: "both",
+      countOnly: true,
+      limit: 1,
+      offset: 0,
+    });
+    expect(result.rows.length).toBe(1);
+    expect(result.truncated).toBe(false);
+  }, 60000);
+
+  it("dichiara truncated:false anche sul conteggio per commissione", async () => {
+    const result = await committeeSessionsTool.execute({
+      committeeUri: "http://dati.senato.it/commissione/0-14",
+      chamber: "senato",
+      countOnly: true,
+      limit: 1,
+      offset: 0,
+    });
+    expect(Number(result.rows[0].count)).toBeGreaterThan(0);
+    expect(result.truncated).toBe(false);
+  }, 60000);
+});

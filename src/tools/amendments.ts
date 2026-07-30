@@ -228,6 +228,7 @@ SELECT (COUNT(DISTINCT ?s) AS ?count) WHERE {
         return {
           rows: [{ source: "lod", count: String(lodCount) }],
           columns: countColumns,
+          truncated: false,
         };
       }
 
@@ -240,6 +241,7 @@ SELECT (COUNT(DISTINCT ?s) AS ?count) WHERE {
           return {
             rows: [{ source: "lod", count: "0" }],
             columns: countColumns,
+            truncated: false,
             hint:
               "Nessun emendamento nel LOD e legislatura del DDL non determinabile per il conteggio AKN. " +
               "Ripetere indicando la legislatura (parametro legislature, es. 19).",
@@ -252,6 +254,7 @@ SELECT (COUNT(DISTINCT ?s) AS ?count) WHERE {
         return {
           rows: [{ source: "akn", count: String(aknTotal) }],
           columns: countColumns,
+          truncated: false,
         };
       }
 
@@ -259,6 +262,7 @@ SELECT (COUNT(DISTINCT ?s) AS ?count) WHERE {
       return {
         rows: [{ source: "lod", count: "0" }],
         columns: countColumns,
+        truncated: false,
       };
     }
 

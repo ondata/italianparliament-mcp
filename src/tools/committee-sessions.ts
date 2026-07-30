@@ -416,6 +416,15 @@ export const committeeSessionsTool: Tool<typeof inputSchema> = {
         return {
           rows: [{ chamber: "senato", count: c }],
           columns: ["chamber", "count"],
+          // Un aggregato non è una pagina di elenco, ma la guardia di
+          // `withTruncationNotice` riconosce i conteggi solo se hanno la sola
+          // colonna `count`: qui ce n'è anche `chamber`, quindi con `--limit 1`
+          // la riga singola farebbe scattare `rows.length >= limit` e comparire
+          // un avviso di troncamento su un totale esatto. Non si può
+          // generalizzare la guardia a "ha una colonna count", perché `rank` e
+          // `group-rank` sono elenchi che quella colonna ce l'hanno e lì
+          // l'avviso serve: la dichiarazione spetta al tool.
+          truncated: false,
           ...(notice ? { notice } : {}),
         };
       }
@@ -507,7 +516,9 @@ export const committeeSessionsTool: Tool<typeof inputSchema> = {
           "Nessuna commissione risolta per il conteggio (verifica --committee-uri / --committee-name e --chamber).",
         );
       }
-      return { rows: countRows, columns: ["chamber", "count"] };
+      // `truncated: false` per la stessa ragione del ramo --ddl-uri: è un
+      // aggregato (una riga per ramo), non una pagina di elenco.
+      return { rows: countRows, columns: ["chamber", "count"], truncated: false };
     }
 
     if ((chamber === "camera" || chamber === "both") && camUri) {
