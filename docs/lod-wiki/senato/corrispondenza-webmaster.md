@@ -55,3 +55,13 @@ Il dettaglio tecnico estratto da ogni scambio è documentato nella pagina wiki p
 | — | Borruso → Webmaster | Richiesta di **conferma**, non segnalazione: chiede se `osr:Votazione` abbia lo stesso perimetro delle pagine "Votazione" del sito (sole votazioni con rilevazione dei voti, escluse le deliberazioni per alzata di mano ex art. 113 c.2 Reg.), e se esista un'indicazione di quanto pesi la quota non rilevata. La seconda domanda ha la ricaduta pratica: ogni indicatore costruito contando `osr:Votazione` (es. la partecipazione alle votazioni) ha per denominatore le sole votazioni rilevate, senza che chi riusa il dato possa accorgersene. Esempi allegati: seduta 333 del 24/7/2025 (articoli del DDL 1566 assenti, voto finale presente) e 26/11/2025 (DDL 1714 assente). **Contenuto tecnico integrale → [Voto per alzata di mano](voto-alzata-di-mano.md).** |
 
 *Prossimo passo: inviare la bozza in [note-gestori-lod/senato-webmaster-alzata-di-mano.md](../../note-gestori-lod/senato-webmaster-alzata-di-mano.md).*
+
+# Thread 5 — `intervento/null`: la risorsa `osr:Intervento` senza identificativo
+
+**Stato: bozza pronta, non ancora inviata.**
+
+| Data | Da → A | Oggetto |
+|------|--------|---------|
+| — | Borruso → Webmaster | Segnala che nel grafo esiste `http://dati.senato.it/intervento/null`, di tipo `osr:Intervento`: pare l'esito della serializzazione quando l'id dell'intervento manca a monte (viene scritta la stringa `null` nell'URI invece di omettere il record), quindi tutti gli interventi senza id collassano in un'unica risorsa. Misure al 30/7/2026: **36.853** triple `osr:seduta` (sedute dal 9/5/1996 al 29/7/2026), **47.571** `osr:oggetto`, nessun `osr:interviene`, su una classe di 302.845 interventi. Effetto: il join oggetto→intervento→seduta attraversa quel nodo e restituisce il prodotto delle due liste — **righe non vere**, non un vuoto. Esempio allegato: 18.945 sedute (comprese sedute d'Assemblea del 1996) per l'Atto del Governo n. 418 sull'IA nell'attività di polizia, presentato il 24/6/2026. Due domande: (1) conferma che sia un effetto della pipeline e non una risorsa con significato proprio; (2) possibilità di **omettere il record** quando l'id manca, o almeno di documentare l'URI come sentinella. Segnalata nella stessa nota l'assenza della **commissione assegnataria** sui documenti "Atto del Governo sottoposto a parere parlamentare". **Contenuto tecnico integrale → [trappole Senato](trappole.md).** |
+
+*Prossimo passo: inviare la bozza in [note-gestori-lod/senato-webmaster-intervento-null.md](../../note-gestori-lod/senato-webmaster-intervento-null.md).*

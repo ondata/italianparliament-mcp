@@ -4,7 +4,7 @@ Endpoint SPARQL: `https://dati.senato.it/sparql`. Ontologia OSR (namespace `http
 
 # Trappole
 
-* [Trappole Virtuoso — Senato](trappole.md) - quirk endpoint (403 su curl, no BIND, legislatura integer, matching nomi) e performance.
+* [Trappole Virtuoso — Senato](trappole.md) - quirk endpoint (403 su curl, no BIND, legislatura integer, matching nomi) e performance. Include **`intervento/null`**, la risorsa `osr:Intervento` senza identità in cui la fonte fa collassare gli interventi privi di id (36.853 sedute e 47.571 oggetti collegati): qualunque join oggetto→intervento→seduta la attraversa e produce **righe false**, non un vuoto (18.945 sedute fantasma su un atto del 2026, incluse sedute del 1996). E l'assenza del collegamento atto→commissione sugli Atti del Governo.
 
 # Query template
 
