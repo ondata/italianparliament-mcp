@@ -309,10 +309,26 @@ LIMIT 5`;
   const elenco = rows
     .map((r) => `${r.phase} (${r.status || "stato non dichiarato"}${r.status_date ? `, ${r.status_date}` : ""})`)
     .join(" → ");
+  // Il notice NON deve promettere completezza quando la pagina è piena: con
+  // `--limit 1` su una navetta a quattro letture si vedrebbe una fase sola
+  // sotto la dicitura "TUTTE le fasi", e un iter incompleto letto come completo
+  // è esattamente l'errore che questo tool esiste per evitare.
+  const maybeTruncated = rows.length >= limit;
+  const insieme = maybeTruncated
+    ? `Le righe qui sopra sono fasi dello stesso DDL (osr:idDdl ${ids.join(", ")}), nei due rami e in ordine di iter, ma l'elenco è tagliato dal limite di ${limit} righe: NON dedurne l'iter completo, rilancia con --limit più alto prima di ricostruire la timeline. Fasi mostrate: ${elenco}.`
+    : `Le righe qui sopra sono TUTTE le fasi dello stesso DDL (osr:idDdl ${ids.join(", ")}), nei due rami e in ordine di iter: ${elenco}.`;
+  // La lettura al Senato si può affermare solo su un elenco completo: su una
+  // pagina tagliata l'assenza di fasi S. non significa che non ce ne siano.
+  const letturaSenato =
+    senatoPhases.length > 0
+      ? ` La lettura al Senato è ${senatoPhases.map((r) => r.phase).join(", ")}.`
+      : maybeTruncated
+        ? ""
+        : " Nessuna fase al Senato risulta ancora aperta per questo DDL.";
   // `notice` e non `hint`: qui le righe ci sono, e `hint` per contratto parla
   // solo sul risultato vuoto (vedi ToolResult). Senza spiegazione l'utente
   // vedrebbe righe C.<numero> senza capire perché il ramo chiesto era S.
-  const notice = `NOTA: al Senato non esiste un DDL S.${number}. ${number} è il numero dell'atto alla CAMERA e la numerazione non si conserva nel passaggio tra i due rami, quindi il ramo S per quel numero è vuoto. Le righe qui sopra sono TUTTE le fasi dello stesso DDL (osr:idDdl ${ids.join(", ")}), nei due rami e in ordine di iter: ${elenco}.${senatoPhases.length > 0 ? ` La lettura al Senato è ${senatoPhases.map((r) => r.phase).join(", ")}.` : " Nessuna fase al Senato risulta ancora aperta per questo DDL."}`;
+  const notice = `NOTA: al Senato non esiste un DDL S.${number}. ${number} è il numero dell'atto alla CAMERA e la numerazione non si conserva nel passaggio tra i due rami, quindi il ramo S per quel numero è vuoto. ${insieme}${letturaSenato}`;
   return { rows, columns, notice };
 }
 

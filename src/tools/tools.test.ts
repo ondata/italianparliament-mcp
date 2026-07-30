@@ -832,6 +832,26 @@ describe("Senato tools", () => {
     expect(result.hint).toBeUndefined();
   }, 60000);
 
+  it("bill-progress: the cross-branch notice does not claim completeness when the page is full", async () => {
+    // Con --limit 1 su un DDL a due fasi si vede una riga sola: il notice non
+    // deve chiamarle "TUTTE le fasi", altrimenti un iter incompleto viene letto
+    // come completo — l'errore che questo aggancio esiste per evitare (review
+    // Greptile P1 su PR #87).
+    const result = await billProgressTool.execute({
+      number: "2669",
+      branch: "S",
+      legislature: 19,
+      limit: 1,
+      offset: 0,
+    });
+    expect(result.rows.length).toBe(1);
+    expect(result.notice).toMatch(/non esiste un DDL S\.2669/);
+    expect(result.notice).not.toMatch(/TUTTE le fasi/);
+    expect(result.notice).toMatch(/tagliato dal limite/);
+    // Su una pagina tagliata l'assenza di fasi S. non è affermabile.
+    expect(result.notice).not.toMatch(/Nessuna fase al Senato/);
+  }, 60000);
+
   it("bill-progress: a number that exists on branch S is NOT overridden by the fallback", async () => {
     // S.1511 (leg. 18) esiste come DDL autonomo, diverso da C.1511: il fallback
     // non deve scattare e non deve comparire alcuna nota cross-ramo.
