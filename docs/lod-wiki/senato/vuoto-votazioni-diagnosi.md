@@ -44,13 +44,23 @@ Il range filter su `?d` è anche la forma performante su Virtuoso Senato (meglio
 |---|---|---|---|
 | `0` | `0` | Nessuna seduta d'Assemblea nell'intervallo | Probabilmente non si è votato in Aula (o le sedute non sono ancora caricate). Verifica le date. |
 | `>0` | `0` | Le sedute esistono ma **nessuna** votazione è collegata | **Buco della fonte "totale"** — le votazioni non sono nel LOD. Un vuoto qui NON significa che non si sia votato. Vedi [votazioni-covid-2020.md](votazioni-covid-2020.md). |
-| `>0` | `>0` | Ci sono votazioni, ma nessuna che matcha i filtri (fiducia/keyword) | **Dato pieno** → è il filtro. Oppure **voto per alzata di mano** (spiegazione più frequente, e **non** un buco: vedi sotto). Oppure **buco "chirurgico"**: la singola votazione cercata (es. una fiducia) manca pur essendoci le altre della seduta. |
+| `>0` | `>0` | Ci sono votazioni, ma nessuna che matcha i filtri (fiducia/keyword) | **Dato pieno** → è il filtro. Oppure **voto per alzata di mano** (spiegazione più frequente, e **non** un buco: vedi sotto). Oppure **votazione finale preclusa** da un emendamento interamente sostitutivo (nemmeno questo è un buco: vedi sotto). Oppure **buco "chirurgico"**: la singola votazione cercata (es. una fiducia) manca pur essendoci le altre della seduta. |
 
 Il punto chiave: gli stati si distinguono **senza sapere in anticipo** quale data cade in quale buco. La sonda lo rileva per costruzione, quindi vale anche per date future non ancora note.
 
 # Prima di gridare al buco: il terzo stato spesso non è un buco
 
 Nel terzo stato (`sedute>0, votazioni>0`, target assente) l'ipotesi da escludere **per prima** non è il buco chirurgico ma la modalità di voto: al Senato l'Assemblea vota *normalmente* per alzata di mano, e un voto per alzata di mano non genera alcuna `osr:Votazione` perché non produce conteggi. Vedi [[voto-alzata-di-mano]], che documenta una seduta (24/7/2025) in cui voti presenti e voti assenti convivono e a distinguerli è solo la modalità. Il buco chirurgico del Milleproroghe qui sotto resta valido — è una **fiducia**, che per appello nominale i conteggi li produce — ma è il caso raro, non quello tipico.
+
+## Seconda ipotesi non-buco: la votazione finale può essere PRECLUSA
+
+Quando l'Aula approva un emendamento **interamente sostitutivo**, la votazione finale sul testo è preclusa dal Regolamento: non si vota, quindi nel LOD non c'è nessuna `osr:Votazione` con label "Votazione finale" — e non manca nulla.
+
+Caso verificato: DDL costituzionale sull'elettorato per il Senato (`ddl/52141`, fase S.1440), seduta 256 del **9 settembre 2020**. Il LOD espone tre votazioni collegate — questione pregiudiziale (91-124-2), questione sospensiva (94-124-3) e `Em. 1.101 (testo 2), Il Relatore` (**125-0-84**) — e nessuna "Votazione finale". La stampa riportò l'approvazione «con 125 sì e 84 astenuti»: sono i numeri del voto sull'emendamento, perché **quel** voto è l'approvazione. Il feed RSS dell'iter lo scrive a chiare lettere:
+
+> Seduta N. 256 — Voto finale — Esito: approvato in prima deliberazione — *(l'approvazione dell'emendamento del Relatore preclude la votazione finale)*
+
+Conseguenza operativa: cercare "il voto finale" per label su un provvedimento chiuso così porta a dichiarare un buco che non c'è. L'esito sta nell'iter (`osr:statoDdl`, qui "approvato" al 2020-09-09) e la spiegazione procedurale sta nel [feed RSS del DDL](akn-bulk-data.md) (colonna `rss_url` di `bill-progress` e `senato-votes`), non nel grafo: il LOD non modella la preclusione. Prima di parlare di dato mancante, leggere il feed.
 
 # Esempio di buco "totale" — 9 aprile 2020 (Cura Italia)
 
