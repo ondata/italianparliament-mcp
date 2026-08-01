@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { buildSenatoVotesEmptyHint } from "./senato-votes.js";
+import {
+  buildSenatoVotesEmptyHint,
+  buildAmbiguousLegislatureError,
+  buildNoSessionsHint,
+  resolveEffectiveLegislature,
+} from "./senato-votes.js";
 
 describe("buildSenatoVotesEmptyHint", () => {
   describe("con sonda (path per data)", () => {
@@ -79,5 +84,65 @@ describe("buildSenatoVotesEmptyHint", () => {
       const h = buildSenatoVotesEmptyHint({}, 19);
       expect(h).toContain("Restringi la ricerca");
     });
+  });
+});
+
+describe("resolveEffectiveLegislature", () => {
+  it("la legislatura esplicita vince e non fa sondare le date", () => {
+    expect(resolveEffectiveLegislature(18)).toEqual({
+      kind: "explicit",
+      legislature: 18,
+    });
+  });
+
+  it("senza sonda (nessun vincolo di data) usa la legislatura in corso", () => {
+    expect(resolveEffectiveLegislature(undefined)).toEqual({
+      kind: "default",
+      legislature: 19,
+    });
+  });
+
+  it("una sola legislatura nell'intervallo → la usa (caso MES 9/12/2020)", () => {
+    expect(resolveEffectiveLegislature(undefined, [18])).toEqual({
+      kind: "fromDates",
+      legislature: 18,
+    });
+  });
+
+  it("intervallo a cavallo → ambiguo, ordinato", () => {
+    expect(resolveEffectiveLegislature(undefined, [19, 18])).toEqual({
+      kind: "ambiguous",
+      legislatures: [18, 19],
+    });
+  });
+
+  it("nessuna seduta in nessuna legislatura → caso distinto dal default", () => {
+    expect(resolveEffectiveLegislature(undefined, [])).toEqual({
+      kind: "noSessions",
+    });
+  });
+
+  it("sonda fallita (undefined) non è confusa con sonda vuota", () => {
+    expect(resolveEffectiveLegislature(undefined, undefined).kind).toBe(
+      "default",
+    );
+  });
+});
+
+describe("buildAmbiguousLegislatureError", () => {
+  it("elenca le legislature e suggerisce il flag con la più recente", () => {
+    const e = buildAmbiguousLegislatureError([18, 19], "2022-09-01", "2022-12-31");
+    expect(e).toContain("18 e 19");
+    expect(e).toContain("--legislature 19");
+    expect(e).toContain("periodo 2022-09-01–2022-12-31");
+  });
+});
+
+describe("buildNoSessionsHint", () => {
+  it("non nomina alcuna legislatura", () => {
+    const h = buildNoSessionsHint("2021-08-15", "2021-08-15");
+    expect(h).toContain("in nessuna legislatura");
+    expect(h).toContain("giorno 2021-08-15");
+    expect(h).not.toMatch(/leg\. \d+/);
   });
 });

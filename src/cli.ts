@@ -1,4 +1,14 @@
-import { defineCommand, runMain } from "citty";
+import {
+  defineCommand as cittyDefineCommand,
+  runMain,
+  type ArgsDef,
+  type CommandDef,
+} from "citty";
+import {
+  buildUnknownFlagError,
+  dashPrefixes,
+  unknownFlags,
+} from "./core/cli-flags.js";
 import { deputiesTool } from "./tools/deputies.js";
 import { senatorsTool } from "./tools/senators.js";
 import { billsTool } from "./tools/bills.js";
@@ -62,6 +72,50 @@ function exitOnEpipe(err: NodeJS.ErrnoException): never {
 
 process.stdout.on("error", exitOnEpipe);
 process.stderr.on("error", exitOnEpipe);
+
+/**
+ * `defineCommand` di citty più il rifiuto delle opzioni non dichiarate.
+ *
+ * citty (mri) le accetta in silenzio: `audizioni list --committee-uri <x>`
+ * (il nome giusto è --committee-name) restituisce un elenco normale, senza il
+ * filtro che chi scrive crede di aver applicato. Per un agente è il caso
+ * peggiore, perché l'output è plausibile. La validazione sta nel `setup`, che
+ * citty esegue prima di `run`, e solo sui comandi foglia: sul comando padre
+ * `context.args` è parsato con gli argomenti del padre, quindi ogni flag del
+ * sotto-comando risulterebbe sconosciuto.
+ */
+function defineCommand<T extends ArgsDef>(def: CommandDef<T>): CommandDef<T> {
+  const declared = def.args;
+  if (!declared || def.subCommands) return cittyDefineCommand(def);
+  return cittyDefineCommand({
+    ...def,
+    setup: (ctx) => {
+      // Due liste distinte. `valid` serve al controllo e include i posizionali,
+      // che citty assegna come proprietà di args (`which <capability>`).
+      // `options` è ciò che si mostra: un posizionale elencato o suggerito col
+      // trattino ("--capability") indicherebbe un'opzione che non esiste.
+      const valid: string[] = [];
+      const options: string[] = [];
+      for (const [name, arg] of Object.entries(declared as ArgsDef)) {
+        // I posizionali non hanno alias (tipo PositionalArgDef).
+        const alias = "alias" in arg ? arg.alias : undefined;
+        const spellings = [
+          name,
+          ...(Array.isArray(alias) ? alias : alias ? [alias] : []),
+        ];
+        valid.push(...spellings);
+        if (arg.type !== "positional") options.push(...spellings);
+      }
+      const passed = Object.keys(ctx.args).filter((k) => k !== "_");
+      const unknown = unknownFlags(passed, valid);
+      if (unknown.length > 0)
+        throw new Error(
+          buildUnknownFlagError(unknown, options, dashPrefixes(ctx.rawArgs)),
+        );
+      return def.setup?.(ctx);
+    },
+  });
+}
 
 function withExamples(description: string, examples: string[]): string {
   return `${description}\n\nExamples:\n${examples.map((e) => `  ${e}`).join("\n")}`;
@@ -1456,7 +1510,7 @@ const senatoVotesList = defineCommand({
     ),
   },
   args: {
-    legislature: { type: "string", description: "Legislature number (default 19)", default: "19" },
+    legislature: { type: "string", description: "Legislature number. Omit to derive it from --date-from/--date-to or --ddl-uri (defaults to 19 only when nothing constrains it)" },
     "ddl-uri": { type: "string", description: "Filter votes linked to a bill (Senato ddl URI)" },
     keyword: { type: "string", description: "Search in vote label (case-insensitive), e.g. 'caccia', 'bilancio'" },
     "confidence-vote": { type: "string", description: "Filter confidence votes: true or false" },
@@ -1471,7 +1525,10 @@ const senatoVotesList = defineCommand({
   async run({ args }) {
     const result = await runTool(senatoVotesTool, {
       countOnly: args["count-only"] === true,
-      legislature: parseIntFlag(args.legislature as string, "legislature") ?? 19,
+      // Nessun `?? 19` qui: il default cieco è ciò che faceva interrogare la
+      // legislatura in corso anche cercando per date del 2020. Se il flag manca,
+      // la legislatura la deduce il tool (dalle date o dal DDL).
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
       ddlUri: (args["ddl-uri"] as string) || undefined,
       keyword: (args.keyword as string) || undefined,
       confidenceVote: parseBoolFlag(args["confidence-vote"] as string, "confidence-vote"),

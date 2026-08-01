@@ -19,6 +19,73 @@ import type { Tool } from "./types.js";
  */
 export type SenatoVotesProbe = { sedute: number; votazioni: number };
 
+/** Legislatura in corso: usata solo quando non c'è nulla da cui dedurla. */
+export const SENATO_CURRENT_LEGISLATURE = 19;
+
+/**
+ * Esito della scelta della legislatura da interrogare. `legislature` era un
+ * campo con `.default(19)`: chi cercava per data un evento di legislature
+ * passate interrogava in silenzio la 19 e riceveva "nessuna seduta", cioè un
+ * messaggio che afferma l'assenza del dato mentre il dato c'è altrove. Da qui
+ * la distinzione esplicita fra i casi, decisa da una funzione pura.
+ */
+export type LegislatureChoice =
+  | { kind: "explicit" | "default" | "fromDates"; legislature: number }
+  | { kind: "ambiguous"; legislatures: number[] }
+  | { kind: "noSessions" };
+
+/**
+ * `resolvedLegs` è il risultato della sonda sulle sedute nell'intervallo:
+ * `undefined` quando la sonda non è stata eseguita (legislatura esplicita,
+ * ricerca per DDL, nessun vincolo di data) o è fallita.
+ */
+export function resolveEffectiveLegislature(
+  explicit: number | undefined,
+  resolvedLegs?: number[],
+): LegislatureChoice {
+  if (explicit !== undefined)
+    return { kind: "explicit", legislature: explicit };
+  if (resolvedLegs === undefined)
+    return { kind: "default", legislature: SENATO_CURRENT_LEGISLATURE };
+  if (resolvedLegs.length === 0) return { kind: "noSessions" };
+  if (resolvedLegs.length === 1)
+    return { kind: "fromDates", legislature: resolvedLegs[0] };
+  return { kind: "ambiguous", legislatures: [...resolvedLegs].sort((a, b) => a - b) };
+}
+
+/**
+ * Intervallo a cavallo di due legislature: fermarsi e chiedere invece di
+ * rispondere con una sola. Interrogarle entrambe non è un'alternativa: le righe
+ * non portano la legislatura, e la risoluzione numero→DDL (`osr:fase "S.<num>"`)
+ * e `ddlRssUrl` lavorano su una sola legislatura — S.1234 esiste sia nella 18
+ * sia nella 19, quindi il multi-legislatura aggancerebbe `ddl_uri` sbagliati
+ * senza dirlo.
+ */
+export function buildAmbiguousLegislatureError(
+  legislatures: number[],
+  dateFrom?: string,
+  dateTo?: string,
+): string {
+  const elenco = legislatures.join(" e ");
+  return (
+    `Il ${describePeriodo(dateFrom, dateTo)} copre più legislature del Senato (${elenco}): ` +
+    `specifica quale interrogare, es. --legislature ${legislatures[legislatures.length - 1]}. ` +
+    `Le votazioni delle due legislature non sono confrontabili per numero d'atto (lo stesso numero di DDL esiste in entrambe).`
+  );
+}
+
+/** Nessuna seduta d'Assemblea in quel periodo in NESSUNA legislatura. */
+export function buildNoSessionsHint(
+  dateFrom?: string,
+  dateTo?: string,
+): string {
+  return (
+    `Nessuna votazione trovata. Nel ${describePeriodo(dateFrom, dateTo)} non risulta alcuna seduta d'Assemblea del Senato ` +
+    `in nessuna legislatura presente nel LOD: probabilmente non si è votato in Aula in quelle date (sospensione dei lavori, ` +
+    `festività, campagna elettorale) oppure le sedute non sono state ancora caricate. Verifica le date.`
+  );
+}
+
 type EmptyHintInput = {
   ddlUri?: string;
   keyword?: string;
@@ -129,13 +196,38 @@ SELECT (COUNT(DISTINCT ?s) AS ?sedute) (COUNT(DISTINCT ?v) AS ?votazioni) WHERE 
   };
 }
 
+/**
+ * Legislature delle sedute d'Assemblea che cadono nell'intervallo. Query
+ * mirata sulle sole sedute (poche migliaia, range filter su Virtuoso): serve a
+ * scegliere la costante `osr:legislatura` della query principale. Non si può
+ * evitare togliendo il vincolo di legislatura come fa la Camera: senza quella
+ * costante il pattern gira su ~64k votazioni e Virtuoso va in timeout.
+ */
+async function legislaturesInDateRange(
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<number[]> {
+  const bounds: string[] = [];
+  if (dateFrom) bounds.push(`?d >= "${dateFrom}"^^xsd:date`);
+  if (dateTo) bounds.push(`?d <= "${dateTo}"^^xsd:date`);
+  const q = `${OSR_PREFIXES}
+SELECT DISTINCT ?leg WHERE {
+  ?s a osr:SedutaAssemblea ; osr:legislatura ?leg ; osr:dataSeduta ?d .
+  ${bounds.length ? `FILTER(${bounds.join(" && ")})` : ""}
+}`;
+  return flattenBindings(await snQuery(q))
+    .map((r) => Number(r.leg))
+    .filter((n) => Number.isInteger(n) && n > 0)
+    .sort((a, b) => a - b);
+}
+
 const inputSchema = z.object({
   legislature: z
     .number()
     .int()
     .positive()
-    .default(19)
-    .describe("Numero legislatura Senato (default 19)"),
+    .optional()
+    .describe("Numero legislatura Senato. Se omessa viene dedotta dalle date (--date-from/--date-to) o dal DDL (--ddl-uri); senza alcun vincolo si usa la legislatura in corso (19). Serve indicarla solo se l'intervallo di date copre due legislature"),
   ddlUri: z
     .string()
     .url()
@@ -200,7 +292,7 @@ const columns = [
 export const senatoVotesTool: Tool<typeof inputSchema> = {
   name: "senato-votes",
   description:
-    "[SENATO] Lista votazioni dell'Assemblea del Senato con esito, contatori (favorevoli, contrari, astenuti, presenti, votanti), tipo, data seduta e DDL collegato. Filtrabile per legislatura, data, DDL, parola chiave (label + titolo del DDL collegato, fiducie incluse), voti di fiducia (--confidence-vote) e voti finali (--final-vote). Per il voto del singolo senatore usare senato-vote-detail. Le votazioni di FIDUCIA hanno ddl_uri vuoto alla fonte (il DDL è solo nel label, es. 'Disegno di legge n.1933. Votazione questione di fiducia'), ma --ddl-uri le include comunque: risolve le sedute in cui il DDL è votato (link diretto o fiducia che lo cita per numero, anche su una seduta diversa da quella del voto forte) e ricollega la fiducia. Verifica sempre il ddl_uri di una 'Votazione finale' trovata per data: può appartenere a un atto diverso (testo unificato). `ddl_title` è il titolo del provvedimento collegato (osr:titoloBreve, o osr:titolo se il primo manca), utile quando il label del voto è generico (es. un ODG o una risoluzione di commissione che non nomina il tema): vuoto se ddl_uri è multiplo (testo unificato, ambiguo) o non risolto. Riporta solo i contatori restituiti, non stimarli.",
+    "[SENATO] Lista votazioni dell'Assemblea del Senato con esito, contatori (favorevoli, contrari, astenuti, presenti, votanti), tipo, data seduta e DDL collegato. Filtrabile per legislatura, data, DDL, parola chiave (label + titolo del DDL collegato, fiducie incluse), voti di fiducia (--confidence-vote) e voti finali (--final-vote). La legislatura non va indicata quando si cerca per data o per DDL: viene dedotta (dalle sedute che cadono nell'intervallo, o dal DDL), quindi una ricerca per date del 2020 trova la legislatura 18 da sola. Va indicata solo se l'intervallo copre due legislature, caso in cui il tool si ferma e lo dice. Per il voto del singolo senatore usare senato-vote-detail. Le votazioni di FIDUCIA hanno ddl_uri vuoto alla fonte (il DDL è solo nel label, es. 'Disegno di legge n.1933. Votazione questione di fiducia'), ma --ddl-uri le include comunque: risolve le sedute in cui il DDL è votato (link diretto o fiducia che lo cita per numero, anche su una seduta diversa da quella del voto forte) e ricollega la fiducia. Verifica sempre il ddl_uri di una 'Votazione finale' trovata per data: può appartenere a un atto diverso (testo unificato). `ddl_title` è il titolo del provvedimento collegato (osr:titoloBreve, o osr:titolo se il primo manca), utile quando il label del voto è generico (es. un ODG o una risoluzione di commissione che non nomina il tema): vuoto se ddl_uri è multiplo (testo unificato, ambiguo) o non risolto. Riporta solo i contatori restituiti, non stimarli.",
   // Fallback statico: sui risultati vuoti execute() valorizza `result.hint`
   // (dinamico, con sonda del grafo sul path per data), che ha precedenza. Questo
   // testo resta solo come rete di sicurezza e non afferma buchi specifici: quelli
@@ -211,6 +303,7 @@ export const senatoVotesTool: Tool<typeof inputSchema> = {
   examples: [
     "italianparliament senato-votes list --legislature 19 --limit 50",
     "italianparliament senato-votes list --legislature 19 --date-from 2026-01-01 --date-to 2026-03-31",
+    "italianparliament senato-votes list --date-from 2020-12-09 --date-to 2020-12-09",
     "italianparliament senato-votes list --ddl-uri http://dati.senato.it/ddl/58039 --format jsonl",
     "italianparliament senato-votes list --ddl-uri http://dati.senato.it/ddl/52988",
     "italianparliament senato-votes list --legislature 19 --confidence-vote true",
@@ -279,7 +372,52 @@ export const senatoVotesTool: Tool<typeof inputSchema> = {
     // legislature (falso negativo: "Nessuna votazione trovata" pur essendo
     // l'URI già non ambiguo). La deriviamo dal DDL e la usiamo in tutte le
     // query; fallback all'input se il DDL non la espone.
-    let effectiveLeg = input.legislature;
+    // Senza --ddl-uri la legislatura la danno le date: le sedute d'Assemblea
+    // dell'intervallo dicono di quale legislatura si sta parlando. Sonda
+    // eseguita solo quando serve davvero (nessuna legislatura esplicita, nessun
+    // DDL, almeno un vincolo di data); se fallisce si degrada al comportamento
+    // precedente (legislatura in corso) invece di rompere la ricerca.
+    const needsDateResolution =
+      input.legislature === undefined &&
+      !input.ddlUri &&
+      !!(input.dateFrom || input.dateTo);
+    const choice = resolveEffectiveLegislature(
+      input.legislature,
+      needsDateResolution
+        ? await legislaturesInDateRange(input.dateFrom, input.dateTo).catch(
+            () => undefined,
+          )
+        : undefined,
+    );
+    if (choice.kind === "ambiguous")
+      throw new Error(
+        buildAmbiguousLegislatureError(
+          choice.legislatures,
+          input.dateFrom,
+          input.dateTo,
+        ),
+      );
+    if (choice.kind === "noSessions")
+      return input.countOnly
+        ? { rows: [{ count: "0" }], columns: ["count"] }
+        : {
+            rows: [],
+            columns,
+            // Niente probeSenatoDates qui: sappiamo già che non ci sono sedute
+            // in nessuna legislatura, e la sonda parlerebbe di una legislatura
+            // sola — proprio il messaggio fuorviante che questo blocco evita.
+            hint: buildNoSessionsHint(input.dateFrom, input.dateTo),
+          };
+    let effectiveLeg = choice.legislature;
+
+    // --ddl-uri identifica univocamente il provvedimento e quindi la sua
+    // legislatura. L'URI (dati.senato.it/ddl/{N}) non la codifica, ma la
+    // proprietà osr:legislatura del DDL sì. Senza risolverla, il filtro di
+    // legislatura di default (19) esclude in silenzio i DDL di altre
+    // legislature (falso negativo: "Nessuna votazione trovata" pur essendo
+    // l'URI già non ambiguo). La deriviamo dal DDL e la usiamo in tutte le
+    // query; ha la precedenza anche su --legislature esplicito, che con un URI
+    // non ambiguo può solo essere sbagliato.
     if (input.ddlUri) {
       const legRows = flattenBindings(
         await snQuery(

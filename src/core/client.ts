@@ -25,6 +25,10 @@ export class SparqlError extends Error {
 // almeno 2s tra l'inizio di due richieste Senato consecutive, in coda
 // sequenziale così protegge anche chiamate concorrenti. Solo Senato: la
 // Camera non ha mai mostrato lo stesso comportamento.
+// Attenzione: è stato di MODULO, quindi vale per processo. La suite di test
+// gira perciò in un processo unico con moduli condivisi (`vitest.config.ts`):
+// coi worker paralleli ogni file avrebbe la propria catena e il throttle non
+// proteggerebbe nulla.
 const SENATO_MIN_INTERVAL_MS = 2000;
 let senatoThrottleChain: Promise<void> = Promise.resolve();
 let senatoLastCallAt = 0;

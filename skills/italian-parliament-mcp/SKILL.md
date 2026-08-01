@@ -136,6 +136,8 @@ Alcune analisi ricorrenti (es. i **dissidenti/ribelli** che votano contro la lin
 
 > **Confidence votes:** at the source a *fiducia* has an empty `ddlUri` (the bill link is only in the `label` text, e.g. "Disegno di legge n.1933. Votazione questione di fiducia."), but `senato-votes list --ddlUri <uri>` **now includes it anyway**: it resolves the DDL's seduta dates and re-links the fiducia voted that day. Still verify `ddlUri` on any "final" vote found by date: it may belong to a different act (unified text).
 
+> **Legislatura in `senato-votes`:** non passarla quando la ricerca è per data o per DDL — viene dedotta (dalle sedute dell'intervallo, o dal DDL), quindi una ricerca sul 9/12/2020 trova da sola la leg. 18. Va indicata solo se l'intervallo copre due legislature: in quel caso il tool si ferma e lo dice, perché lo stesso numero di DDL esiste in entrambe e i risultati non sarebbero confrontabili.
+
 **Read the actual text of a bill (articolato)**
 
 The full text is **not** in the SPARQL data — only metadata. `bill-text` returns the direct links to the text, each with a `format` (html/pdf/urn) and an `auth` field:
