@@ -67,6 +67,61 @@ WHERE {
 LIMIT ${limit}`;
 }
 
+/**
+ * Numero e legislatura di un atto Camera dal suo URI
+ * (`.../attocamera.rdf/ac19_2500` → leg 19, atto 2500).
+ */
+export function parseCameraActUri(
+  uri: string,
+): { legislature: number; number: string } | undefined {
+  const m = /\/ac(\d+)_(\d+[A-Z]?)/.exec(uri);
+  if (!m) return undefined;
+  return { legislature: Number(m[1]), number: m[2] };
+}
+
+/**
+ * DDL Senato da cui proviene un atto Camera "di passaggio": quando un DDL nasce
+ * al Senato e arriva alla Camera, l'atto Camera NON porta i firmatari (nel
+ * grafo OCD mancano `ocd:primo_firmatario`/`ocd:altro_firmatario`), che restano
+ * sul DDL di origine. Il legame è lo stesso usato da bill-progress: le fasi
+ * dello stesso DDL condividono `osr:idDdl`, e il repertorio Senato contiene
+ * anche le fasi Camera (`osr:ramo = "C"`).
+ *
+ * `undefined` quando la fase Camera non esiste nel repertorio Senato o non c'è
+ * alcuna fase S: lì il vuoto è genuino e va lasciato vuoto.
+ */
+async function originatingSenatoDdl(
+  cameraUri: string,
+): Promise<{ uri: string; phase: string } | undefined> {
+  const act = parseCameraActUri(cameraUri);
+  if (!act) return undefined;
+  const idRows = flattenBindings(
+    await snQuery(`${OSR_PREFIXES}
+SELECT DISTINCT ?id WHERE {
+  ?a osr:idDdl ?id ; osr:numeroFase ?n ; osr:ramo ?r ; osr:legislatura ${act.legislature} .
+  FILTER(STR(?n) = "${act.number}" && STR(?r) = "C")
+}
+LIMIT 2`),
+  );
+  const id = idRows[0]?.id;
+  if (!id) return undefined;
+
+  const phaseRows = flattenBindings(
+    await snQuery(`${OSR_PREFIXES}
+SELECT ?a ?fase WHERE {
+  ?a osr:idDdl "${id.replace(/"/g, "")}" ; osr:fase ?fase ; osr:ramo ?r .
+  FILTER(STR(?r) = "S")
+}
+LIMIT 10`),
+  )
+    .filter((r) => r.a && r.fase)
+    // Prima lettura al Senato: la fase senza suffisso di navetta (S.1452,
+    // non S.1452-B) è quella che porta l'iniziativa e quindi i firmatari.
+    .sort((x, y) => (x.fase ?? "").length - (y.fase ?? "").length);
+  const first = phaseRows[0];
+  return first ? { uri: first.a, phase: first.fase } : undefined;
+}
+
 // La rdfs:label del deputato Camera arriva col suffisso
 // ", XIX Legislatura della Repubblica": si tiene solo la parte prima della virgola.
 function cleanCameraName(firstName: string, surname: string, label: string): string {
@@ -146,6 +201,22 @@ export const billSignatoriesTool: Tool<typeof inputSchema> = {
         html_url: personHtmlUrl(r.dep),
       };
     });
+    // Vuoto sul ramo Camera: può essere un atto "di passaggio", cioè la lettura
+    // Camera di un DDL nato al Senato, dove i firmatari stanno sul DDL di
+    // origine. Senza dirlo, un vuoto (dato che vive altrove) si legge come
+    // "atto senza firmatari". Sondato solo sul vuoto; un errore della sonda
+    // (403 Senato, timeout) lascia il vuoto com'era invece di far fallire tutto.
+    if (rows.length === 0) {
+      const origine = await originatingSenatoDdl(input.billUri).catch(
+        () => undefined,
+      );
+      if (origine)
+        return {
+          rows,
+          columns,
+          hint: `Nessun firmatario sull'atto Camera: è la lettura Camera di un DDL presentato al SENATO come ${origine.phase}, e i firmatari stanno sul DDL di origine. Rilancia con --bill-uri ${origine.uri}. La numerazione non si conserva tra i rami, quindi il numero dell'atto Camera non aiuta a cercarli al Senato.`,
+        };
+    }
     return { rows, columns };
   },
 };
