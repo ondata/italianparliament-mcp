@@ -1456,7 +1456,7 @@ const senatoVotesList = defineCommand({
     ),
   },
   args: {
-    legislature: { type: "string", description: "Legislature number (default 19)", default: "19" },
+    legislature: { type: "string", description: "Legislature number. Omit to derive it from --date-from/--date-to or --ddl-uri (defaults to 19 only when nothing constrains it)" },
     "ddl-uri": { type: "string", description: "Filter votes linked to a bill (Senato ddl URI)" },
     keyword: { type: "string", description: "Search in vote label (case-insensitive), e.g. 'caccia', 'bilancio'" },
     "confidence-vote": { type: "string", description: "Filter confidence votes: true or false" },
@@ -1471,7 +1471,10 @@ const senatoVotesList = defineCommand({
   async run({ args }) {
     const result = await runTool(senatoVotesTool, {
       countOnly: args["count-only"] === true,
-      legislature: parseIntFlag(args.legislature as string, "legislature") ?? 19,
+      // Nessun `?? 19` qui: il default cieco è ciò che faceva interrogare la
+      // legislatura in corso anche cercando per date del 2020. Se il flag manca,
+      // la legislatura la deduce il tool (dalle date o dal DDL).
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
       ddlUri: (args["ddl-uri"] as string) || undefined,
       keyword: (args.keyword as string) || undefined,
       confidenceVote: parseBoolFlag(args["confidence-vote"] as string, "confidence-vote"),
