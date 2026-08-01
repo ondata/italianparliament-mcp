@@ -3,7 +3,10 @@ import { snQuery } from "../core/client.js";
 import { OSR_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
 import { personHtmlUrl } from "../core/html-url.js";
-import { CURRENT_LEGISLATURE } from "../core/legislature-choice.js";
+import {
+  CURRENT_LEGISLATURE,
+  formatLegislatureList,
+} from "../core/legislature-choice.js";
 import type { Tool } from "./types.js";
 
 // Stesse categorie di senato-vote-detail.ts (proprietà osr inverse voto→senatore).
@@ -78,7 +81,7 @@ SELECT DISTINCT ?leg WHERE { ${union} ?v osr:legislatura ?leg }`;
         legislature = CURRENT_LEGISLATURE;
       } else if (voted.length === 0) {
         throw new Error(
-          `Nessun voto d'Assemblea risulta per ${input.senatorUri} in NESSUNA legislatura: verifica l'URI del senatore (si ottiene con search --name). Un URI valido di chi non ha mai votato in Aula è possibile ma raro.`,
+          `Nessun voto d'Assemblea risulta per ${input.senatorUri} in NESSUNA legislatura: verifica l'URI del senatore con "search find --name <cognome> --chamber senato", aggiungendo "--legislature <n>" se non è più in carica (senza, la ricerca al Senato guarda solo i senatori in carica). Un URI valido di chi non ha mai votato in Aula è possibile ma raro.`,
         );
       } else if (voted.includes(CURRENT_LEGISLATURE)) {
         // Chi siede nella legislatura in corso: resta il comportamento atteso,
@@ -88,7 +91,7 @@ SELECT DISTINCT ?leg WHERE { ${union} ?v osr:legislatura ?leg }`;
         legislature = voted[0];
       } else {
         throw new Error(
-          `${input.senatorUri} non ha voti nella legislatura in corso ma ne ha in più legislature passate (${voted.join(", ")}): indica quale con --legislature.`,
+          `${input.senatorUri} non ha voti nella legislatura in corso ma ne ha in più legislature passate (${formatLegislatureList(voted)}): indica quale con --legislature.`,
         );
       }
     }
@@ -123,7 +126,7 @@ SELECT (COUNT(?v) AS ?n) WHERE {
       throw new Error(
         `Nessun voto trovato per il senatore ${input.senatorUri} in legislatura ${legislature}.` +
           (altrove.length
-            ? ` Ha però voti registrati nelle legislature ${altrove.join(", ")}: probabilmente non sedeva in Senato nella ${legislature}. Rilancia con --legislature ${altrove[altrove.length - 1]}.`
+            ? ` Ha però voti registrati nelle legislature ${formatLegislatureList(altrove)}: probabilmente non sedeva in Senato nella ${legislature}. Rilancia con --legislature ${altrove[altrove.length - 1]}.`
             : ""),
       );
     }

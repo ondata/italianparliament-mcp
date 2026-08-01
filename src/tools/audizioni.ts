@@ -7,7 +7,10 @@ import {
   cameraLegislatureRanges,
   legislaturesForDateRange,
 } from "../core/camera-legislature.js";
-import { resolveLegislature } from "../core/legislature-choice.js";
+import {
+  formatLegislatureList,
+  resolveLegislature,
+} from "../core/legislature-choice.js";
 import type { Tool } from "./types.js";
 
 const RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
@@ -281,7 +284,7 @@ export const audizioniTool: Tool<typeof inputSchema> = {
     );
     if (choice.kind === "ambiguous")
       throw new Error(
-        `L'intervallo di date copre più legislature della Camera (${choice.legislatures.join(" e ")}): specifica quale interrogare, es. --legislature ${choice.legislatures[choice.legislatures.length - 1]}. Le audizioni delle due legislature non sono un elenco unico — cambia la composizione delle commissioni e, fuori dalla 19, cambia anche il modo in cui il dato è ricostruibile.`,
+        `L'intervallo di date copre più legislature della Camera (${formatLegislatureList(choice.legislatures)}): specifica quale interrogare, es. --legislature ${choice.legislatures[choice.legislatures.length - 1]}. Le audizioni di legislature diverse non sono un elenco unico — cambia la composizione delle commissioni e, fuori dalla 19, cambia anche il modo in cui il dato è ricostruibile.`,
       );
     if (choice.kind === "none")
       throw new Error(

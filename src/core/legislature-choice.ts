@@ -26,6 +26,16 @@ export type LegislatureChoice =
  * cui si ricade sulla legislatura in corso, cioè il comportamento storico.
  * Un array vuoto è invece un'informazione: nessuna legislatura corrisponde.
  */
+/**
+ * Elenco leggibile di legislature ("18 e 19", "17, 18 e 19"): un intervallo di
+ * date aperto può coprirne più di due, e un messaggio che ne dà per scontate
+ * due sarebbe scorretto proprio nel caso più ampio.
+ */
+export function formatLegislatureList(legislatures: number[]): string {
+  if (legislatures.length <= 1) return legislatures.join("");
+  return `${legislatures.slice(0, -1).join(", ")} e ${legislatures[legislatures.length - 1]}`;
+}
+
 export function resolveLegislature(
   explicit: number | undefined,
   derived?: number[],

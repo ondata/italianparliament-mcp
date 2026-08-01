@@ -55,7 +55,16 @@ export function legislaturesForDateRange(
 
 let cached: Promise<LegislatureRange[]> | undefined;
 
-/** Elenco legislature con intervallo, una volta sola per processo. */
+/**
+ * Elenco legislature con intervallo, una volta sola per processo.
+ *
+ * La cache viene azzerata se la query fallisce: memorizzare una promise
+ * rifiutata renderebbe permanente un errore momentaneo: in un processo
+ * long-lived (server MCP, Worker) ogni ricerca per data successiva
+ * ricadrebbe per sempre sulla legislatura in corso, cioè proprio il vuoto
+ * fuorviante che questo modulo esiste per evitare. Le chiamate concorrenti
+ * continuano a condividere lo stesso tentativo.
+ */
 export async function cameraLegislatureRanges(): Promise<LegislatureRange[]> {
   cached ??= (async () => {
     const rows = flattenBindings(
@@ -66,5 +75,10 @@ SELECT DISTINCT ?uri ?date WHERE {
     );
     return parseLegislatureRanges(rows);
   })();
-  return cached;
+  try {
+    return await cached;
+  } catch (e) {
+    cached = undefined;
+    throw e;
+  }
 }

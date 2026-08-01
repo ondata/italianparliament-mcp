@@ -65,4 +65,10 @@ describe("legislaturesForDateRange", () => {
   it("data anteriore a tutte le legislature note non ne dà nessuna", () => {
     expect(legislaturesForDateRange(RANGES, "20000101", "20000131")).toEqual([]);
   });
+
+  it("un intervallo molto ampio ne può coprire più di due", () => {
+    expect(legislaturesForDateRange(RANGES, "20140101", "20230101")).toEqual([
+      17, 18, 19,
+    ]);
+  });
 });

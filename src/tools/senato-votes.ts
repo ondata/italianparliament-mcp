@@ -9,7 +9,10 @@ import {
   SENATO_MAX_OR_TERMS,
   assertQueryFits,
 } from "../core/senato-query-size.js";
-import { resolveLegislature } from "../core/legislature-choice.js";
+import {
+  formatLegislatureList,
+  resolveLegislature,
+} from "../core/legislature-choice.js";
 import type { Tool } from "./types.js";
 
 /**
@@ -33,7 +36,7 @@ export function buildAmbiguousLegislatureError(
   dateFrom?: string,
   dateTo?: string,
 ): string {
-  const elenco = legislatures.join(" e ");
+  const elenco = formatLegislatureList(legislatures);
   return (
     `Il ${describePeriodo(dateFrom, dateTo)} copre più legislature del Senato (${elenco}): ` +
     `specifica quale interrogare, es. --legislature ${legislatures[legislatures.length - 1]}. ` +
