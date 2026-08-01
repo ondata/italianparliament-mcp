@@ -832,13 +832,14 @@ const senatoAttendanceShow = defineCommand({
   },
   args: {
     "senator-uri": { type: "string", description: "Full URI of the senator", required: true },
-    legislature: { type: "string", default: "19", description: "Legislature number (default 19)" },
+    legislature: { type: "string", description: "Legislature number. Omit to derive it from the legislatures where that senator has recorded votes" },
     format: { type: "string", default: "csv", description: "csv | jsonl" },
   },
   async run({ args }) {
     const result = await runTool(senatoAttendanceTool, {
       senatorUri: args["senator-uri"] as string,
-      legislature: parseIntFlag(args.legislature as string, "legislature") ?? 19,
+      // Niente `?? 19`: senza il flag la legislatura la deduce il tool.
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
     });
     emit(result, parseFormat(args.format as string));
   },
