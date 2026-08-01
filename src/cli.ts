@@ -1,4 +1,14 @@
-import { defineCommand, runMain } from "citty";
+import {
+  defineCommand as cittyDefineCommand,
+  runMain,
+  type ArgsDef,
+  type CommandDef,
+} from "citty";
+import {
+  buildUnknownFlagError,
+  dashPrefixes,
+  unknownFlags,
+} from "./core/cli-flags.js";
 import { deputiesTool } from "./tools/deputies.js";
 import { senatorsTool } from "./tools/senators.js";
 import { billsTool } from "./tools/bills.js";
@@ -62,6 +72,44 @@ function exitOnEpipe(err: NodeJS.ErrnoException): never {
 
 process.stdout.on("error", exitOnEpipe);
 process.stderr.on("error", exitOnEpipe);
+
+/**
+ * `defineCommand` di citty più il rifiuto delle opzioni non dichiarate.
+ *
+ * citty (mri) le accetta in silenzio: `audizioni list --committee-uri <x>`
+ * (il nome giusto è --committee-name) restituisce un elenco normale, senza il
+ * filtro che chi scrive crede di aver applicato. Per un agente è il caso
+ * peggiore, perché l'output è plausibile. La validazione sta nel `setup`, che
+ * citty esegue prima di `run`, e solo sui comandi foglia: sul comando padre
+ * `context.args` è parsato con gli argomenti del padre, quindi ogni flag del
+ * sotto-comando risulterebbe sconosciuto.
+ */
+function defineCommand<T extends ArgsDef>(def: CommandDef<T>): CommandDef<T> {
+  const declared = def.args;
+  if (!declared || def.subCommands) return cittyDefineCommand(def);
+  return cittyDefineCommand({
+    ...def,
+    setup: (ctx) => {
+      const names = Object.entries(declared as ArgsDef).flatMap(
+        ([name, def]) => {
+          // I positional non hanno alias (tipo PositionalArgDef).
+          const alias = "alias" in def ? def.alias : undefined;
+          return [
+            name,
+            ...(Array.isArray(alias) ? alias : alias ? [alias] : []),
+          ];
+        },
+      );
+      const passed = Object.keys(ctx.args).filter((k) => k !== "_");
+      const unknown = unknownFlags(passed, names);
+      if (unknown.length > 0)
+        throw new Error(
+          buildUnknownFlagError(unknown, names, dashPrefixes(ctx.rawArgs)),
+        );
+      return def.setup?.(ctx);
+    },
+  });
+}
 
 function withExamples(description: string, examples: string[]): string {
   return `${description}\n\nExamples:\n${examples.map((e) => `  ${e}`).join("\n")}`;
