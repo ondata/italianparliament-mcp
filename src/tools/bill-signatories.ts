@@ -69,14 +69,29 @@ LIMIT ${limit}`;
 
 /**
  * Numero e legislatura di un atto Camera dal suo URI
- * (`.../attocamera.rdf/ac19_2500` → leg 19, atto 2500).
+ * (`.../attocamera.rdf/ac19_2500` → leg 19, atto 2500). Le letture successive
+ * hanno il suffisso col trattino, come nel repertorio Senato
+ * (`ac19_976-B` → 976-B): verificato sul grafo Camera.
  */
 export function parseCameraActUri(
   uri: string,
 ): { legislature: number; number: string } | undefined {
-  const m = /\/ac(\d+)_(\d+[A-Z]?)/.exec(uri);
+  const m = /\/ac(\d+)_(\d+(?:-[A-Z])?)/.exec(uri);
   if (!m) return undefined;
   return { legislature: Number(m[1]), number: m[2] };
+}
+
+/**
+ * Pattern della fase Camera nel repertorio Senato per un numero d'atto.
+ *
+ * L'URI Camera scrive la lettura successiva attaccata (`ac19_1511B`), il
+ * repertorio Senato la scrive col trattino (`1511-B`): un confronto esatto sul
+ * numero così com'è non lega nulla e l'origine resterebbe non trovata. Si cerca
+ * quindi sul numero base accettando il suffisso — le letture dello stesso DDL
+ * condividono comunque l'`osr:idDdl`, che è ciò che serve.
+ */
+export function cameraPhasePattern(number: string): string {
+  return `${number.replace(/-?[A-Z]$/, "")}(-[A-Z])?`;
 }
 
 /**
@@ -99,18 +114,21 @@ async function originatingSenatoDdl(
     await snQuery(`${OSR_PREFIXES}
 SELECT DISTINCT ?id WHERE {
   ?a osr:idDdl ?id ; osr:numeroFase ?n ; osr:ramo ?r ; osr:legislatura ${act.legislature} .
-  FILTER(STR(?n) = "${act.number}" && STR(?r) = "C")
+  FILTER(REGEX(STR(?n), "^${cameraPhasePattern(act.number)}$") && STR(?r) = "C")
 }
 LIMIT 2`),
   );
   const id = idRows[0]?.id;
   if (!id) return undefined;
 
+  // STR(?idd) e non il letterale nudo: osr:idDdl è tipizzato (xsd:integer),
+  // quindi `osr:idDdl "54448"` non lega nulla e la ricerca dell'origine
+  // fallirebbe in silenzio — stessa forma usata da bill-progress.
   const phaseRows = flattenBindings(
     await snQuery(`${OSR_PREFIXES}
 SELECT ?a ?fase WHERE {
-  ?a osr:idDdl "${id.replace(/"/g, "")}" ; osr:fase ?fase ; osr:ramo ?r .
-  FILTER(STR(?r) = "S")
+  ?a osr:idDdl ?idd ; osr:fase ?fase ; osr:ramo ?r .
+  FILTER(STR(?idd) = "${id.replace(/"/g, "")}" && STR(?r) = "S")
 }
 LIMIT 10`),
   )

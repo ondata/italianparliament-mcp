@@ -90,21 +90,27 @@ function defineCommand<T extends ArgsDef>(def: CommandDef<T>): CommandDef<T> {
   return cittyDefineCommand({
     ...def,
     setup: (ctx) => {
-      const names = Object.entries(declared as ArgsDef).flatMap(
-        ([name, def]) => {
-          // I positional non hanno alias (tipo PositionalArgDef).
-          const alias = "alias" in def ? def.alias : undefined;
-          return [
-            name,
-            ...(Array.isArray(alias) ? alias : alias ? [alias] : []),
-          ];
-        },
-      );
+      // Due liste distinte. `valid` serve al controllo e include i posizionali,
+      // che citty assegna come proprietà di args (`which <capability>`).
+      // `options` è ciò che si mostra: un posizionale elencato o suggerito col
+      // trattino ("--capability") indicherebbe un'opzione che non esiste.
+      const valid: string[] = [];
+      const options: string[] = [];
+      for (const [name, arg] of Object.entries(declared as ArgsDef)) {
+        // I posizionali non hanno alias (tipo PositionalArgDef).
+        const alias = "alias" in arg ? arg.alias : undefined;
+        const spellings = [
+          name,
+          ...(Array.isArray(alias) ? alias : alias ? [alias] : []),
+        ];
+        valid.push(...spellings);
+        if (arg.type !== "positional") options.push(...spellings);
+      }
       const passed = Object.keys(ctx.args).filter((k) => k !== "_");
-      const unknown = unknownFlags(passed, names);
+      const unknown = unknownFlags(passed, valid);
       if (unknown.length > 0)
         throw new Error(
-          buildUnknownFlagError(unknown, names, dashPrefixes(ctx.rawArgs)),
+          buildUnknownFlagError(unknown, options, dashPrefixes(ctx.rawArgs)),
         );
       return def.setup?.(ctx);
     },

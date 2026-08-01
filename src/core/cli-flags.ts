@@ -76,9 +76,12 @@ export function unknownFlags(passed: string[], declared: string[]): string[] {
 }
 
 /**
- * Messaggio d'errore. `dashByFlag` ricostruisce come l'utente ha scritto
- * l'opzione (`-q` contro `--q`): citarla in una forma che non ha digitato
- * farebbe sembrare l'errore un altro.
+ * Messaggio d'errore. `declared` sono qui le sole OPZIONI: gli argomenti
+ * posizionali (`which <capability>`) valgono per il controllo ma non vanno
+ * elencati né suggeriti col trattino, perché `--capability` non esiste.
+ * `dashByFlag` ricostruisce come l'utente ha scritto l'opzione (`-q` contro
+ * `--q`): citarla in una forma che non ha digitato farebbe sembrare l'errore
+ * un altro.
  */
 export function buildUnknownFlagError(
   unknowns: string[],
