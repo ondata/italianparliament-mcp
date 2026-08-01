@@ -3,8 +3,8 @@ import {
   buildSenatoVotesEmptyHint,
   buildAmbiguousLegislatureError,
   buildNoSessionsHint,
-  resolveEffectiveLegislature,
 } from "./senato-votes.js";
+import { resolveLegislature } from "../core/legislature-choice.js";
 
 describe("buildSenatoVotesEmptyHint", () => {
   describe("con sonda (path per data)", () => {
@@ -87,43 +87,41 @@ describe("buildSenatoVotesEmptyHint", () => {
   });
 });
 
-describe("resolveEffectiveLegislature", () => {
+describe("resolveLegislature", () => {
   it("la legislatura esplicita vince e non fa sondare le date", () => {
-    expect(resolveEffectiveLegislature(18)).toEqual({
+    expect(resolveLegislature(18)).toEqual({
       kind: "explicit",
       legislature: 18,
     });
   });
 
   it("senza sonda (nessun vincolo di data) usa la legislatura in corso", () => {
-    expect(resolveEffectiveLegislature(undefined)).toEqual({
+    expect(resolveLegislature(undefined)).toEqual({
       kind: "default",
       legislature: 19,
     });
   });
 
   it("una sola legislatura nell'intervallo → la usa (caso MES 9/12/2020)", () => {
-    expect(resolveEffectiveLegislature(undefined, [18])).toEqual({
-      kind: "fromDates",
+    expect(resolveLegislature(undefined, [18])).toEqual({
+      kind: "derived",
       legislature: 18,
     });
   });
 
   it("intervallo a cavallo → ambiguo, ordinato", () => {
-    expect(resolveEffectiveLegislature(undefined, [19, 18])).toEqual({
+    expect(resolveLegislature(undefined, [19, 18])).toEqual({
       kind: "ambiguous",
       legislatures: [18, 19],
     });
   });
 
   it("nessuna seduta in nessuna legislatura → caso distinto dal default", () => {
-    expect(resolveEffectiveLegislature(undefined, [])).toEqual({
-      kind: "noSessions",
-    });
+    expect(resolveLegislature(undefined, [])).toEqual({ kind: "none" });
   });
 
   it("sonda fallita (undefined) non è confusa con sonda vuota", () => {
-    expect(resolveEffectiveLegislature(undefined, undefined).kind).toBe(
+    expect(resolveLegislature(undefined, undefined).kind).toBe(
       "default",
     );
   });

@@ -3,6 +3,11 @@ import { cdQuery } from "../core/client.js";
 import { OCD_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
 import { decodeHtml } from "../core/decode-html.js";
+import {
+  cameraLegislatureRanges,
+  legislaturesForDateRange,
+} from "../core/camera-legislature.js";
+import { resolveLegislature } from "../core/legislature-choice.js";
 import type { Tool } from "./types.js";
 
 const RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
@@ -18,9 +23,9 @@ const inputSchema = z.object({
     .number()
     .int()
     .positive()
-    .default(19)
+    .optional()
     .describe(
-      "Numero legislatura (default 19). Leg. 19 usa il titolo della discussione; leg. 14 usa il dc:type storico. Altre legislature: via titolo discussione (best-effort).",
+      "Numero legislatura. Se omessa viene dedotta dall'intervallo di date; senza date si usa quella in corso (19). Leg. 19 usa il titolo della discussione; leg. 14 usa il dc:type storico. Altre legislature: via titolo discussione (best-effort, il dato c'è — 6.400 audizioni in leg. 18, 5.154 in leg. 17).",
     ),
   committeeName: z
     .string()
@@ -253,15 +258,46 @@ export const audizioniTool: Tool<typeof inputSchema> = {
     "italianparliament audizioni list --legislature 14 --committee-name difesa",
   ],
   async execute(input) {
+    // Senza legislatura esplicita la danno le date: le legislature Camera
+    // dichiarano il proprio intervallo, quindi una ricerca sul 2020 finisce
+    // nella 18 invece di tornare vuota dalla 19. Deduzione solo quando serve
+    // (nessuna legislatura, almeno una data); se la query fallisce si degrada
+    // alla legislatura in corso, cioè al comportamento precedente.
+    const needsDerivation =
+      input.legislature === undefined && !!(input.dateFrom || input.dateTo);
+    const choice = resolveLegislature(
+      input.legislature,
+      needsDerivation
+        ? await cameraLegislatureRanges()
+            .then((ranges) =>
+              legislaturesForDateRange(
+                ranges,
+                input.dateFrom ? toCompact(toIso(input.dateFrom)) : undefined,
+                input.dateTo ? toCompact(toIso(input.dateTo)) : undefined,
+              ),
+            )
+            .catch(() => undefined)
+        : undefined,
+    );
+    if (choice.kind === "ambiguous")
+      throw new Error(
+        `L'intervallo di date copre più legislature della Camera (${choice.legislatures.join(" e ")}): specifica quale interrogare, es. --legislature ${choice.legislatures[choice.legislatures.length - 1]}. Le audizioni delle due legislature non sono un elenco unico — cambia la composizione delle commissioni e, fuori dalla 19, cambia anche il modo in cui il dato è ricostruibile.`,
+      );
+    if (choice.kind === "none")
+      throw new Error(
+        "Nessuna legislatura della Camera copre l'intervallo di date indicato: verifica le date (il grafo copre le legislature repubblicane fino a quella in corso).",
+      );
+    const legislature = choice.legislature;
+
     const rows =
-      input.legislature === 14
+      legislature === 14
         ? await queryByType({
             committeeName: input.committeeName,
             keyword: input.keyword,
             limit: input.limit,
             offset: input.offset,
           })
-        : await queryByDiscussion(input.legislature, {
+        : await queryByDiscussion(legislature, {
             committeeName: input.committeeName,
             keyword: input.keyword,
             dateFrom: input.dateFrom,
@@ -272,7 +308,7 @@ export const audizioniTool: Tool<typeof inputSchema> = {
 
     // leg. 14: filtro date in post-processing (la data è nel suffisso URI).
     let filtered = rows;
-    if (input.legislature === 14 && (input.dateFrom || input.dateTo)) {
+    if (legislature === 14 && (input.dateFrom || input.dateTo)) {
       const from = input.dateFrom ? toIso(input.dateFrom) : undefined;
       const to = input.dateTo ? toIso(input.dateTo) : undefined;
       filtered = rows.filter((r) => {
@@ -285,7 +321,7 @@ export const audizioniTool: Tool<typeof inputSchema> = {
 
     if (filtered.length === 0) {
       throw new Error(
-        "Nessuna audizione trovata per i criteri indicati (prova a variare --committee-name, --keyword, l'intervallo date o --legislature).",
+        `Nessuna audizione trovata per i criteri indicati nella legislatura ${legislature}${choice.kind === "derived" ? " (dedotta dalle date)" : ""} — prova a variare --committee-name, --keyword o l'intervallo di date.${legislature !== 19 && legislature !== 14 ? " Fuori dalla legislatura 19 le audizioni si ricostruiscono dal titolo della discussione (best-effort): un vuoto qui può dipendere da un titolo scritto in forma diversa, non dall'assenza di audizioni." : ""}`,
       );
     }
     // Come in votes: in leg. 14 il filtro date gira lato TS DOPO il LIMIT,

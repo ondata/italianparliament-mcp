@@ -1452,7 +1452,7 @@ const audizioniList = defineCommand({
     ),
   },
   args: {
-    legislature: { type: "string", description: "Legislature number (default 19)" },
+    legislature: { type: "string", description: "Legislature number. Omit to derive it from --date-from/--date-to (defaults to 19 only when no date constrains it)" },
     "committee-name": { type: "string", description: 'Committee name/substring, e.g. "femminicidio", "periferie".' },
     keyword: { type: "string", description: 'Keyword in the hearing title, e.g. "prefetto", "Enel", "equo compenso".' },
     "date-from": { type: "string", description: "Start date inclusive. AAAAMMGG or AAAA-MM-GG." },
@@ -1463,7 +1463,8 @@ const audizioniList = defineCommand({
   },
   async run({ args }) {
     const result = await runTool(audizioniTool, {
-      legislature: parseIntFlag(args.legislature as string, "legislature") ?? 19,
+      // Niente `?? 19`: senza il flag la legislatura la deduce il tool dalle date.
+      legislature: parseIntFlag(args.legislature as string, "legislature"),
       committeeName: (args["committee-name"] as string) || undefined,
       keyword: (args.keyword as string) || undefined,
       dateFrom: (args["date-from"] as string) || undefined,
