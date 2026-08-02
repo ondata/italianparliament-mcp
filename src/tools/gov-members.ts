@@ -2,6 +2,7 @@ import { z } from "zod";
 import { cdQuery } from "../core/client.js";
 import { OCD_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
+import { personDisplayName } from "../core/person-name.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -58,19 +59,27 @@ export const govMembersTool: Tool<typeof inputSchema> = {
       );
     }
     if (input.name) {
+      // Il nome d'uso non è nella label della persona ma nel blank node
+      // foaf:nickname (vedi core/person-name.ts): cercare "casellati" sulla sola
+      // label restituiva zero righe. Le due parti sono concatenate perché
+      // ?alias_surname è opzionale, e CONTAINS su una variabile non legata
+      // solleverebbe un errore che scarta la riga.
       filters.push(
-        `FILTER(CONTAINS(LCASE(?persona_name), "${input.name.toLowerCase()}"))`,
+        `FILTER(CONTAINS(LCASE(CONCAT(COALESCE(?persona_name, ""), " ", COALESCE(?alias_surname, ""))), "${input.name.toLowerCase()}"))`,
       );
     }
 
     const query = `${OCD_PREFIXES}
-SELECT DISTINCT ?m ?label ?persona_name ?rif_persona ?role
-       ?start_date ?end_date ?reason ?rif_governo ?rif_leg
+SELECT DISTINCT ?m ?label ?persona_name ?persona_first ?persona_surname ?alias_surname
+       ?rif_persona ?role ?start_date ?end_date ?reason ?rif_governo ?rif_leg
 WHERE {
   ?m a ocd:membroGoverno .
   ?m rdfs:label ?label .
   OPTIONAL { ?m ocd:rif_persona ?rif_persona }
   OPTIONAL { ?rif_persona rdfs:label ?persona_name }
+  OPTIONAL { ?rif_persona foaf:firstName ?persona_first }
+  OPTIONAL { ?rif_persona foaf:surname ?persona_surname }
+  OPTIONAL { ?rif_persona foaf:nickname ?nick . ?nick foaf:surname ?alias_surname }
   OPTIONAL { ?m ocd:membroGoverno ?role }
   OPTIONAL { ?m ocd:startDate ?start_date }
   OPTIONAL { ?m ocd:endDate ?end_date }
@@ -85,18 +94,53 @@ OFFSET ${input.offset}`;
 
     const results = await cdQuery(query);
     const raw = flattenBindings(results);
-    const rows = raw.map((r) => ({
-      uri: r.m ?? "",
-      label: r.label ?? "",
-      person_name: r.persona_name ?? "",
-      person_uri: r.rif_persona ?? "",
-      role: r.role ?? "",
-      start_date: r.start_date ?? "",
-      end_date: r.end_date ?? "",
-      termination_reason: r.reason ?? "",
-      government_uri: r.rif_governo ?? "",
-      legislature_uri: r.rif_leg ?? "",
-    }));
+    // 18 persone hanno due cognomi d'uso (4 delle quali membri di governo):
+    // l'endpoint restituisce una riga per alias, che va raccolto prima di
+    // comporre il nome. Il LIMIT resta applicato lato SPARQL su quelle righe,
+    // quindi in quei rari casi la pagina può contenerne qualcuna in meno.
+    const aliasesByPerson = new Map<string, string[]>();
+    for (const r of raw) {
+      const alias = r.alias_surname || "";
+      if (!alias) continue;
+      const person = r.rif_persona || "";
+      const known = aliasesByPerson.get(person) ?? [];
+      if (!known.includes(alias)) known.push(alias);
+      aliasesByPerson.set(person, known);
+    }
+
+    // Dedup sulla riga intera, non sull'URI dell'incarico: un incarico può
+    // legittimamente comparire più volte, per esempio quando attraversa più
+    // legislature (mgr68_48_20071932_9026, sottosegretario dal 1932, ne copre
+    // cinque). Collassarlo sull'URI cancellerebbe quelle righe.
+    const rows = [];
+    const seen = new Set<string>();
+    for (const r of raw) {
+      // Con nome e cognome separati si ricompone il nome d'uso; se la persona
+      // non li espone si ripiega sulla sua rdfs:label.
+      const personName = r.persona_first
+        ? personDisplayName(
+            r.persona_first,
+            r.persona_surname || "",
+            aliasesByPerson.get(r.rif_persona || "") ?? [],
+          )
+        : r.persona_name || "";
+      const row = {
+        uri: r.m ?? "",
+        label: r.label ?? "",
+        person_name: personName,
+        person_uri: r.rif_persona ?? "",
+        role: r.role ?? "",
+        start_date: r.start_date ?? "",
+        end_date: r.end_date ?? "",
+        termination_reason: r.reason ?? "",
+        government_uri: r.rif_governo ?? "",
+        legislature_uri: r.rif_leg ?? "",
+      };
+      const key = JSON.stringify(row);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push(row);
+    }
     return { rows, columns };
   },
 };

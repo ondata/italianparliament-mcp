@@ -3,6 +3,7 @@ import { cdQuery, snQuery } from "../core/client.js";
 import { OCD_PREFIXES, OSR_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
 import { personHtmlUrl } from "../core/html-url.js";
+import { preferredName, personDisplayName } from "../core/person-name.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -27,8 +28,8 @@ const RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
 // seguirli, il nome torna vuoto (bug: 5 righe con name="" sui decreti governativi).
 function cameraQuery(billUri: string, limit: number): string {
   return `${OCD_PREFIXES}
-SELECT ?ruolo ?dep ?firstName ?surname ?label
-       ?persona ?govRole ?pFirstName ?pSurname ?pLabel
+SELECT DISTINCT ?ruolo ?dep ?firstName ?surname ?label
+       ?persona ?govRole ?pFirstName ?pSurname ?pLabel ?pAliasSurname
 WHERE {
   { <${billUri}> ocd:primo_firmatario ?dep . BIND("primo" AS ?ruolo) }
   UNION
@@ -41,6 +42,9 @@ WHERE {
     OPTIONAL { ?persona foaf:firstName ?pFirstName }
     OPTIONAL { ?persona foaf:surname ?pSurname }
     OPTIONAL { ?persona <${RDFS_LABEL}> ?pLabel }
+    # Il cognome d'uso dei ministri proponenti sta qui, non in foaf:surname:
+    # senza questo hop la ministra per le Riforme è "MARIA ELISABETTA ALBERTI".
+    OPTIONAL { ?persona foaf:nickname ?pNick . ?pNick foaf:surname ?pAliasSurname }
   }
   OPTIONAL { ?dep ocd:ruolo ?govRole }
 }
@@ -142,10 +146,22 @@ LIMIT 10`),
 
 // La rdfs:label del deputato Camera arriva col suffisso
 // ", XIX Legislatura della Repubblica": si tiene solo la parte prima della virgola.
-function cleanCameraName(firstName: string, surname: string, label: string): string {
-  const composed = `${firstName} ${surname}`.trim();
-  if (composed) return composed;
-  return (label.split(",")[0] ?? "").trim();
+// Quella label porta il nome d'uso ("ROSA MARIA VILLECCO CALIPARI") mentre
+// foaf:surname porta quello anagrafico ("VILLECCO"): fra le due si tiene la
+// forma più informativa (vedi core/person-name.ts).
+function cleanCameraName(
+  firstName: string,
+  surname: string,
+  label: string,
+  aliasSurname = "",
+): string {
+  const composed = personDisplayName(
+    firstName,
+    surname,
+    aliasSurname ? [aliasSurname] : [],
+  );
+  const fromLabel = (label.split(",")[0] ?? "").trim();
+  return preferredName(composed, fromLabel);
 }
 
 export const billSignatoriesTool: Tool<typeof inputSchema> = {
@@ -204,7 +220,12 @@ export const billSignatoriesTool: Tool<typeof inputSchema> = {
       // proponenti governativi sono più d'uno, non un singolo primo firmatario).
       if (r.persona) {
         return {
-          name: cleanCameraName(r.pFirstName ?? "", r.pSurname ?? "", r.pLabel ?? ""),
+          name: cleanCameraName(
+            r.pFirstName ?? "",
+            r.pSurname ?? "",
+            r.pLabel ?? "",
+            r.pAliasSurname ?? "",
+          ),
           role: r.govRole ? `Governo — ${r.govRole}` : "Governo (proponente)",
           is_primary: "false",
           person_uri: r.persona,
