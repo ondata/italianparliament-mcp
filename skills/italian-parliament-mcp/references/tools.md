@@ -148,7 +148,7 @@ Documenti parlamentari Senato.
 
 ### `senato-votes`
 Votazioni d'Assemblea del Senato: esito, contatori, tipo, data seduta, DDL collegato e relativo titolo.
-- `legislature`: numero legislatura (default 19)
+- `legislature`: facoltativo (da **v0.31.0**). Se omesso viene dedotto dalle sedute che cadono nell'intervallo di date, o dal DDL; senza alcun vincolo si usa la legislatura in corso. Se l'intervallo copre due legislature il tool si ferma e chiede quale: lo stesso numero di DDL esiste in entrambe.
 - `ddlUri`: filtra le votazioni collegate a un DDL; da v0.26.0 include anche le fiducie collegate per numero, pure quando cadono su una seduta diversa dal voto fortemente collegato.
 - `dateFrom`/`dateTo`: intervallo data seduta (YYYY-MM-DD)
 - `keyword`: cerca nel label del voto **e** (da v0.20.0) nel titolo del DDL/documento collegato (`osr:oggetto`/`osr:relativoA`/`osr:titolo` **e**, da v0.26.0, `osr:titoloBreve`), in OR — un tema che sta solo nel titolo del provvedimento (es. `bilancio`) viene trovato anche quando il label del voto è generico (`Votazione finale`). Limite: se il voto non ha DDL collegato (alcune fiducie/mozioni) il tema resta irraggiungibile per keyword.
@@ -161,9 +161,9 @@ Voto del singolo senatore in una votazione, con il gruppo di appartenenza alla d
 - `voteType`: filtro (Favorevole/Contrario/Astenuto/Presente non votante/In congedo/missione)
 
 ### `senato-attendance`
-Conteggio aggregato dei voti di un senatore su tutte le votazioni d'Assemblea di una legislatura (misura di attivismo/assenteismo). L'URI senatore non contiene la legislatura, quindi va indicata a parte.
+Conteggio aggregato dei voti di un senatore su tutte le votazioni d'Assemblea di una legislatura (misura di attivismo/assenteismo).
 - `senatorUri` (required): URI del senatore
-- `legislature`: numero legislatura (default 19)
+- `legislature`: facoltativo (da **v0.31.0**). L'URI del senatore non contiene la legislatura, ma se il parametro è omesso viene dedotta dalle legislature in cui quel senatore ha voti registrati: per chi non siede più in Senato si ottiene il suo mandato invece di un vuoto che si legge come "non ha votato".
 - Colonne: `favorevole`, `contrario`, `astenuto`, `presente_non_votante`, `in_congedo_missione`, `totale`
 - Per un senatore attivo tutta la legislatura, `totale` è prossimo (non sempre identico) al numero di votazioni della legislatura (`senato-votes` con `countOnly`); per un senatore a vita o subentrato, `totale` è naturalmente inferiore.
 
@@ -174,7 +174,7 @@ Attività delle commissioni. Due modalità: (1) iter di un DDL (`ddlUri`, Senato
 
 ### `audizioni` (solo Camera)
 Audizioni delle commissioni della Camera: data, commissione, titolo (con nome/ruolo dell'audito nel testo), atti collegati, link al bollettino.
-- `legislature`: default 19 (dato vivo, via titolo della discussione); 14 = storica (via `dc:type`).
+- `legislature`: facoltativo (da **v0.31.0**), dedotto dall'intervallo di date; senza date si usa quella in corso. 19 = dato vivo, via titolo della discussione; 14 = storica, via `dc:type`; le altre via titolo (best-effort — il dato c'è: 6.400 audizioni in leg. 18, 5.154 in leg. 17). Se l'intervallo copre più legislature il tool si ferma e chiede quale.
 - `committeeName`: nome/parte commissione (es. "femminicidio").
 - `keyword`: parola nel titolo dell'audizione (es. "Confindustria", "prefetto") — **ricerca testuale**. NB: una corrispondenza NON significa che quel soggetto sia stato audito (può essere l'oggetto dell'indagine o un ente citato); verificare il titolo completo.
 - `dateFrom`/`dateTo`, `limit`, `offset`.

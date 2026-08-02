@@ -201,11 +201,12 @@ italianparliament documents list --legislature 19
 ```
 
 ### `senato-votes list`
-Votazioni d'Assemblea del Senato con esito e contatori.
+Votazioni d'Assemblea del Senato con esito e contatori. `--legislature` è facoltativo: viene dedotto dalle sedute che cadono nell'intervallo di date, o dal DDL.
 ```bash
 italianparliament senato-votes list --legislature 19 --limit 20
 italianparliament senato-votes list --ddl-uri http://dati.senato.it/ddl/58039 --format jsonl
 italianparliament senato-votes list --date-from 2026-01-01 --date-to 2026-03-31
+italianparliament senato-votes list --date-from 2020-12-09 --date-to 2020-12-09   # leg. 18, dedotta
 italianparliament senato-votes list --legislature 19 --confidence-vote true
 italianparliament senato-votes list --legislature 19 --final-vote true --date-from 2026-06-01
 italianparliament senato-votes list --legislature 19 --keyword bilancio
@@ -220,9 +221,10 @@ italianparliament senato-vote-detail show --vote-uri http://dati.senato.it/votaz
 ```
 
 ### `senato-attendance show`
-Conteggio aggregato dei voti di un senatore su tutte le votazioni d'Assemblea di una legislatura (favorevole/contrario/astenuto/presente non votante/in congedo o missione). L'URI senatore non contiene la legislatura: `--legislature` è obbligatorio (default 19).
+Conteggio aggregato dei voti di un senatore su tutte le votazioni d'Assemblea di una legislatura (favorevole/contrario/astenuto/presente non votante/in congedo o missione). L'URI senatore non contiene la legislatura, ma `--legislature` è **facoltativo**: se omesso viene dedotto dalle legislature in cui quel senatore ha voti registrati, quindi funziona anche per chi non è più in carica.
 ```bash
 italianparliament senato-attendance show --senator-uri http://dati.senato.it/senatore/32 --legislature 19
+italianparliament senato-attendance show --senator-uri http://dati.senato.it/senatore/32609   # leg. 18, dedotta
 ```
 
 ### `committee-sessions list`
@@ -247,7 +249,7 @@ Con `--count-only` restituisce solo il numero di sedute (una riga per ramo), sen
 > Le commissioni bicamerali (es. inchiesta femminicidio) hanno attività esposta solo dalla Camera.
 
 ### `audizioni list` (solo Camera)
-Audizioni delle commissioni: data, commissione, titolo (nome/ruolo dell'audito nel testo), atti collegati (`bill_codes`/`bill_uris`) e link al bollettino. Leg. 19 (dato vivo) via titolo della discussione; leg. 14 (storica) via `dc:type` "Audizioni informali".
+Audizioni delle commissioni: data, commissione, titolo (nome/ruolo dell'audito nel testo), atti collegati (`bill_codes`/`bill_uris`) e link al bollettino. Leg. 19 (dato vivo) via titolo della discussione; leg. 14 (storica) via `dc:type` "Audizioni informali"; le altre via titolo (best-effort — ma il dato c'è: 6.400 audizioni in leg. 18, 5.154 in leg. 17). `--legislature` è facoltativo: se cerchi per date viene dedotto da quelle.
 
 ```bash
 # tutte le audizioni recenti
@@ -259,6 +261,8 @@ italianparliament audizioni list --legislature 19 --keyword Confindustria
 italianparliament audizioni list --legislature 19 --keyword prefetto --date-from 2026-01-01
 # storico (legislatura 14)
 italianparliament audizioni list --legislature 14 --committee-name difesa
+# per date, senza sapere la legislatura: la deduce (qui leg. 18)
+italianparliament audizioni list --date-from 2020-03-01 --date-to 2020-03-31
 ```
 
 > **Senato non coperto**: via SPARQL le audizioni Senato (`osr:Procedura` `tipo="Audizioni"`) esistono ma senza data né commissione (link agli interventi rotto). Solo Camera.
