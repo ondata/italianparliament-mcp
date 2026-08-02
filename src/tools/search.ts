@@ -3,6 +3,7 @@ import { cdQuery, snQuery } from "../core/client.js";
 import { flattenBindings } from "../core/flatten.js";
 import { OCD_PREFIXES, OSR_PREFIXES } from "../core/prefixes.js";
 import { personHtmlUrl } from "../core/html-url.js";
+import { richerDisplayName } from "../core/person-name.js";
 import { toTitleCase, normalizeGender } from "../core/normalize.js";
 import { currentLegislature } from "../core/current-legislature.js";
 import type { Tool } from "./types.js";
@@ -76,10 +77,15 @@ LIMIT ${limit}`;
   return raw.map((r) => {
     const first_name = toTitleCase(r.first_name ?? "");
     const last_name = toTitleCase(r.last_name ?? "");
+    // La rdfs:label del deputato (senza il suffisso ", XIX Legislatura…") porta
+    // il nome d'uso, foaf:surname quello anagrafico: cercando "calipari" si
+    // trovava la deputata ma la si mostrava come "Rosa Maria Villecco".
+    // first_name/last_name restano i campi anagrafici della fonte.
+    const fromLabel = toTitleCase((r.label ?? "").split(",")[0] ?? "");
     return {
       chamber: "camera",
       uri: r.s ?? "",
-      label: `${first_name} ${last_name}`.trim(),
+      label: richerDisplayName(`${first_name} ${last_name}`.trim(), fromLabel),
       first_name,
       last_name,
       gender: normalizeGender(r.gender ?? ""),

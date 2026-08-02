@@ -3,6 +3,7 @@ import { cdQuery, snQuery } from "../core/client.js";
 import { OCD_PREFIXES, OSR_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
 import { personHtmlUrl } from "../core/html-url.js";
+import { richerDisplayName, personDisplayName } from "../core/person-name.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -27,8 +28,8 @@ const RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
 // seguirli, il nome torna vuoto (bug: 5 righe con name="" sui decreti governativi).
 function cameraQuery(billUri: string, limit: number): string {
   return `${OCD_PREFIXES}
-SELECT ?ruolo ?dep ?firstName ?surname ?label
-       ?persona ?govRole ?pFirstName ?pSurname ?pLabel
+SELECT DISTINCT ?ruolo ?dep ?firstName ?surname ?label
+       ?persona ?govRole ?pFirstName ?pSurname ?pLabel ?pAliasSurname
 WHERE {
   { <${billUri}> ocd:primo_firmatario ?dep . BIND("primo" AS ?ruolo) }
   UNION
@@ -41,6 +42,9 @@ WHERE {
     OPTIONAL { ?persona foaf:firstName ?pFirstName }
     OPTIONAL { ?persona foaf:surname ?pSurname }
     OPTIONAL { ?persona <${RDFS_LABEL}> ?pLabel }
+    # Il cognome d'uso dei ministri proponenti sta qui, non in foaf:surname:
+    # senza questo hop la ministra per le Riforme è "MARIA ELISABETTA ALBERTI".
+    OPTIONAL { ?persona foaf:nickname ?pNick . ?pNick foaf:surname ?pAliasSurname }
   }
   OPTIONAL { ?dep ocd:ruolo ?govRole }
 }
@@ -142,10 +146,29 @@ LIMIT 10`),
 
 // La rdfs:label del deputato Camera arriva col suffisso
 // ", XIX Legislatura della Repubblica": si tiene solo la parte prima della virgola.
-function cleanCameraName(firstName: string, surname: string, label: string): string {
-  const composed = `${firstName} ${surname}`.trim();
-  if (composed) return composed;
-  return (label.split(",")[0] ?? "").trim();
+// Quella label porta il nome d'uso ("ROSA MARIA VILLECCO CALIPARI") mentre
+// foaf:surname porta quello anagrafico ("VILLECCO"): fra le due si tiene la
+// forma più informativa (vedi core/person-name.ts).
+function cleanCameraName(
+  firstName: string,
+  surname: string,
+  label: string,
+  aliasSurnames: string[] = [],
+): string {
+  const composed = personDisplayName(firstName, surname, aliasSurnames);
+  const fromLabel = (label.split(",")[0] ?? "").trim();
+  return richerDisplayName(composed, fromLabel);
+}
+
+/** Righe identiche in tutti i campi: le produce il join sugli alias multipli. */
+function dedupeRows<T extends object>(rows: T[]): T[] {
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    const key = JSON.stringify(row);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export const billSignatoriesTool: Tool<typeof inputSchema> = {
@@ -197,28 +220,49 @@ export const billSignatoriesTool: Tool<typeof inputSchema> = {
     }
 
     const raw = flattenBindings(await cdQuery(cameraQuery(input.billUri, input.limit)));
-    const rows = raw.map((r) => {
-      // Iniziativa governativa: il firmatario è un membro di governo (blank node),
-      // il nome è sulla persona collegata via ocd:rif_persona. Coerente col ramo
-      // Senato: role esplicito "Governo — <dicastero>", is_primary=false (i
-      // proponenti governativi sono più d'uno, non un singolo primo firmatario).
-      if (r.persona) {
+    // Il join sul nickname emette una riga per cognome d'uso, e quattro membri
+    // di governo ne hanno due: senza raccoglierli la stessa ministra compare
+    // due volte con nomi diversi (verificato su ac17_3300, "FEDERICA MOGHERINI
+    // REBESANI" accanto a "FEDERICA MOGHERINI").
+    const aliasesByPerson = new Map<string, string[]>();
+    for (const r of raw) {
+      const alias = r.pAliasSurname || "";
+      if (!alias) continue;
+      const person = r.persona || "";
+      const known = aliasesByPerson.get(person) ?? [];
+      if (!known.includes(alias)) known.push(alias);
+      aliasesByPerson.set(person, known);
+    }
+
+    const rows = dedupeRows(
+      raw.map((r) => {
+        // Iniziativa governativa: il firmatario è un membro di governo (blank node),
+        // il nome è sulla persona collegata via ocd:rif_persona. Coerente col ramo
+        // Senato: role esplicito "Governo — <dicastero>", is_primary=false (i
+        // proponenti governativi sono più d'uno, non un singolo primo firmatario).
+        if (r.persona) {
+          return {
+            name: cleanCameraName(
+              r.pFirstName ?? "",
+              r.pSurname ?? "",
+              r.pLabel ?? "",
+              aliasesByPerson.get(r.persona) ?? [],
+            ),
+            role: r.govRole ? `Governo — ${r.govRole}` : "Governo (proponente)",
+            is_primary: "false",
+            person_uri: r.persona,
+            html_url: personHtmlUrl(r.persona),
+          };
+        }
         return {
-          name: cleanCameraName(r.pFirstName ?? "", r.pSurname ?? "", r.pLabel ?? ""),
-          role: r.govRole ? `Governo — ${r.govRole}` : "Governo (proponente)",
-          is_primary: "false",
-          person_uri: r.persona,
-          html_url: personHtmlUrl(r.persona),
+          name: cleanCameraName(r.firstName ?? "", r.surname ?? "", r.label ?? ""),
+          role: r.ruolo === "primo" ? "primo firmatario" : "cofirmatario",
+          is_primary: r.ruolo === "primo" ? "true" : "false",
+          person_uri: r.dep ?? "",
+          html_url: personHtmlUrl(r.dep),
         };
-      }
-      return {
-        name: cleanCameraName(r.firstName ?? "", r.surname ?? "", r.label ?? ""),
-        role: r.ruolo === "primo" ? "primo firmatario" : "cofirmatario",
-        is_primary: r.ruolo === "primo" ? "true" : "false",
-        person_uri: r.dep ?? "",
-        html_url: personHtmlUrl(r.dep),
-      };
-    });
+      }),
+    );
     // Vuoto sul ramo Camera: può essere un atto "di passaggio", cioè la lettura
     // Camera di un DDL nato al Senato, dove i firmatari stanno sul DDL di
     // origine. Senza dirlo, un vuoto (dato che vive altrove) si legge come
