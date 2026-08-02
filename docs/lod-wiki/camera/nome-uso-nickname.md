@@ -60,6 +60,8 @@ Il grafo OSR espone direttamente il nome d'uso: `foaf:lastName` del senatore 32 
 
 ## Come lo risolve la CLI
 
-`src/core/person-name.ts` sceglie fra le due forme senza alcuna tabella di alias: si tiene quella che **contiene** l'altra (la più informativa, in entrambe le direzioni); se sono disgiunte le mostra entrambe (`Di Serio (D'Antona)`). Usato da `gov-members` (filtro `--name` e nome mostrato), `bill-signatories` (proponenti governativi e firmatari deputati) e `search` (etichetta del ramo Camera).
+`src/core/person-name.ts` sceglie fra le due forme senza alcuna tabella di alias: si tiene quella che **contiene** l'altra (la più informativa, in entrambe le direzioni); se sono disgiunte le mostra entrambe (`Di Serio (D'Antona)`). Usato da `gov-members` (filtro `--name` e nome mostrato), `bill-signatories` (proponenti governativi e firmatari deputati), `search` (etichetta del ramo Camera) e `people` (risoluzione batch degli URI, dove il nome sbagliato si propagherebbe a valle di ogni catena di tool).
+
+Attenzione a dove si applica la regola dei disgiunti: vale sui **cognomi**, non sui nomi completi. Confrontando il nome ricomposto da firstName+surname con la `rdfs:label` dell'entità, i casi in cui nessuna delle due contiene l'altra sono **527** fra i deputati, e quasi sempre la differenza è un secondo nome presente da un lato solo (`CARLO VENEGONI` contro `CARLO EUGENIO VENEGONI`), non un cognome d'uso. Lì un `Nome (Altro nome)` sarebbe solo rumore: si tiene il nome composto.
 
 Nota su `search`: `first_name`/`last_name` restano i campi anagrafici della fonte, mentre `label` porta il nome d'uso. La divergenza è voluta — allargare `last_name` cambierebbe la semantica di una colonna, e il campo anagrafico resta l'unico modo di risalire al valore che la fonte pubblica davvero.

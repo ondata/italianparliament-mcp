@@ -30,12 +30,9 @@ function comparable(s: string): string {
 }
 
 /**
- * Date due forme dello stesso nome — quella anagrafica e quella d'uso —
- * restituisce la più informativa. Si applica ai cognomi (`foaf:surname` della
- * persona contro `foaf:surname` del blank node `foaf:nickname`) ma anche ai
- * nomi completi, per esempio quando si confronta il nome ricomposto da
- * firstName+surname con la `rdfs:label` del deputato, che porta già il nome
- * d'uso. Con una sola forma valorizzata restituisce quella.
+ * Dati il cognome anagrafico (`foaf:surname` della persona) e quello d'uso
+ * (`foaf:surname` del blank node `foaf:nickname`), restituisce il più
+ * informativo. Con un solo valore valorizzato restituisce quello.
  */
 export function preferredName(registry: string, used: string): string {
   const a = (registry ?? "").trim();
@@ -51,6 +48,25 @@ export function preferredName(registry: string, used: string): string {
   if (cb.includes(ca)) return b;
   if (ca.includes(cb)) return a;
   return `${a} (${b})`;
+}
+
+/**
+ * Variante per i **nomi completi**: confronta il nome ricomposto da
+ * firstName+surname con la `rdfs:label` dell'entità (per le `ocd:deputato` la
+ * label porta già il nome d'uso) e tiene la label solo quando la contiene.
+ *
+ * Qui, a differenza dei cognomi, le due forme disgiunte non vanno mostrate
+ * entrambe: fra nomi completi la differenza è quasi sempre un secondo nome
+ * presente da un lato solo — 527 deputati, per esempio "CARLO VENEGONI" contro
+ * "CARLO EUGENIO VENEGONI" — e un `Nome (Altro nome)` in un campo di sola
+ * visualizzazione sarebbe rumore. Nel dubbio si tiene il nome composto.
+ */
+export function richerDisplayName(composed: string, label: string): string {
+  const a = (composed ?? "").trim();
+  const b = (label ?? "").trim();
+  if (!a) return b;
+  if (!b) return a;
+  return comparable(b).includes(comparable(a)) ? b : a;
 }
 
 /**

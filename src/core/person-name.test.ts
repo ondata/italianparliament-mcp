@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { preferredName, personDisplayName } from "./person-name.js";
+import {
+  preferredName,
+  personDisplayName,
+  richerDisplayName,
+} from "./person-name.js";
 
 // I casi sono tutti reali, presi dal grafo Camera con
 // FILTER(STR(?foafSurname) != STR(?nicknameSurname)) sulle 135 persone che
@@ -32,6 +36,36 @@ describe("preferredName", () => {
     expect(preferredName("MELONI", "")).toBe("MELONI");
     expect(preferredName("", "MELONI")).toBe("MELONI");
     expect(preferredName("MELONI", "MELONI")).toBe("MELONI");
+  });
+});
+
+describe("richerDisplayName", () => {
+  it("prende la label del deputato quando aggiunge il cognome d'uso", () => {
+    expect(
+      richerDisplayName("Rosa Maria Villecco", "Rosa Maria Villecco Calipari"),
+    ).toBe("Rosa Maria Villecco Calipari");
+  });
+
+  it("tiene il nome composto quando la label non lo contiene", () => {
+    // 527 deputati: la differenza fra le due forme è un secondo nome presente
+    // da un lato solo, non il cognome d'uso. Mostrarle entrambe sarebbe rumore.
+    expect(richerDisplayName("CARLO EUGENIO VENEGONI", "CARLO VENEGONI")).toBe(
+      "CARLO EUGENIO VENEGONI",
+    );
+    expect(richerDisplayName("SECONDO TRANQUILLI", "IGNAZIO SILONE")).toBe(
+      "SECONDO TRANQUILLI",
+    );
+  });
+
+  it("non tocca i nomi già allineati", () => {
+    expect(richerDisplayName("Giorgia Meloni", "Giorgia Meloni")).toBe(
+      "Giorgia Meloni",
+    );
+  });
+
+  it("regge i valori mancanti", () => {
+    expect(richerDisplayName("", "Giorgia Meloni")).toBe("Giorgia Meloni");
+    expect(richerDisplayName("Giorgia Meloni", "")).toBe("Giorgia Meloni");
   });
 });
 

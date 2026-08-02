@@ -3,7 +3,7 @@ import { cdQuery, snQuery } from "../core/client.js";
 import { OCD_PREFIXES, OSR_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
 import { personHtmlUrl } from "../core/html-url.js";
-import { preferredName, personDisplayName } from "../core/person-name.js";
+import { richerDisplayName, personDisplayName } from "../core/person-name.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -161,7 +161,7 @@ function cleanCameraName(
     aliasSurname ? [aliasSurname] : [],
   );
   const fromLabel = (label.split(",")[0] ?? "").trim();
-  return preferredName(composed, fromLabel);
+  return richerDisplayName(composed, fromLabel);
 }
 
 export const billSignatoriesTool: Tool<typeof inputSchema> = {
