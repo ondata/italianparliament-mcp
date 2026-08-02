@@ -7,8 +7,8 @@ import type { Tool } from "./types.js";
 const inputSchema = z.object({
   deputyUri: z.string().url().optional().describe("Filtra per URI deputato"),
   groupUri: z.string().url().optional().describe("Filtra per URI gruppo parlamentare"),
-  legislature: z.number().int().positive().optional(),
-  limit: z.number().int().positive().max(1000).default(100),
+  legislature: z.number().int().min(1).optional(),
+  limit: z.number().int().min(1).max(1000).default(100),
   offset: z.number().int().nonnegative().default(0),
 });
 

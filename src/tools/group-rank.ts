@@ -13,7 +13,7 @@ const inputSchema = z.object({
   legislature: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .default(19)
     .describe(
       "Numero legislatura Camera (default 19). A differenza degli altri tool il default resta: qui non c'è alcun input (né date né atti) da cui dedurre una legislatura diversa, quindi è una scelta e non un ripiego — per una legislatura passata va indicata.",

@@ -16,9 +16,9 @@ const inputSchema = z.object({
     .enum(["camera", "senato", "both"])
     .default("both")
     .describe("Ramo del parlamento in cui cercare"),
-  legislature: z.number().int().positive().optional(),
+  legislature: z.number().int().min(1).optional(),
   activeOnly: z.boolean().optional(),
-  limit: z.number().int().positive().max(500).default(50),
+  limit: z.number().int().min(1).max(500).default(50),
 });
 
 const columns = [

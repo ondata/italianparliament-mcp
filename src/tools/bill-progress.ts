@@ -56,7 +56,7 @@ const inputSchema = z.object({
   legislature: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .optional()
     .describe("Numero legislatura"),
   limit: z.number().int().min(1).max(1000).default(100),

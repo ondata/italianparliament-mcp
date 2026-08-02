@@ -25,7 +25,7 @@ const inputSchema = z.object({
   legislature: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .optional()
     .describe(
       "Numero legislatura. Se omessa viene dedotta dall'intervallo di date; senza date si usa quella in corso (19). Leg. 19 usa il titolo della discussione; leg. 14 usa il dc:type storico. Altre legislature: via titolo discussione (best-effort, il dato c'è — 6.400 audizioni in leg. 18, 5.154 in leg. 17).",

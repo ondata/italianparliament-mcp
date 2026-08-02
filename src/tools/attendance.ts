@@ -11,11 +11,11 @@ function stripLegLabel(label: string): string {
 
 const inputSchema = z.object({
   uri: z.string().url().optional().describe("URI completo del deputato"),
-  id: z.number().int().positive().optional().describe("ID numerico deputato"),
+  id: z.number().int().min(1).optional().describe("ID numerico deputato"),
   legislature: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .optional()
     .describe("Numero legislatura (richiesta con --id)"),
 });

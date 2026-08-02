@@ -195,7 +195,7 @@ const inputSchema = z.object({
   legislature: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .optional()
     .describe("Numero legislatura Senato. Se omessa viene dedotta dalle date (--date-from/--date-to) o dal DDL (--ddl-uri); senza alcun vincolo si usa la legislatura in corso (19). Serve indicarla solo se l'intervallo di date copre due legislature"),
   ddlUri: z
@@ -229,7 +229,7 @@ const inputSchema = z.object({
     .boolean()
     .optional()
     .describe("Se true, restituisce solo il numero totale di votazioni (colonna count)"),
-  limit: z.number().int().positive().max(1000).default(100),
+  limit: z.number().int().min(1).max(1000).default(100),
   offset: z.number().int().nonnegative().default(0),
 });
 

@@ -26,7 +26,7 @@ const inputSchema = z.object({
   legislature: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .optional()
     .describe("Numero legislatura Senato. L'URI del senatore non la contiene, ma se omessa viene dedotta dalle legislature in cui quel senatore ha voti registrati: per chi non siede nella legislatura in corso si ottiene comunque il suo mandato invece di un vuoto."),
 });
