@@ -9,6 +9,10 @@ import {
   SENATO_MAX_OR_TERMS,
   assertQueryFits,
 } from "../core/senato-query-size.js";
+import {
+  formatLegislatureList,
+  resolveLegislature,
+} from "../core/legislature-choice.js";
 import type { Tool } from "./types.js";
 
 /**
@@ -18,40 +22,6 @@ import type { Tool } from "./types.js";
  * pieno" senza sapere in anticipo quale data è quale.
  */
 export type SenatoVotesProbe = { sedute: number; votazioni: number };
-
-/** Legislatura in corso: usata solo quando non c'è nulla da cui dedurla. */
-export const SENATO_CURRENT_LEGISLATURE = 19;
-
-/**
- * Esito della scelta della legislatura da interrogare. `legislature` era un
- * campo con `.default(19)`: chi cercava per data un evento di legislature
- * passate interrogava in silenzio la 19 e riceveva "nessuna seduta", cioè un
- * messaggio che afferma l'assenza del dato mentre il dato c'è altrove. Da qui
- * la distinzione esplicita fra i casi, decisa da una funzione pura.
- */
-export type LegislatureChoice =
-  | { kind: "explicit" | "default" | "fromDates"; legislature: number }
-  | { kind: "ambiguous"; legislatures: number[] }
-  | { kind: "noSessions" };
-
-/**
- * `resolvedLegs` è il risultato della sonda sulle sedute nell'intervallo:
- * `undefined` quando la sonda non è stata eseguita (legislatura esplicita,
- * ricerca per DDL, nessun vincolo di data) o è fallita.
- */
-export function resolveEffectiveLegislature(
-  explicit: number | undefined,
-  resolvedLegs?: number[],
-): LegislatureChoice {
-  if (explicit !== undefined)
-    return { kind: "explicit", legislature: explicit };
-  if (resolvedLegs === undefined)
-    return { kind: "default", legislature: SENATO_CURRENT_LEGISLATURE };
-  if (resolvedLegs.length === 0) return { kind: "noSessions" };
-  if (resolvedLegs.length === 1)
-    return { kind: "fromDates", legislature: resolvedLegs[0] };
-  return { kind: "ambiguous", legislatures: [...resolvedLegs].sort((a, b) => a - b) };
-}
 
 /**
  * Intervallo a cavallo di due legislature: fermarsi e chiedere invece di
@@ -66,7 +36,7 @@ export function buildAmbiguousLegislatureError(
   dateFrom?: string,
   dateTo?: string,
 ): string {
-  const elenco = legislatures.join(" e ");
+  const elenco = formatLegislatureList(legislatures);
   return (
     `Il ${describePeriodo(dateFrom, dateTo)} copre più legislature del Senato (${elenco}): ` +
     `specifica quale interrogare, es. --legislature ${legislatures[legislatures.length - 1]}. ` +
@@ -381,7 +351,7 @@ export const senatoVotesTool: Tool<typeof inputSchema> = {
       input.legislature === undefined &&
       !input.ddlUri &&
       !!(input.dateFrom || input.dateTo);
-    const choice = resolveEffectiveLegislature(
+    const choice = resolveLegislature(
       input.legislature,
       needsDateResolution
         ? await legislaturesInDateRange(input.dateFrom, input.dateTo).catch(
@@ -397,7 +367,7 @@ export const senatoVotesTool: Tool<typeof inputSchema> = {
           input.dateTo,
         ),
       );
-    if (choice.kind === "noSessions")
+    if (choice.kind === "none")
       return input.countOnly
         ? { rows: [{ count: "0" }], columns: ["count"] }
         : {
