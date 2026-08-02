@@ -2,10 +2,11 @@
 
 > I riferimenti a `docs/note-gestori-lod/` e `docs/campagna-parlamento-aperto/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati e materiali di campagna, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione.
 
-## 2026-08-02 — gli schema dei tool erano illeggibili per i client Gemini
+## 2026-08-02 — gli schemi dei tool erano illeggibili per i client Gemini
 
 - **Provando il server con [llm-mcp-client](https://github.com/simonw/llm-mcp-client)** (il plugin di Simon Willison che espone un server MCP come toolbox della CLI `llm`), collegato al Worker in locale via `wrangler dev`, il modello di default — `gemini/gemini-2.5-flash` — rifiutava la richiesta prima ancora di iniziare: `Invalid JSON payload received. Unknown name "exclusiveMinimum"`, ripetuto per ~40 tool. Non è un problema del plugin: l'API Gemini accetta un sottoinsieme di OpenAPI 3.0 che non prevede `exclusiveMinimum`, e il nostro `z.number().int().positive()` lo emetteva su **44 proprietà** — cioè su ogni `legislature`, `limit` e `id` che abbiamo. Effetto pratico: un client basato su Gemini o Vertex non poteva usare **nessuno** dei 43 tool.
 - **Fix meccanico e semanticamente identico**: `.positive()` → `.min(1)` sugli interi, che emette `minimum: 1`. Verificato con un diff del `tools/list` prima e dopo: 44 righe cambiate, tutte e sole `-"exclusiveMinimum": 0` / `+"minimum": 1`, tutte su proprietà `type: integer`; nessun altro campo dello schema si muove. Con Gemini la stessa domanda che prima falliva ora chiama `deputies` e risponde. Gli `offset`, che usano `.nonnegative()` → `minimum: 0`, non erano coinvolti.
+- **Un file era invisibile a `grep`**: `committee-members.ts` conteneva un **byte NUL letterale** dentro il template della chiave di dedup (`${member_uri}\0${committee_uri}`), scritto come carattere di controllo anziché come escape. Basta quello perché git classifichi il file come binario (`Bin 8491 -> 8487 bytes` nel diff, zero righe) e perché `grep` lo salti in silenzio: il conteggio dei call site risultava 43 invece di 44, e la discrepanza col numero di proprietà nello schema sembrava dovuta a uno schema condiviso che non esiste. Il NUL è ora scritto `\u0000` — stringa identica a runtime (verificato), file di nuovo testuale e ispezionabile.
 
 ## 2026-08-02 — release v0.32.0
 
