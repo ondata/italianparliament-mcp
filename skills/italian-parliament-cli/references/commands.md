@@ -68,6 +68,8 @@ italianparliament person-career show --uri http://dati.camera.it/ocd/deputato.rd
 
 ### `people resolve`
 Risolve in batch una lista di URI persona (anche misti Camera + Senato) nei nomi, con una query per endpoint. Utile per dare i nominativi agli URI "nudi" dei tool relazionali senza una chiamata `deputy`/`senator` per ciascuno. Output: `uri`, `first_name`, `last_name`, `label`, `chamber`, `html_url`.
+
+Sul ramo Camera `label` e `last_name` possono divergere, ed è voluto: `label` porta il nome d'uso ("Maria Elisabetta Alberti Casellati"), `first_name`/`last_name` restano i campi anagrafici della fonte ("Alberti"). Per citare una persona si usa `label`; lo stesso vale per `search find`.
 ```bash
 italianparliament people resolve --uris http://dati.senato.it/senatore/32,http://dati.camera.it/ocd/deputato.rdf/d308917_19
 italianparliament people resolve --uris http://dati.senato.it/senatore/32 --format jsonl

@@ -10,7 +10,7 @@ export default {
       return new Response(
         JSON.stringify({
           name: "italianparliament-mcp",
-          version: "0.31.0",
+          version: "0.32.0",
           description:
             "MCP server for querying Italian Parliament SPARQL endpoints (Camera + Senato)",
           mcp_endpoint: "/mcp",

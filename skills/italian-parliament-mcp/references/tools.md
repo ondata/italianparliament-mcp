@@ -48,6 +48,7 @@ Carriera unificata di una persona: mandati da deputato (per legislatura) + appar
 Risolve in batch una lista di URI persona (anche misti Camera + Senato) nei rispettivi nomi, con una query per endpoint. Dà i nominativi agli URI "nudi" restituiti dai tool relazionali, evitando una chiamata `deputy`/`senator` per ciascuno.
 - `uris` (required): array di URI persona (Camera `deputato.rdf/...` o Senato `senatore/...`), max 500. La camera è rilevata dall'URI.
 - Output: `uri`, `first_name`, `last_name`, `label`, `chamber`, `html_url`. Gli URI non risolti restano in output con label vuota.
+- **`label` e `last_name` possono divergere sul ramo Camera**, ed è voluto: `label` porta il nome d'uso ("Maria Elisabetta Alberti Casellati"), `first_name`/`last_name` restano i campi anagrafici della fonte ("Alberti"). Da citare in un articolo si usa `label`.
 
 ## Attività legislativa — Camera
 
