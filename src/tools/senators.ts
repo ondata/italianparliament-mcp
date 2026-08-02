@@ -10,7 +10,7 @@ const inputSchema = z.object({
   legislature: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .optional()
     .describe("Numero legislatura Senato (es. 19)"),
   activeOnly: z
@@ -37,7 +37,7 @@ const inputSchema = z.object({
     .describe(
       "Filtra per città di nascita (match case-insensitive, es. 'rovigo'). Provincia, nazione e regione di nascita sono restituite come colonne (birth_province, birth_country, birth_region): per filtrarle usa una pipeline (es. jq).",
     ),
-  limit: z.number().int().positive().max(1000).default(300),
+  limit: z.number().int().min(1).max(1000).default(300),
   offset: z.number().int().nonnegative().default(0),
 });
 

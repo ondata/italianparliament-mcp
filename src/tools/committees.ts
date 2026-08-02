@@ -15,7 +15,7 @@ const inputSchema = z.object({
   legislature: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .optional()
     .describe(
       "Numero legislatura. Camera: le commissioni sono istanze per-legislatura, default 19. Senato: opzionale, senza filtro mostra tutte le commissioni storiche (nessun session_count); con filtro mostra gli organi attivi in quella legislatura, con il numero di sedute (0 per quelli che nel LOD non ne hanno, come le Giunte).",

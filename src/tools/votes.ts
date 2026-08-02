@@ -11,7 +11,7 @@ const inputSchema = z.object({
   legislature: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .optional()
     .describe("Numero legislatura Camera"),
   approved: z
@@ -44,7 +44,7 @@ const inputSchema = z.object({
     .boolean()
     .optional()
     .describe("Se true, restituisce solo il numero totale di risultati (colonna count)"),
-  limit: z.number().int().positive().max(1000).default(100),
+  limit: z.number().int().min(1).max(1000).default(100),
   offset: z.number().int().nonnegative().default(0),
 });
 

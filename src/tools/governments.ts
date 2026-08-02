@@ -8,10 +8,10 @@ const inputSchema = z.object({
   legislature: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .optional()
     .describe("Numero legislatura Camera (es. 18)"),
-  limit: z.number().int().positive().max(1000).default(100),
+  limit: z.number().int().min(1).max(1000).default(100),
   offset: z.number().int().nonnegative().default(0),
 });
 

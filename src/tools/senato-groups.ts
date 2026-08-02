@@ -8,7 +8,7 @@ const inputSchema = z.object({
   legislature: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .optional()
     .describe("Numero legislatura Senato (es. 19)."),
   asOf: z
@@ -18,7 +18,7 @@ const inputSchema = z.object({
     .describe(
       "Data di riferimento YYYY-MM-DD (default: oggi). Per legislature passate usare l'ultima data della legislatura (es. 2022-10-12 per la XVIII).",
     ),
-  limit: z.number().int().positive().max(1000).default(100),
+  limit: z.number().int().min(1).max(1000).default(100),
 });
 
 const columns = ["uri", "title", "acronym", "members", "html_url"];
