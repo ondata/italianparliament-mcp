@@ -3,6 +3,7 @@ import { cdQuery } from "../core/client.js";
 import { OCD_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
 import { personDisplayName } from "../core/person-name.js";
+import { sparqlStringLiteral } from "../core/sparql-literal.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -65,7 +66,7 @@ export const govMembersTool: Tool<typeof inputSchema> = {
       // ?alias_surname è opzionale, e CONTAINS su una variabile non legata
       // solleverebbe un errore che scarta la riga.
       filters.push(
-        `FILTER(CONTAINS(LCASE(CONCAT(COALESCE(?persona_name, ""), " ", COALESCE(?alias_surname, ""))), "${input.name.toLowerCase()}"))`,
+        `FILTER(CONTAINS(LCASE(CONCAT(COALESCE(?persona_name, ""), " ", COALESCE(?alias_surname, ""))), ${sparqlStringLiteral(input.name.toLowerCase())}))`,
       );
     }
 
@@ -75,11 +76,19 @@ SELECT DISTINCT ?m ?label ?persona_name ?persona_first ?persona_surname ?alias_s
 WHERE {
   ?m a ocd:membroGoverno .
   ?m rdfs:label ?label .
-  OPTIONAL { ?m ocd:rif_persona ?rif_persona }
-  OPTIONAL { ?rif_persona rdfs:label ?persona_name }
-  OPTIONAL { ?rif_persona foaf:firstName ?persona_first }
-  OPTIONAL { ?rif_persona foaf:surname ?persona_surname }
-  OPTIONAL { ?rif_persona foaf:nickname ?nick . ?nick foaf:surname ?alias_surname }
+  # Tutto ciò che dipende dalla persona sta DENTRO l'OPTIONAL che la lega a ?m:
+  # in blocchi separati ?rif_persona resterebbe libero sugli incarichi che non
+  # la espongono e si legherebbe a qualunque risorsa del grafo, moltiplicando
+  # le righe con dati di altre persone. Oggi tutti i membri di governo hanno
+  # ocd:rif_persona (verificato: zero eccezioni), ma la garanzia è del dato, non
+  # della query.
+  OPTIONAL {
+    ?m ocd:rif_persona ?rif_persona .
+    OPTIONAL { ?rif_persona rdfs:label ?persona_name }
+    OPTIONAL { ?rif_persona foaf:firstName ?persona_first }
+    OPTIONAL { ?rif_persona foaf:surname ?persona_surname }
+    OPTIONAL { ?rif_persona foaf:nickname ?nick . ?nick foaf:surname ?alias_surname }
+  }
   OPTIONAL { ?m ocd:membroGoverno ?role }
   OPTIONAL { ?m ocd:startDate ?start_date }
   OPTIONAL { ?m ocd:endDate ?end_date }

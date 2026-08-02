@@ -153,15 +153,22 @@ function cleanCameraName(
   firstName: string,
   surname: string,
   label: string,
-  aliasSurname = "",
+  aliasSurnames: string[] = [],
 ): string {
-  const composed = personDisplayName(
-    firstName,
-    surname,
-    aliasSurname ? [aliasSurname] : [],
-  );
+  const composed = personDisplayName(firstName, surname, aliasSurnames);
   const fromLabel = (label.split(",")[0] ?? "").trim();
   return richerDisplayName(composed, fromLabel);
+}
+
+/** Righe identiche in tutti i campi: le produce il join sugli alias multipli. */
+function dedupeRows<T extends object>(rows: T[]): T[] {
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    const key = JSON.stringify(row);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export const billSignatoriesTool: Tool<typeof inputSchema> = {
@@ -213,33 +220,49 @@ export const billSignatoriesTool: Tool<typeof inputSchema> = {
     }
 
     const raw = flattenBindings(await cdQuery(cameraQuery(input.billUri, input.limit)));
-    const rows = raw.map((r) => {
-      // Iniziativa governativa: il firmatario è un membro di governo (blank node),
-      // il nome è sulla persona collegata via ocd:rif_persona. Coerente col ramo
-      // Senato: role esplicito "Governo — <dicastero>", is_primary=false (i
-      // proponenti governativi sono più d'uno, non un singolo primo firmatario).
-      if (r.persona) {
+    // Il join sul nickname emette una riga per cognome d'uso, e quattro membri
+    // di governo ne hanno due: senza raccoglierli la stessa ministra compare
+    // due volte con nomi diversi (verificato su ac17_3300, "FEDERICA MOGHERINI
+    // REBESANI" accanto a "FEDERICA MOGHERINI").
+    const aliasesByPerson = new Map<string, string[]>();
+    for (const r of raw) {
+      const alias = r.pAliasSurname || "";
+      if (!alias) continue;
+      const person = r.persona || "";
+      const known = aliasesByPerson.get(person) ?? [];
+      if (!known.includes(alias)) known.push(alias);
+      aliasesByPerson.set(person, known);
+    }
+
+    const rows = dedupeRows(
+      raw.map((r) => {
+        // Iniziativa governativa: il firmatario è un membro di governo (blank node),
+        // il nome è sulla persona collegata via ocd:rif_persona. Coerente col ramo
+        // Senato: role esplicito "Governo — <dicastero>", is_primary=false (i
+        // proponenti governativi sono più d'uno, non un singolo primo firmatario).
+        if (r.persona) {
+          return {
+            name: cleanCameraName(
+              r.pFirstName ?? "",
+              r.pSurname ?? "",
+              r.pLabel ?? "",
+              aliasesByPerson.get(r.persona) ?? [],
+            ),
+            role: r.govRole ? `Governo — ${r.govRole}` : "Governo (proponente)",
+            is_primary: "false",
+            person_uri: r.persona,
+            html_url: personHtmlUrl(r.persona),
+          };
+        }
         return {
-          name: cleanCameraName(
-            r.pFirstName ?? "",
-            r.pSurname ?? "",
-            r.pLabel ?? "",
-            r.pAliasSurname ?? "",
-          ),
-          role: r.govRole ? `Governo — ${r.govRole}` : "Governo (proponente)",
-          is_primary: "false",
-          person_uri: r.persona,
-          html_url: personHtmlUrl(r.persona),
+          name: cleanCameraName(r.firstName ?? "", r.surname ?? "", r.label ?? ""),
+          role: r.ruolo === "primo" ? "primo firmatario" : "cofirmatario",
+          is_primary: r.ruolo === "primo" ? "true" : "false",
+          person_uri: r.dep ?? "",
+          html_url: personHtmlUrl(r.dep),
         };
-      }
-      return {
-        name: cleanCameraName(r.firstName ?? "", r.surname ?? "", r.label ?? ""),
-        role: r.ruolo === "primo" ? "primo firmatario" : "cofirmatario",
-        is_primary: r.ruolo === "primo" ? "true" : "false",
-        person_uri: r.dep ?? "",
-        html_url: personHtmlUrl(r.dep),
-      };
-    });
+      }),
+    );
     // Vuoto sul ramo Camera: può essere un atto "di passaggio", cioè la lettura
     // Camera di un DDL nato al Senato, dove i firmatari stanno sul DDL di
     // origine. Senza dirlo, un vuoto (dato che vive altrove) si legge come
