@@ -2,6 +2,13 @@
 
 > I riferimenti a `docs/note-gestori-lod/` e `docs/campagna-parlamento-aperto/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati e materiali di campagna, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione.
 
+## 2026-08-03 — verifica dei gap del report news-agent: due diagnosi su tre ribaltate
+
+- **Verificati i tre punti di debolezza del report `docs/news-agent/2026-08-03_22-36.md`** sondando l'endpoint invece di dedurre dallo stato dei tool. I sintomi sono tutti riproducibili, ma il piano sotto è sbagliato: esito in `docs/news-agent/2026-08-03_22-36-verifica.md`.
+- **`bill-rapporteurs` vuoto sugli atti 2026 è un bug nostro, non latenza di fonte.** I relatori sono nel LOD e sono quelli delle cronache (`ac19_2987 ocd:rif_relatore` → FRASSINI Rebecca, lotto 30/07; `ac19_2969` → CANGIANO Gerolamo, lotto 01/08). La nostra query Camera non usa quel triple diretto: passa per `rif_dibattito → rif_discussione → rif_relatore`, cioè ancora un dato fresco (classe `relatore`, ultimo lotto 01/08) a classi ferme al 18/06. Ogni atto la cui relazione parte dopo il 18 giugno risulta senza relatore per costruzione. Il suggerimento del report — aggiungere una nota di freschezza — maschererebbe il bug e va respinto; l'infrastruttura peraltro esiste già (`src/core/freshness.ts`).
+- **Il "testo unificato" della riforma Cinema esiste come dato esplicito**: `ocd:rif_abbinamento` → `ocd:abbinamento` con `ocd:tipoTesto "unificato"` e `ocd:attoPortante`, aggiornato il 03/08, lo stesso giorno della notizia. Atto portante **C.2360** (il report indicava C.2969 per inferenza); fascio C.2360+2578+2731+2794+2969, mentre l'elenco del report ometteva C.2731 e includeva C.2581, che nel testo unificato non c'è. Gap reale ma di altra natura: `rif_abbinamento` non è mappato da nessun tool (zero occorrenze in `src/`).
+- **Latenza `committee-sessions` confermata** (classe `seduta` ferma al 18/06) e già in wiki, ma il cablaggio del segnale di freschezza no: `committee-sessions` ha `--date-from/--date-to` e non chiama `cameraFreshnessNote`, mentre `docs/lod-wiki/freschezza-e-autorevolezza.md` lo dà per acquisito. Disallineamento doc↔codice, non miglioramento da mettere in coda.
+
 ## 2026-08-03 — release v0.32.1
 
 - **v0.32.1 rilasciata**, patch: nessun tool nuovo (restano 43) e nessuna query toccata, ma il server passa da inutilizzabile a utilizzabile per un'intera famiglia di client. Gli schemi dei tool emettevano `exclusiveMinimum`, che non è nel sottoinsieme di OpenAPI 3.0 accettato dall'API Gemini: un client Gemini o Vertex si vedeva rifiutare la richiesta prima ancora di cominciare, su tutti e 43 i tool. `.positive()` → `.min(1)` sui 44 parametri interi, semanticamente identico. Nella stessa PR è emerso — grazie a un bot di review — un byte NUL letterale in `committee-members.ts` che rendeva il file binario per git e invisibile a `grep`. 317 test verdi.
@@ -463,3 +470,9 @@
 - Nota TS2589: il loop generico su `tools[]` generava "Type instantiation is excessively deep". Fix: chiamate registerTool esplicite per ogni tool.
 - Test stdio end-to-end: initialize + tools/list → 5 tool con JSON Schema completo da Zod (properties, required, default, enum). tools/call `search {name:"meloni",chamber:"camera",limit:2}` → 2 righe JSONL da Camera SPARQL reale.
 - Prossimo: Fase 5 — Cloudflare Worker (`src/worker.ts` con MCP HTTP server clonando pattern da ckan-mcp-server).
+
+## 2026-08-03 — run gap-analyzer news-driven
+
+- **Run news-driven-cli-gap-analyzer** (6 notizie: 2 correnti, 2 del 2025/leg.19, 2 del 2020/leg.18). Report in `docs/news-agent/2026-08-03_22-36.md`, catalogo aggiornato.
+- Copertura storica tenuta: tagliola intercettazioni (S.932/C.2084), DL ILVA 2025 (S.1359), assegno unico (C.687), DL Agosto Camera (C.2700) — tutti i conteggi coincidono con le testate.
+- Gap corrente: `bill-rapporteurs` vuoto su atti 2026 in commissione da poco (C.2987 DL Pnrr, riforma Cinema) pur esistendo i relatori (Frassini, Cangiano) — verosimile latenza LOD Camera, da verificare alla fonte; suggerito un segnale di freschezza.
