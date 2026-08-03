@@ -28,8 +28,13 @@ docs/news-agent/
 docs/campagna-ripartenza-dati.md
 docs/campagna-parlamento-aperto/
 
-# configurazione e memoria locale degli agenti
-.claude/
+# configurazione e memoria locale degli agenti: si ignora il contenuto di
+# .claude/ (settings, hook, memoria) ma non gli agent e i comandi, che sono
+# scritti per questo progetto e vanno versionati. Serve `.claude/*` e non
+# `.claude/`: git non può re-includere un file se la directory padre è esclusa.
+.claude/*
+!.claude/agents/
+!.claude/commands/
 
 # memoria orfana agente (ogni run è vergine)
 .claude/agent-memory/
