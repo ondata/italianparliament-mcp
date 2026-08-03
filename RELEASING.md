@@ -90,6 +90,21 @@ più server MCP HTTP su Cloudflare Worker, skill e pacchetto `.dxt`.
    secondi**. Regola: prima di sospettare il deploy, verifica che il bundle
    locale sia giusto e poi riprova dopo mezzo minuto.
 
+   **Una sola risposta giusta non basta**: in 0.32.1 la propagazione è stata *a
+   chiazze*, non a gradino — richieste consecutive alternavano nuova e vecchia
+   versione per circa un minuto (1 risposta su 8 ancora alla precedente), quindi
+   fermarsi al primo `X.Y.Z` che compare porta a dire "propagato" troppo presto.
+   Campiona più volte finché non sono tutte uguali:
+
+   ```bash
+   for i in $(seq 1 6); do
+     curl -s -H 'Cache-Control: no-cache' \
+       "https://italianparliament-mcp.andy-pr.workers.dev/?t=$(date +%s%N)" \
+       | jq -r '.version'
+     sleep 6
+   done | sort | uniq -c
+   ```
+
    ```bash
    grep -o '"0\.[0-9]*\.[0-9]*"' dist/worker.js | sort -u   # deve essere X.Y.Z
    ```
