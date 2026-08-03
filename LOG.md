@@ -2,6 +2,10 @@
 
 > I riferimenti a `docs/note-gestori-lod/` e `docs/campagna-parlamento-aperto/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati e materiali di campagna, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione.
 
+## 2026-08-03 — release v0.32.1
+
+- **v0.32.1 rilasciata**, patch: nessun tool nuovo (restano 43) e nessuna query toccata, ma il server passa da inutilizzabile a utilizzabile per un'intera famiglia di client. Gli schemi dei tool emettevano `exclusiveMinimum`, che non è nel sottoinsieme di OpenAPI 3.0 accettato dall'API Gemini: un client Gemini o Vertex si vedeva rifiutare la richiesta prima ancora di cominciare, su tutti e 43 i tool. `.positive()` → `.min(1)` sui 44 parametri interi, semanticamente identico. Nella stessa PR è emerso — grazie a un bot di review — un byte NUL letterale in `committee-members.ts` che rendeva il file binario per git e invisibile a `grep`. 317 test verdi.
+
 ## 2026-08-02 — gli schemi dei tool erano illeggibili per i client Gemini
 
 - **Provando il server con [llm-mcp-client](https://github.com/simonw/llm-mcp-client)** (il plugin di Simon Willison che espone un server MCP come toolbox della CLI `llm`), collegato al Worker in locale via `wrangler dev`, il modello di default — `gemini/gemini-2.5-flash` — rifiutava la richiesta prima ancora di iniziare: `Invalid JSON payload received. Unknown name "exclusiveMinimum"`, ripetuto per ~40 tool. Non è un problema del plugin: l'API Gemini accetta un sottoinsieme di OpenAPI 3.0 che non prevede `exclusiveMinimum`, e il nostro `z.number().int().positive()` lo emetteva su **44 proprietà** — cioè su ogni `legislature`, `limit` e `id` che abbiamo. Effetto pratico: un client basato su Gemini o Vertex non poteva usare **nessuno** dei 43 tool.
