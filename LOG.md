@@ -2,6 +2,13 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/` e `docs/news-agent/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna e report dell'agente news-driven, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-08-04 — bill-rapporteurs sistemato: PR #93 mergiata
+
+- **Il fix è in `main`** (merge `45efbd2`): `bill-rapporteurs` su Camera ora trova i relatori degli atti in corso. C.2987 → Frassini, C.2969 → Cangiano, dove prima uscivano zero righe.
+- **Le due sorgenti di relatore sono disgiunte, non una il sottoinsieme dell'altra.** La prima versione del fix sostituiva la catena `rif_dibattito → rif_discussione → rif_relatore` con il triple diretto sull'atto, e il collaudo ha subito mostrato che era sbagliato: i nodi hanno URI di forma diversa (`rel19_11378` contro `rel19_307641_198615`), label in ordine invertito ("COLUCCI Alessandro" contro "Igor IEZZI") e contenuti che divergono — su C.2822 solo il lato atto conosce COLUCCI, su C.687 il lato atto ha il solo LEPRI mentre la discussione ne ha dieci, De Martini incluso. Il join su `?rel` non poteva quindi matchare: commissione e data sparivano su tutti gli atti che prima funzionavano. Risolto con `UNION` delle due sorgenti più l'`OPTIONAL` di arricchimento.
+- **Il dedup scarta solo ciò che è vuoto anche su `rapporteur_type`**: 35.708 nodi `ocd:relatore` su 42.250 portano quel campo e ~2.800 distinguono maggioranza da minoranza, cioè il contraddittorio in Aula. Sulla chiave del dedup un bot di review ha ipotizzato una divergenza fra sorgenti quando manca `rif_deputato`: sondato, il caso non esiste — 0 relatori d'atto su 7.781 ne sono privi, e i 435 nodi senza quel campo pendono da discussioni, non da atti.
+- **Restano fuori due cose, da aprire come issue**: `ocd:rif_abbinamento` (testo unificato: atto portante + fascio) non è esposto da nessun tool; `committee-sessions` non chiama `cameraFreshnessNote` pur avendo i filtri di data, mentre `docs/lod-wiki/freschezza-e-autorevolezza.md:60` lo dà già per fatto — un vuoto per latenza oggi si legge come "il dato non c'è".
+
 ## 2026-08-03 — verifica dei gap del report news-agent: due diagnosi su tre ribaltate
 
 - **Verificati i tre punti di debolezza del report `docs/news-agent/2026-08-03_22-36.md`** sondando l'endpoint invece di dedurre dallo stato dei tool. I sintomi sono tutti riproducibili, ma il piano sotto è sbagliato: esito in `docs/news-agent/2026-08-03_22-36-verifica.md`.
