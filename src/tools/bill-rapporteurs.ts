@@ -26,21 +26,34 @@ const columns = [
 
 const RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
 
-// Camera: il relatore è un triple DIRETTO sull'atto (ocd:rif_relatore). La
-// versione precedente lo raggiungeva solo via dibattito → discussione →
-// relatore, e questo lo rendeva vuoto su tutti gli atti recenti: le classi
-// `ocd:dibattito`/`ocd:discussione`/`ocd:seduta` sono pubblicate con settimane
-// di ritardo rispetto a `ocd:relatore` (al 2026-08-03: lotto 18/06 contro
-// 01/08), quindi un atto la cui relazione parte dopo l'ultimo lotto dei lavori
-// d'Aula non ha alcun dibattito su cui agganciarsi. Il percorso indiretto resta
-// come OPTIONAL, perché è l'unico che porta commissione e data: quando i
-// lavori d'Aula non sono ancora caricati quelle colonne restano vuote, ma il
-// nome del relatore — il dato che serve — esce comunque.
+// Camera: due sorgenti DISGIUNTE, da unire.
+//
+// L'atto porta un `ocd:rif_relatore` diretto (nodi `rel19_11378`), e ogni
+// discussione ne porta uno suo (nodi `rel19_307641_198615`). Non sono gli
+// stessi nodi e non coincidono nemmeno nel contenuto: su C.2822 solo la prima
+// sorgente conosce COLUCCI, solo la seconda conosce commissione e data; su
+// C.687 la prima ha il solo LEPRI e la seconda dieci relatori fra cui DE
+// MARTINI. Anche le label divergono ("COLUCCI Alessandro" contro "Igor IEZZI").
+//
+// La versione precedente leggeva solo la seconda, e questo la rendeva vuota su
+// tutti gli atti recenti: `ocd:dibattito`/`ocd:discussione`/`ocd:seduta` sono
+// pubblicate con settimane di ritardo rispetto a `ocd:relatore` (al 2026-08-03:
+// lotto 18/06 contro 01/08), quindi un atto la cui relazione parte dopo
+// l'ultimo lotto dei lavori d'Aula non ha alcun dibattito su cui agganciarsi.
+// Leggere solo la prima non è un'alternativa: perderebbe relatori e insieme
+// commissione e data. Da qui la UNION, più l'OPTIONAL che arricchisce ogni
+// relatore con il dibattito in cui ha riferito, quando quel dibattito c'è.
 function cameraQuery(billUri: string, limit: number): string {
   return `${OCD_PREFIXES}
 SELECT DISTINCT ?relatoreLabel ?relatoreType ?dibattitoLabel ?startDate ?deputatoUri
 WHERE {
-  <${billUri}> ocd:rif_relatore ?rel .
+  { <${billUri}> ocd:rif_relatore ?rel }
+  UNION
+  {
+    <${billUri}> ocd:rif_dibattito ?dibSrc .
+    ?dibSrc ocd:rif_discussione ?discSrc .
+    ?discSrc ocd:rif_relatore ?rel .
+  }
   ?rel <${RDFS_LABEL}> ?relatoreLabel .
   OPTIONAL { ?rel ocd:rif_deputato ?deputatoUri }
   OPTIONAL { ?rel dc:type ?relatoreType }
@@ -83,20 +96,29 @@ type RapporteurRow = {
 };
 
 /**
- * Un atto porta più nodi `ocd:relatore` per la stessa persona (C.2987 ne ha due
- * per FRASSINI, con `ods:modified` diversi). Se anche solo uno di quei nodi è
- * agganciato a un dibattito, l'OPTIONAL della query produce per lo stesso
- * deputato sia righe con commissione e data sia righe nude: le seconde non
- * aggiungono nulla e si leggerebbero come relatori distinti. Si scartano solo
- * in presenza di righe arricchite; quando l'atto è tutto sui lavori d'Aula non
- * ancora caricati, le righe nude sono l'unica risposta e vanno tenute.
+ * La UNION fa arrivare la stessa persona da entrambe le sorgenti: dal lato atto
+ * come riga senza commissione né data (e spesso senza tipo), dal lato
+ * discussione come riga completa. La prima allora non aggiunge nulla e si
+ * leggerebbe come un relatore in più, per giunta con il nome in un'altra forma.
+ *
+ * Si scarta solo ciò che è vuoto su tutti e tre i campi. Il tipo va incluso nel
+ * test perché non è un dettaglio raro: 35.708 nodi `ocd:relatore` su 42.250 lo
+ * portano (misura del 2026-08-04), e fra i sei valori ci sono
+ * maggioranza/minoranza nelle due grafie, ~2.800 nodi in tutto. Sono la
+ * distinzione politicamente più significativa del tool — il relatore di
+ * minoranza è il contraddittorio — e senza questa clausola sparirebbero ogni
+ * volta che la stessa persona arriva anche dal lato discussione.
+ *
+ * Quando poi le righe spoglie sono l'unica risposta — gli atti in corso, con i
+ * lavori d'Aula non ancora pubblicati — vanno tenute: sono esattamente il vuoto
+ * che questo tool ha smesso di produrre.
  */
 export function dropBareDuplicates(rows: RapporteurRow[]): RapporteurRow[] {
   const key = (r: RapporteurRow) => r.deputy_uri || r.rapporteur_name.trim().toUpperCase();
-  const enriched = new Set(
-    rows.filter((r) => r.committee !== "" || r.date !== "").map(key),
-  );
-  return rows.filter((r) => r.committee !== "" || r.date !== "" || !enriched.has(key(r)));
+  const bare = (r: RapporteurRow) =>
+    r.committee === "" && r.date === "" && r.rapporteur_type === "";
+  const informative = new Set(rows.filter((r) => !bare(r)).map(key));
+  return rows.filter((r) => !bare(r) || !informative.has(key(r)));
 }
 
 export const billRapporteursTool: Tool<typeof inputSchema> = {

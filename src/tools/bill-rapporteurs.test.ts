@@ -21,6 +21,21 @@ describe("dropBareDuplicates", () => {
     expect(out[0].committee).toBe("V Commissione (Bilancio)");
   });
 
+  it("tiene la riga senza commissione che però porta un tipo", () => {
+    // Non è un caso isolato: 35.708 nodi ocd:relatore su 42.250 hanno dc:type,
+    // e ~2.800 distinguono maggioranza da minoranza. Il valore qui sotto viene
+    // da C.687, dove solo il lato atto sa "relatore per la maggioranza".
+    const out = dropBareDuplicates([
+      row({ committee: "XII Commissione (Affari sociali)", date: "20190627" }),
+      row({
+        rapporteur_name: "LEPRI Stefano, relatore per la maggioranza",
+        rapporteur_type: "maggioranza",
+      }),
+    ]);
+    expect(out).toHaveLength(2);
+    expect(out.map((r) => r.rapporteur_type)).toContain("maggioranza");
+  });
+
   it("tiene la riga nuda quando è l'unica che c'è", () => {
     // È il caso degli atti in corso: i lavori d'Aula non sono ancora
     // pubblicati, il nome del relatore sì. Scartarla equivarrebbe a tornare al
