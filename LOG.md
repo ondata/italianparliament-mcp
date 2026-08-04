@@ -1,6 +1,6 @@
 # LOG
 
-> I riferimenti a `docs/note-gestori-lod/` e `docs/campagna-parlamento-aperto/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati e materiali di campagna, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione.
+> I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/` e `docs/news-agent/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna e report dell'agente news-driven, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
 ## 2026-08-03 — verifica dei gap del report news-agent: due diagnosi su tre ribaltate
 
