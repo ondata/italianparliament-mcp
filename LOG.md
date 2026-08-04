@@ -2,6 +2,11 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/` e `docs/news-agent/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna e report dell'agente news-driven, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-08-04 — release v0.32.2
+
+- **v0.32.2 rilasciata**, patch: nessun tool nuovo (restano 43), ma `bill-rapporteurs` smette di tacere sugli atti in corso. Prima il tool raggiungeva il relatore solo attraverso i lavori d'Aula, che il LOD Camera pubblica con settimane di ritardo: ogni atto la cui relazione fosse iniziata dopo l'ultimo lotto risultava senza relatore, mentre il dato era già nel grafo e aggiornato. Ora le due sorgenti sono unite, e il tool trova sia i relatori recenti (C.2987 → Frassini, C.2969 → Cangiano, prima zero righe) sia quelli che la sola via dei lavori d'Aula non vedeva (COLUCCI su C.2822). 323 test verdi.
+- **Documentazione allineata al comportamento reale**: README e le due skill avvertono che su Camera `committee`, `date` e `rapporteur_type` vengono dai lavori d'Aula e possono essere vuoti sugli atti in corso, senza che questo renda incerto il nome del relatore. Serve a non far leggere quelle celle vuote come un dato dubbio.
+
 ## 2026-08-04 — bill-rapporteurs sistemato: PR #93 mergiata
 
 - **Il fix è in `main`** (merge `45efbd2`): `bill-rapporteurs` su Camera ora trova i relatori degli atti in corso. C.2987 → Frassini, C.2969 → Cangiano, dove prima uscivano zero righe.

@@ -98,7 +98,7 @@ In alternativa, copia la cartella `skills/<nome>/` e registrala secondo la docum
 | `votes list` | Votazioni Camera con contatori (favorevoli, contrari, astenuti), filtrabile per data, tipo fiducia (`--confidence-vote`), DDL collegato (`--bill-code`). Per mozioni e risoluzioni espone il codice AIC (`aic_code`) e il link alla scheda (`aic_link`) |
 | `vote-detail show` | Come ha votato ogni singolo deputato in una votazione, con nome e gruppo |
 | `attendance show` | Conteggio aggregato dei voti di un deputato in tutte le votazioni della sua legislatura (favorevole/contrario/astensione/non ha votato/ha votato in scrutinio segreto) — misura di attivismo/assenteismo |
-| `bill-rapporteurs list` | Relatori di un DDL (Camera o Senato, riconosciuti dall'URL): nome, tipo (Relatore / f.f.), commissione/organo e data |
+| `bill-rapporteurs list` | Relatori di un DDL (Camera o Senato, riconosciuti dall'URL): nome, tipo (Relatore / f.f.), commissione/organo e data. Su Camera commissione, data e tipo vengono dai lavori d'Aula, pubblicati in ritardo: sugli atti in corso possono essere vuoti mentre il nome del relatore è corretto |
 | `bill-committees list` | Commissioni a cui un DDL/atto è assegnato (Camera o Senato, dall'URL): nome, sede/ruolo (Referente, Consultiva, …), tipo, data di assegnazione, URI organo |
 | `camera-amendments list` | Emendamenti (proposte emendative) a un atto Camera, per sede (referente/Assemblea): numero, articolo, primo firmatario, emendamenti identici, link al testo; `--count-only` per il conteggio per sede. Gli emendamenti Camera non sono nel LOD: la fonte è l'app HTML `documenti.camera.it` (per il Senato usare `amendments`) |
 | `speeches list` | Interventi in aula, filtrabile per legislatura e deputato |

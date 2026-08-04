@@ -161,10 +161,12 @@ italianparliament bill-signatories show --bill-uri http://dati.senato.it/ddl/255
 ```
 
 ### `bill-rapporteurs list`
-Relatori di un DDL, **Camera o Senato** (riconosciuto dall'URI): nome, tipo (Relatore / f.f.), commissione/organo, data.
+Relatori di un DDL, **Camera o Senato** (riconosciuto dall'URI): nome, tipo (Relatore / f.f.), commissione/organo, data. Su Camera i relatori arrivano da due sorgenti unite: il triple diretto sull'atto e i lavori d'Aula. Solo i secondi portano `committee`, `date` e `rapporteur_type`, e sono pubblicati con settimane di ritardo: sugli atti in corso quelle colonne possono essere vuote mentre il nome del relatore è corretto e aggiornato. **Colonne vuote non significano relatore incerto.**
 ```bash
 italianparliament bill-rapporteurs list --bill-uri http://dati.camera.it/ocd/attocamera.rdf/ac19_2807
 italianparliament bill-rapporteurs list --bill-uri http://dati.senato.it/ddl/59313
+# atto in corso: esce il nome, non ancora commissione e data
+italianparliament bill-rapporteurs list --bill-uri http://dati.camera.it/ocd/attocamera.rdf/ac19_2987
 ```
 
 ### `bill-committees list`

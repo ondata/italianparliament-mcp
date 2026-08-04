@@ -117,7 +117,7 @@ Firmatari di un DDL, **Camera o Senato** (il ramo è riconosciuto dall'URI): pri
 - `billUri` (required): URI del DDL (Camera `attocamera.rdf/...` o Senato `ddl/...`)
 
 ### `bill-rapporteurs`
-Relatori di un DDL, **Camera o Senato** (il ramo è riconosciuto dall'URI). Nome, tipo (Relatore / f.f.), commissione/organo e data.
+Relatori di un DDL, **Camera o Senato** (il ramo è riconosciuto dall'URI). Nome, tipo (Relatore / f.f.), commissione/organo e data. Su Camera i relatori arrivano da due sorgenti unite: il triple diretto sull'atto e i lavori d'Aula. Solo i secondi portano `committee`, `date` e `rapporteur_type`, e sono pubblicati con settimane di ritardo: sugli atti in corso quelle colonne possono essere vuote mentre il nome del relatore è corretto e aggiornato. **Colonne vuote non significano relatore incerto.**
 - `billUri` (required): URI del DDL (Camera `attocamera.rdf/...` o Senato `ddl/...`)
 
 ### `bill-committees`
