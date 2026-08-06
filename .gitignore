@@ -27,6 +27,7 @@ docs/note-gestori-lod/
 docs/news-agent/
 docs/campagna-ripartenza-dati.md
 docs/campagna-parlamento-aperto/
+docs/kpi-parlamento-aperto/
 
 # configurazione e memoria locale degli agenti: si ignora il contenuto di
 # .claude/ (settings, hook, memoria) ma non gli agent e i comandi, che sono
