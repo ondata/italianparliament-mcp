@@ -47,7 +47,7 @@ function acronym(label: string): string {
 export const groupRankTool: Tool<typeof inputSchema> = {
   name: "group-rank",
   description:
-    "[CAMERA] Classifica i gruppi parlamentari per attività (AIC o DDL come primo firmatario), con conteggio assoluto, numero di membri e media per membro (count_per_member). Utile per confrontare gruppi di dimensioni diverse: l'opposizione tipicamente presenta più atti, e il rapporto per membro evidenzia i gruppi più attivi a parità di dimensione.",
+    "[CAMERA] Classifica i gruppi parlamentari per attività (AIC o DDL come primo firmatario), con conteggio assoluto, numero di membri attuali del gruppo (iscrizioni senza data di fine, indipendente dal tipo di atto scelto) e media per membro (count_per_member). Utile per confrontare gruppi di dimensioni diverse: l'opposizione tipicamente presenta più atti, e il rapporto per membro evidenzia i gruppi più attivi a parità di dimensione.",
   inputSchema,
   examples: [
     "italianparliament group-rank list --rank-by aic --legislature 19",
@@ -60,13 +60,27 @@ export const groupRankTool: Tool<typeof inputSchema> = {
     const legUri = `http://dati.camera.it/ocd/legislatura.rdf/repubblica_${input.legislature}`;
 
     const query = `${OCD_PREFIXES}
-SELECT ?group ?group_label (COUNT(DISTINCT ?item) AS ?n) (COUNT(DISTINCT ?deputy) AS ?members)
-WHERE {
-  ?item a ${itemPattern} ; ocd:primo_firmatario ?deputy ; ocd:rif_leg <${legUri}> .
-  ?group a ocd:gruppoParlamentare ; ocd:rif_leg <${legUri}> ; ocd:siComponeDi ?m ; rdfs:label ?group_label .
-  ?m ocd:rif_deputato ?deputy .
+SELECT ?group ?group_label ?n ?members WHERE {
+  {
+    SELECT ?group (COUNT(DISTINCT ?item) AS ?n)
+    WHERE {
+      ?item a ${itemPattern} ; ocd:primo_firmatario ?deputy ; ocd:rif_leg <${legUri}> .
+      ?group a ocd:gruppoParlamentare ; ocd:rif_leg <${legUri}> ; ocd:siComponeDi ?m .
+      ?m ocd:rif_deputato ?deputy .
+    }
+    GROUP BY ?group
+  }
+  ?group rdfs:label ?group_label .
+  {
+    SELECT ?group (COUNT(DISTINCT ?m2) AS ?members)
+    WHERE {
+      ?group a ocd:gruppoParlamentare ; ocd:rif_leg <${legUri}> ; ocd:siComponeDi ?m2 .
+      ?m2 dc:date ?d .
+      FILTER(REGEX(STR(?d), "-$"))
+    }
+    GROUP BY ?group
+  }
 }
-GROUP BY ?group ?group_label
 ORDER BY ${input.order === "asc" ? "ASC" : "DESC"}(?n)
 LIMIT ${input.limit}`;
 
