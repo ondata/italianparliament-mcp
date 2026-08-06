@@ -24,7 +24,8 @@
     "deploy": "npm run build:worker && wrangler deploy",
     "test": "vitest",
     "test:watch": "vitest --watch",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "test:fails": "jq -r 'if [.testResults[].assertionResults[] | select(.status==\"failed\")] | length == 0 then \"tutti verdi (\" + ([.testResults[].assertionResults[]] | length | tostring) + \" test)\" else .testResults[].assertionResults[] | select(.status==\"failed\") | \"ROSSO: \" + .fullName + \"\\n  \" + ((.failureMessages // []) | join(\"\\n  \") | split(\"\\n\")[0:3] | join(\"\\n  \")) end' tmp/test-report.json"
   },
   "keywords": [
     "mcp",

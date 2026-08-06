@@ -19,9 +19,23 @@ import { defineConfig } from "vitest/config";
  * Costo: la suite gira in sequenza. Accettabile, perché la parte lenta
  * (`tools.test.ts`) era già serializzata dal throttle.
  */
+/**
+ * Report JSON dell'ultima run in `tmp/test-report.json` (cartella già in
+ * .gitignore, quindi non versionato e sovrascritto a ogni run).
+ *
+ * Serve a non rilanciare l'intera suite solo per sapere QUALE test è rosso: la
+ * suite tocca due endpoint SPARQL reali e dura ~5 minuti, e ogni run in più
+ * avvicina il 403 per volume dell'endpoint Senato. Dopo un `npm test`:
+ *
+ *   npm run test:fails
+ */
 export default defineConfig({
   test: {
     poolOptions: { forks: { singleFork: true } },
     isolate: false,
+    reporters: [
+      "default",
+      ["json", { outputFile: "tmp/test-report.json" }],
+    ],
   },
 });
