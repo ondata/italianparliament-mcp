@@ -2,6 +2,10 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/` e `docs/news-agent/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna e report dell'agente news-driven, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-08-06 — release v0.32.4
+
+- **v0.32.4 rilasciata**, patch: nessun tool nuovo (restano 43), ma la colonna `members` di `group-rank` torna un dato vero — vedi voce sotto per il dettaglio del bug e del fix. PR #97, 327 test verdi.
+
 ## 2026-08-06 — fix group-rank: `members` contava gli autori, non gli iscritti
 
 - **Bug in `group-rank`**: la colonna `members` non era il numero di iscritti al gruppo, ma il numero di deputati del gruppo che avevano firmato almeno un atto del tipo scelto (`--rank-by aic` → 109 per FdI, `--rank-by bills` → 90 per lo **stesso** gruppo/legislatura). Scoperto confrontando due percorsi CLI per lo stesso conteggio (`group-rank` vs `group-members`), che davano numeri diversi (109 vs 118). Verificato alla fonte: la pagina camera.it del gruppo FdI elenca 118 schede deputato distinte, uguale a `group-members` filtrato su iscrizioni senza data di fine. Non era un problema a monte: il LOD Camera su questo punto è pulito.
