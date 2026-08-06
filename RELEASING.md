@@ -19,8 +19,15 @@ più server MCP HTTP su Cloudflare Worker, skill e pacchetto `.dxt`.
    NODE_OPTIONS="--max-old-space-size=4096" npx tsc --noEmit
    npm run build         # CLI + MCP stdio (dist/cli.js, dist/index.js)
    npm run build:worker  # Cloudflare Worker (dist/worker.js)
-   npm test              # vitest
+   npm test -- --run     # vitest (senza --run resta in watch e blocca)
+   npm run test:fails    # quali test sono rossi, dal report dell'ultima run
    ```
+
+   La suite interroga i due endpoint SPARQL reali e dura ~5 minuti: **non
+   rilanciarla per scoprire quale test è rosso**. Ogni run avvicina il `403`
+   per volume del Senato, che non decade aspettando. `npm test` scrive il
+   report in `tmp/test-report.json` (non versionato, sovrascritto a ogni run) e
+   `npm run test:fails` ne estrae i falliti con le prime righe di errore.
 
 3. **Aggiorna la documentazione**: `LOG.md` (voce in cima, data `YYYY-MM-DD`),
    `README.md`, e le skill in `skills/` se sono cambiati comandi/tool.

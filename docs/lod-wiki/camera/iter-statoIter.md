@@ -1,10 +1,10 @@
 ---
 type: Reference
 title: Iter di un atto Camera — timeline degli stati (ocd:rif_statoIter)
-description: La cronologia dell'iter di un atto Camera è una timeline di stati collegati con ocd:rif_statoIter (uno per fase, con dc:date e dc:title). Copertura verificata alla pari tra legislature (18 e 19). Il ramo Senato dello stesso tool restituisce per design solo lo stato corrente, non una timeline — asimmetria di ramo, non di legislatura.
+description: La cronologia dell'iter di un atto Camera è una timeline di stati collegati con ocd:rif_statoIter (uno per fase, con dc:date e dc:title). Copertura verificata alla pari tra legislature (18 e 19). Il ramo Senato dello stesso tool restituisce per design solo lo stato corrente, non una timeline — asimmetria di ramo, non di legislatura. Trappola: la timeline di un atto tornato dalla navetta NON contiene la lettura successiva, che vive su un atto variante distinto con suffisso (-B, -C…), e l'ultimo stato dell'atto base sembra definitivo senza esserlo.
 resource: https://dati.camera.it/sparql
-tags: [camera, ocd, iter, statoIter, fasi, timeline, bill-progress, legislatura]
-timestamp: 2026-07-07
+tags: [camera, ocd, iter, statoIter, fasi, timeline, bill-progress, legislatura, navetta, atto-variante]
+timestamp: 2026-08-06
 ---
 
 L'iter legislativo di un atto Camera è modellato come una **timeline di stati**: l'atto è collegato a più risorse-stato via `ocd:rif_statoIter`, ciascuna con la sua data (`dc:date`, stringa `AAAAMMGG`) e la sua etichetta (`dc:title`, es. "Assegnato", "In discussione"). Non è un singolo campo "stato corrente": è la sequenza completa delle fasi attraversate.
@@ -41,6 +41,34 @@ Attenzione al `--branch` con `--number`: `--branch C` dà la **timeline** dell'a
 
 Conseguenza pratica: un DDL Senato che "sembra meno dettagliato" di un atto Camera non è un buco della legislatura, ma questa differenza di modellazione tra i due grafi. Confrontare timeline con timeline (RSS lato Senato) o stato-corrente con stato-corrente.
 
+# Trappola: la navetta prosegue su un atto DIVERSO (suffisso `-B`), e la timeline dell'atto base non lo dice
+
+Quando un testo torna dall'altro ramo modificato, la lettura successiva **non** si aggiunge alla timeline dell'atto di partenza: riceve un'entità `ocd:atto` separata, con URI e `dc:identifier` suffissati (`ac19_703` → `ac19_703-B`, poi `-C`, `-D`…). I due atti hanno `rif_statoIter` propri e non sono collegati da alcun triple diretto: nessuna proprietà dell'atto base rimanda alla sua variante.
+
+L'effetto è una **timeline che sembra conclusa e non lo è**. La legge quadro sugli interporti: `ac19_703` si chiude con `Approvato, segue Navette` il **20240228**, mentre l'approvazione definitiva (Legge 177/2025) è il **20251113** e sta su `ac19_703-B`. Chi legge solo l'atto base conclude che il provvedimento è fermo da anni.
+
+Non essendoci il link nel grafo, la variante si trova **costruendo gli URI candidati** e sondandoli — `VALUES` su `ac<leg>_<n>-B` in poi, misurato ~0,4 s (e sondare l'intero alfabeto invece delle sole lettere oggi esistenti costa 40 ms in più: il tetto storico `-F` non è un vincolo del modello). Un `REGEX` su `dc:identifier` è invece un full scan, da evitare:
+
+```sparql
+PREFIX ocd: <http://dati.camera.it/ocd/>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+SELECT ?a ?id ?date ?stato WHERE {
+  VALUES ?a { <http://dati.camera.it/ocd/attocamera.rdf/ac19_703-B>
+              <http://dati.camera.it/ocd/attocamera.rdf/ac19_703-C> }
+  ?a dc:identifier ?id ; ocd:rif_statoIter ?st .
+  ?st dc:date ?date ; dc:title ?stato .
+}
+ORDER BY ?id ?date
+```
+
+**Non tutti i suffissi sono letture successive.** Censimento dei `dc:identifier` con suffisso su tutte le legislature: `-A` **4.558** atti, `-B` 1.807, `-bis` 361, `-ter` 250, `-C` 162, `-A-bis` 127, `-D` 106, poi code lunghe (`bis-B`, `ter-B`, `quater-B`…). `-A` è il **testo della commissione**, non una lettura di navetta: scambiarlo per tale significa indicare una bozza di commissione al posto dell'approvazione definitiva. Le letture successive sono `-B`, `-C`, `-D`, `-E`, `-F` (ed esistono composte, `1059-bis-B`).
+
+Conseguenza per chi scrive codice: un pattern `ac(\d+)_(\d+)$` sugli URI d'atto **perde per intero** ogni atto variante. La scheda HTML invece li serve regolarmente, con l'identificativo completo: `https://www.camera.it/leg19/126?leg=19&idDocumento=703-B` risponde e dichiara «Atto Camera: 703-B».
+
+Lato Senato la stessa navetta si vede diversamente: le fasi dello stesso DDL condividono `osr:idDdl` e il repertorio contiene anche le fasi Camera (`osr:ramo="C"`), quindi lì l'iter completo si ricostruisce senza costruire URI. È solo il grafo Camera a spezzare l'atto in risorse separate.
+
 # Citations
+
+[2] Verifica 2026-08-06 su `dati.camera.it/sparql`: `ac19_703` → ultimo stato `Approvato, segue Navette` (20240228); `ac19_703-B` → `Approvato definitivamente. Legge` (20251113), `dc:identifier` = "703-B", nessun triple che colleghi i due atti. Censimento dei suffissi via `GROUP BY` su `dc:identifier` filtrato `REGEX(^[0-9]+-)`: `-A` 4.558, `-B` 1.807, `-C` 162, `-D` 106. Scheda `idDocumento=703-B` verificata su www.camera.it (dichiara «Atto Camera: 703-B»). Emerso dalla gap analysis news-driven del 2026-08-06 (storia della legge quadro sugli interporti).
 
 [1] Verifica 2026-07-07 su `dati.camera.it/sparql`: `ac18_2463` (Cura Italia) → 7 stati `rif_statoIter`; `ac19_2822` (legge elettorale) → 5 stati (iter ancora in corso). Distribuzione del conteggio stati su `GROUP BY ?a LIMIT 300` per `ocd:atto` con `rif_leg` = repubblica_18 e repubblica_19: profili quasi identici, coda a 26 (leg. 18) vs 22 (leg. 19). Emerso dalla gap analysis news-driven del 2026-07-07 (chiarimento del dubbio "granularità iter ridotta leg. 18").

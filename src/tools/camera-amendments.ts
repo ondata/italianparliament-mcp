@@ -3,7 +3,7 @@ import { z } from "zod";
 // (iconv-lite → require dinamico di "buffer" che rompe il bundle ESM e gonfia il
 // Worker). Le pagine sono UTF-8 e vengono già decodificate da res.text().
 import * as cheerio from "cheerio/slim";
-import { actHtmlUrl } from "../core/html-url.js";
+import { actHtmlUrl, parseCameraActUri } from "../core/html-url.js";
 import type { Tool } from "./types.js";
 
 // Gli emendamenti della Camera NON esistono nel LOD OCD (a differenza del
@@ -137,15 +137,19 @@ export const cameraAmendmentsTool: Tool<typeof inputSchema> = {
     "italianparliament camera-amendments list --bill-uri http://dati.camera.it/ocd/attocamera.rdf/ac19_2696 --format jsonl",
   ],
   async execute(input) {
-    const camMatch = input.billUri.match(/attocamera\.rdf\/ac(\d+)_(\d+)$/);
-    if (!camMatch) {
+    // Gli atti variante (ac19_703-B, la lettura successiva della navetta) sono
+    // atti Camera a tutti gli effetti e hanno emendamenti propri: il vecchio
+    // pattern `_(\d+)$` li rifiutava come URI non validi, rendendo gli
+    // emendamenti dell'ultima lettura irraggiungibili.
+    const parsed = parseCameraActUri(input.billUri);
+    if (!parsed) {
       throw new Error(
         `camera-amendments richiede un URI di atto Camera ` +
           `(es. http://dati.camera.it/ocd/attocamera.rdf/ac19_2696). ` +
           `Ricevuto: "${input.billUri}". Per gli emendamenti del Senato usare il tool 'amendments'.`,
       );
     }
-    const [, leg, num] = camMatch;
+    const { legislature: leg, id: num } = parsed;
     const schedaUrl = actHtmlUrl(input.billUri);
     if (!schedaUrl) {
       throw new Error(`Impossibile derivare la scheda atto da "${input.billUri}".`);
