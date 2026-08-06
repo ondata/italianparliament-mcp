@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { personHtmlUrl, actHtmlUrl, ddlRssUrl } from "./html-url.js";
+import {
+  personHtmlUrl,
+  actHtmlUrl,
+  ddlRssUrl,
+  parseCameraActUri,
+} from "./html-url.js";
 
 describe("personHtmlUrl", () => {
   it("mappa un deputato Camera in URL scheda elenco", () => {
@@ -32,11 +37,49 @@ describe("personHtmlUrl", () => {
   });
 });
 
+describe("parseCameraActUri", () => {
+  it("scompone un atto Camera in legislatura e id", () => {
+    expect(
+      parseCameraActUri("http://dati.camera.it/ocd/attocamera.rdf/ac19_2822"),
+    ).toEqual({ legislature: "19", id: "2822" });
+  });
+
+  it("tiene il suffisso degli atti variante (navetta, testo commissione, composti)", () => {
+    // Regressione: con `_(\d+)$` questi tornavano undefined e l'atto spariva
+    // per intero da bill-progress, bill-text e camera-amendments.
+    expect(
+      parseCameraActUri("http://dati.camera.it/ocd/attocamera.rdf/ac19_703-B"),
+    ).toEqual({ legislature: "19", id: "703-B" });
+    expect(
+      parseCameraActUri("http://dati.camera.it/ocd/attocamera.rdf/ac19_54-A"),
+    ).toEqual({ legislature: "19", id: "54-A" });
+    expect(
+      parseCameraActUri(
+        "http://dati.camera.it/ocd/attocamera.rdf/ac18_1059-bis-B",
+      ),
+    ).toEqual({ legislature: "18", id: "1059-bis-B" });
+  });
+
+  it("ritorna undefined per URI non-atto-Camera o vuoto", () => {
+    expect(parseCameraActUri("http://dati.senato.it/ddl/59851")).toBeUndefined();
+    expect(parseCameraActUri(undefined)).toBeUndefined();
+  });
+});
+
 describe("actHtmlUrl", () => {
   it("mappa un atto Camera (legislatura dall'URI)", () => {
     expect(
       actHtmlUrl("http://dati.camera.it/ocd/attocamera.rdf/ac19_2822"),
     ).toBe("https://www.camera.it/leg19/126?leg=19&idDocumento=2822");
+  });
+
+  it("usa l'id INTERO per gli atti variante", () => {
+    // Verificato sul sito: idDocumento=703-B serve la scheda che dichiara
+    // "Atto Camera: 703-B". Puntare alla scheda dell'atto base (703)
+    // racconterebbe un iter diverso da quello richiesto.
+    expect(
+      actHtmlUrl("http://dati.camera.it/ocd/attocamera.rdf/ac19_703-B"),
+    ).toBe("https://www.camera.it/leg19/126?leg=19&idDocumento=703-B");
   });
 
   it("mappa un DDL Senato", () => {

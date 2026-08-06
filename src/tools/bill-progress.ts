@@ -4,7 +4,7 @@ import { OSR_PREFIXES, OCD_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
 import { decodeHtml } from "../core/decode-html.js";
 import { htmlEntityKeywordVariants } from "../core/html-entity-variants.js";
-import { ddlRssUrl } from "../core/html-url.js";
+import { actHtmlUrl, ddlRssUrl, parseCameraActUri } from "../core/html-url.js";
 import { currentLegislature } from "../core/current-legislature.js";
 import { sparqlStringLiteral } from "../core/sparql-literal.js";
 import type { Tool } from "./types.js";
@@ -81,7 +81,7 @@ const columns = [
 export const billProgressTool: Tool<typeof inputSchema> = {
   name: "bill-progress",
   description:
-    "Iter legislativo di un disegno di legge. È la SPINA DORSALE per ricostruire l'iter completo di una legge: usalo per le date reali di ogni fase, non generare la timeline a memoria. [SENATO] senza --uri: lista DDL al Senato con stato corrente dell'iter (assegnato, esame in commissione, approvato, ecc.), filtrabile per legislatura, numero atto (--number 1809 --branch S), parola chiave nel titolo e intervallo date. Con --number ma senza --legislature, il default è la legislatura corrente per evitare omonimi storici rumorosi. [CAMERA] cronologia completa (timeline) di tutti gli stati attraversati dall'atto, in ordine cronologico, in DUE modi: con --uri <atto Camera>, oppure con --number <n> --branch C (risolve l'atto Camera ac<leg>_<n>). Stesse colonne in entrambi i casi. NB: --branch C dà la timeline Camera (una riga per stato), --branch S dà lo stato corrente del DDL al Senato (una riga): l'asimmetria riflette ciò che le due fonti pubblicano. Per seguire un atto da un ramo all'altro NON usare il numero dell'altro ramo: la numerazione non si conserva (il DDL nucleare è C.2669 alla Camera e S.1924 al Senato). Il legame è nel dato: le fasi dello stesso DDL condividono osr:idDdl, e il repertorio Senato contiene anche le fasi Camera (osr:ramo=\"C\"). Perciò --number <n> --branch S, se non trova un DDL S.<n>, cerca da sé la fase C.<n> e restituisce TUTTE le fasi di quel DDL nei due rami, in ordine di iter: è il modo per passare da un atto Camera alla sua lettura al Senato e per ricostruire una navetta a più letture.",
+    "Iter legislativo di un disegno di legge. È la SPINA DORSALE per ricostruire l'iter completo di una legge: usalo per le date reali di ogni fase, non generare la timeline a memoria. [SENATO] senza --uri: lista DDL al Senato con stato corrente dell'iter (assegnato, esame in commissione, approvato, ecc.), filtrabile per legislatura, numero atto (--number 1809 --branch S), parola chiave nel titolo e intervallo date. Con --number ma senza --legislature, il default è la legislatura corrente per evitare omonimi storici rumorosi. [CAMERA] cronologia completa (timeline) di tutti gli stati attraversati dall'atto, in ordine cronologico, in DUE modi: con --uri <atto Camera>, oppure con --number <n> --branch C (risolve l'atto Camera ac<leg>_<n>). Stesse colonne in entrambi i casi. NB: --branch C dà la timeline Camera (una riga per stato), --branch S dà lo stato corrente del DDL al Senato (una riga): l'asimmetria riflette ciò che le due fonti pubblicano. Per seguire un atto da un ramo all'altro NON usare il numero dell'altro ramo: la numerazione non si conserva (il DDL nucleare è C.2669 alla Camera e S.1924 al Senato). Il legame è nel dato: le fasi dello stesso DDL condividono osr:idDdl, e il repertorio Senato contiene anche le fasi Camera (osr:ramo=\"C\"). Perciò --number <n> --branch S, se non trova un DDL S.<n>, cerca da sé la fase C.<n> e restituisce TUTTE le fasi di quel DDL nei due rami, in ordine di iter: è il modo per passare da un atto Camera alla sua lettura al Senato e per ricostruire una navetta a più letture. [NAVETTA, lato Camera] Quando un testo torna modificato dall'altro ramo, la lettura successiva NON sta sull'atto di partenza ma su un atto VARIANTE con suffisso (C.703 → C.703-B): la timeline di C.703 si ferma a 'Approvato, segue Navette' anche se la legge è stata approvata definitivamente anni dopo. Il tool sonda da sé le varianti e, se esistono, lo dice in un NOTA con l'URI da rilanciare: non leggere l'ultimo stato come stato finale finché quella nota non è assente.",
   emptyHint:
     "Nessun DDL trovato. Se cercavi il DDL Senato di un atto Camera: il numero NON si conserva tra i due rami, quindi il numero Camera non ha un DDL S. omonimo (il tool prova già da sé la fase C.<numero>). Cercalo per titolo con --keyword sul repertorio Senato, oppure parti dal ramo Camera con --number <n> --branch C. Se usavi --keyword, prova il termine normativo o una radice più corta. Non dedurre l'iter: se non torna, non inventare fasi, date o esiti.",
   inputSchema,
@@ -389,12 +389,14 @@ OFFSET ${opts.offset ?? 0}`;
   const results = await cdQuery(query);
   const raw = flattenBindings(results);
 
-  const idMatch = uri.match(/ac(\d+)_(\d+)$/);
-  const leg = idMatch ? idMatch[1] : "";
-  const id = idMatch ? idMatch[2] : "";
-  const html_url = idMatch
-    ? `https://www.camera.it/leg${leg}/126?leg=${leg}&idDocumento=${id}`
-    : "";
+  // `parseCameraActUri` e non un `_(\d+)$` inline: gli atti variante della
+  // navetta (ac19_703-B) hanno l'id con suffisso, e con il vecchio pattern
+  // legislature/phase/phase_number/html_url tornavano tutte vuote proprio sulle
+  // righe dell'approvazione definitiva.
+  const parsed = parseCameraActUri(uri);
+  const leg = parsed?.legislature ?? "";
+  const id = parsed?.id ?? "";
+  const html_url = actHtmlUrl(uri);
 
   const fmtDate = (d?: string): string =>
     d && /^\d{8}$/.test(d)
@@ -421,5 +423,102 @@ OFFSET ${opts.offset ?? 0}`;
   if (rows.length === 0 && opts.emptyHint) {
     return { rows, columns: cols, hint: opts.emptyHint };
   }
+
+  // Aggancio alla navetta. La lettura successiva di un atto tornato dall'altro
+  // ramo NON vive sull'atto di partenza ma su un atto variante (C.703 →
+  // C.703-B): la timeline di C.703 si ferma a "Approvato, segue Navette" nel
+  // febbraio 2024 mentre l'approvazione definitiva è del novembre 2025 su
+  // C.703-B. Chi non sa che la finale abita su una risorsa separata legge
+  // l'ultimo stato come stato attuale e sbaglia la storia.
+  // Solo a offset 0 e su pagina piena di righe: oltre la prima pagina il
+  // notice sarebbe rumore ripetuto.
+  const variants =
+    rows.length > 0 && (opts.offset ?? 0) === 0
+      ? await navetteVariants(uri)
+      : [];
+  if (variants.length > 0) {
+    const elenco = variants
+      .map(
+        (v) =>
+          `C.${v.id} (ultimo stato: ${v.status || "non dichiarato"}${v.date ? `, ${v.date}` : ""}) → --uri ${v.uri}`,
+      )
+      .join("; ");
+    const notice =
+      `NOTA: l'iter di questo atto prosegue su ${variants.length === 1 ? "un atto variante" : "atti varianti"} ` +
+      `della navetta, che ${variants.length === 1 ? "è una risorsa" : "sono risorse"} separata e NON compare qui: ${elenco}. ` +
+      `L'ultimo stato mostrato nelle righe qui sopra non è quindi lo stato finale dell'atto: ` +
+      `per la lettura successiva rilancia bill-progress con l'URI indicato.`;
+    return { rows, columns: cols, notice };
+  }
   return { rows, columns: cols };
+}
+
+/**
+ * Cerca le letture successive della navetta di un atto Camera.
+ *
+ * Le letture successive hanno il suffisso `-B`, `-C`, `-D`… `-A` è ESCLUSO di
+ * proposito: è il testo della commissione (4.558 atti alla fonte, contro 1.807
+ * `-B`), non una lettura successiva, e segnalarlo come tale indicherebbe al
+ * lettore una bozza di commissione spacciata per approvazione definitiva.
+ *
+ * Probe per URI candidati costruiti (VALUES) e non ricerca per `dc:identifier`:
+ * misurato ~0,5 s, mentre un REGEX sugli identifier è un full scan. La radice
+ * si ottiene togliendo un eventuale suffisso finale `-[A-F]`, così funziona sia
+ * partendo dall'atto base (703 → 703-B…), sia da un testo di commissione
+ * (703-A → 703-B…), sia da una lettura intermedia (703-B → solo 703-C…), sia
+ * dalle forme composite (1059-bis → 1059-bis-B).
+ * Nessun gate sulla stringa di stato ("Approvato, segue Navette" è una delle
+ * possibili diciture terminali, l'insieme non è noto): il probe costa poco e
+ * un gate sul testo italiano fallirebbe in silenzio.
+ */
+async function navetteVariants(
+  uri: string,
+): Promise<{ uri: string; id: string; status: string; date: string }[]> {
+  const parsed = parseCameraActUri(uri);
+  if (!parsed) return [];
+  const { legislature: leg, id } = parsed;
+
+  const LETTERS = ["B", "C", "D", "E", "F"];
+  const suffix = id.match(/-([A-F])$/)?.[1];
+  const root = suffix ? id.slice(0, -2) : id;
+  const next = suffix
+    ? LETTERS.filter((l) => l > suffix)
+    : LETTERS;
+  if (next.length === 0) return [];
+
+  const base = "http://dati.camera.it/ocd/attocamera.rdf/ac";
+  const values = next.map((l) => `<${base}${leg}_${root}-${l}>`).join(" ");
+  const query = `${OCD_PREFIXES}
+SELECT ?a ?id ?date ?stato WHERE {
+  VALUES ?a { ${values} }
+  ?a dc:identifier ?id ;
+     ocd:rif_statoIter ?st .
+  ?st dc:date ?date ; dc:title ?stato .
+}
+ORDER BY ?id ?date`;
+
+  let raw;
+  try {
+    raw = flattenBindings(await cdQuery(query));
+  } catch {
+    // Il probe è un di più: se l'endpoint non risponde, la timeline richiesta
+    // resta valida e non deve fallire per colpa dell'aggancio.
+    return [];
+  }
+
+  // Una riga per stato: si tiene l'ultimo di ciascun atto (query ordinata).
+  const last = new Map<string, { uri: string; id: string; status: string; date: string }>();
+  for (const r of raw) {
+    if (!r.a || !r.id) continue;
+    last.set(r.a, {
+      uri: r.a,
+      id: r.id,
+      status: decodeHtml(r.stato ?? ""),
+      date:
+        r.date && /^\d{8}$/.test(r.date)
+          ? `${r.date.slice(0, 4)}-${r.date.slice(4, 6)}-${r.date.slice(6, 8)}`
+          : (r.date ?? ""),
+    });
+  }
+  return [...last.values()].sort((a, b) => a.id.localeCompare(b.id));
 }

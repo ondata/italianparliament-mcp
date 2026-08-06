@@ -3,6 +3,7 @@ import { cdQuery, snQuery } from "../core/client.js";
 import { OCD_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
 import { currentLegislature } from "../core/current-legislature.js";
+import { actHtmlUrl } from "../core/html-url.js";
 import type { Row } from "../core/types.js";
 import type { Tool } from "./types.js";
 
@@ -87,15 +88,18 @@ SELECT ?ref WHERE {
 } LIMIT 1`;
   const r = flattenBindings(await cdQuery(query))[0];
   if (!r) throw new Error(`Nessun atto Camera trovato per URI: ${uri}`);
-  const m = uri.match(/ac(\d+)_(\d+)$/);
+  // Anche gli atti variante (ac19_703-B) hanno la loro scheda: con il vecchio
+  // pattern `_(\d+)$` la riga "scheda" spariva proprio per la lettura che porta
+  // l'approvazione definitiva.
+  const schedaUrl = actHtmlUrl(uri);
   const rows: Row[] = [];
-  if (m) {
+  if (schedaUrl) {
     rows.push({
       chamber: "camera",
       kind: "scheda",
       format: "html",
       auth: "none",
-      url: `https://www.camera.it/leg${m[1]}/126?leg=${m[1]}&idDocumento=${m[2]}`,
+      url: schedaUrl,
       description:
         "Scheda dell'atto sul sito Camera (testo, iter, firmatari). Pagina fetchabile direttamente (no WAF).",
     });
