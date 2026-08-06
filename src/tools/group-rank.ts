@@ -71,7 +71,7 @@ SELECT ?group ?group_label ?n ?members WHERE {
     GROUP BY ?group
   }
   ?group rdfs:label ?group_label .
-  {
+  OPTIONAL {
     SELECT ?group (COUNT(DISTINCT ?m2) AS ?members)
     WHERE {
       ?group a ocd:gruppoParlamentare ; ocd:rif_leg <${legUri}> ; ocd:siComponeDi ?m2 .
