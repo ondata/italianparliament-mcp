@@ -72,10 +72,10 @@ SELECT ?group ?group_label ?n ?members WHERE {
   }
   ?group rdfs:label ?group_label .
   OPTIONAL {
-    SELECT ?group (COUNT(DISTINCT ?m2) AS ?members)
+    SELECT ?group (COUNT(DISTINCT ?activeDeputy) AS ?members)
     WHERE {
       ?group a ocd:gruppoParlamentare ; ocd:rif_leg <${legUri}> ; ocd:siComponeDi ?m2 .
-      ?m2 dc:date ?d .
+      ?m2 ocd:rif_deputato ?activeDeputy ; dc:date ?d .
       FILTER(REGEX(STR(?d), "-$"))
     }
     GROUP BY ?group

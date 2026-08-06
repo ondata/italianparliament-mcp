@@ -247,6 +247,7 @@ Classifica i gruppi Camera per AIC o DDL (via gruppo del primo firmatario), con 
 - `legislature`: default 19
 - `order`: desc | asc
 - Colonna `count_per_member`: utile per confrontare gruppi di dimensioni diverse.
+- `members` è il numero di iscritti **attuali** al gruppo (iscrizioni senza data di fine), indipendente da `rankBy`. Su un gruppo sciolto prima della fine della legislatura può risultare vuoto (nessuna iscrizione resta "aperta"): non è un errore, il dato non è calcolabile.
 
 Nota: i tool lista `bills`/`aic`/`votes`/`senato-votes`/`amendments` accettano `countOnly` (solo il totale, colonna count).
 

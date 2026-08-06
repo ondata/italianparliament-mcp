@@ -87,6 +87,7 @@ italianparliament gov-members list --name draghi
 ```bash
 italianparliament group-rank list --rank-by aic --legislature 19   # colonna count_per_member già calcolata
 ```
+Nota: `members` in `group-rank` è il numero di iscritti **attuali** al gruppo (iscrizioni senza data di fine), stesso valore qualunque sia `--rank-by`. Non è il totale storico di chi è mai passato dal gruppo in quella legislatura (che include anche chi l'ha lasciato) — per quello serve `group-members` senza filtrare su `end_date`. Su un gruppo sciolto prima della fine della legislatura può risultare vuoto: nessuna sua iscrizione è rimasta "aperta", quindi il dato non è calcolabile e non viene forzato a zero.
 
 **Iter completo di una legge (Camera → Senato → pubblicazione)**
 Non generare la timeline a memoria: costruiscila dai tool, passo per passo. `bill-progress` è la spina dorsale.
