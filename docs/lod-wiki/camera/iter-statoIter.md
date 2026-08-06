@@ -47,7 +47,7 @@ Quando un testo torna dall'altro ramo modificato, la lettura successiva **non** 
 
 L'effetto è una **timeline che sembra conclusa e non lo è**. La legge quadro sugli interporti: `ac19_703` si chiude con `Approvato, segue Navette` il **20240228**, mentre l'approvazione definitiva (Legge 177/2025) è il **20251113** e sta su `ac19_703-B`. Chi legge solo l'atto base conclude che il provvedimento è fermo da anni.
 
-Non essendoci il link nel grafo, la variante si trova **costruendo gli URI candidati** e sondandoli — `VALUES` su `ac<leg>_<n>-B` … `-F`, misurato ~0,5 s. Un `REGEX` su `dc:identifier` è invece un full scan, da evitare:
+Non essendoci il link nel grafo, la variante si trova **costruendo gli URI candidati** e sondandoli — `VALUES` su `ac<leg>_<n>-B` in poi, misurato ~0,4 s (e sondare l'intero alfabeto invece delle sole lettere oggi esistenti costa 40 ms in più: il tetto storico `-F` non è un vincolo del modello). Un `REGEX` su `dc:identifier` è invece un full scan, da evitare:
 
 ```sparql
 PREFIX ocd: <http://dati.camera.it/ocd/>

@@ -463,7 +463,7 @@ OFFSET ${opts.offset ?? 0}`;
  *
  * Probe per URI candidati costruiti (VALUES) e non ricerca per `dc:identifier`:
  * misurato ~0,5 s, mentre un REGEX sugli identifier è un full scan. La radice
- * si ottiene togliendo un eventuale suffisso finale `-[A-F]`, così funziona sia
+ * si ottiene togliendo un eventuale suffisso finale `-[A-Z]`, così funziona sia
  * partendo dall'atto base (703 → 703-B…), sia da un testo di commissione
  * (703-A → 703-B…), sia da una lettura intermedia (703-B → solo 703-C…), sia
  * dalle forme composite (1059-bis → 1059-bis-B).
@@ -478,12 +478,15 @@ async function navetteVariants(
   if (!parsed) return [];
   const { legislature: leg, id } = parsed;
 
-  const LETTERS = ["B", "C", "D", "E", "F"];
-  const suffix = id.match(/-([A-F])$/)?.[1];
+  // Alfabeto intero e non "fino a F": alla fonte oggi il massimo è `-F` (6 atti
+  // su ~6.600 suffissati, contro 1.807 `-B`), ma il limite è nella storia, non
+  // nel modello — una navetta più lunga produrrebbe `-G` e un range chiuso a F
+  // la mancherebbe in silenzio, che è proprio l'errore che questo probe esiste
+  // per evitare. Misurato: 25 candidati costano 0,38 s contro i 0,34 s di 5.
+  const LETTERS = "BCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  const suffix = id.match(/-([A-Z])$/)?.[1];
   const root = suffix ? id.slice(0, -2) : id;
-  const next = suffix
-    ? LETTERS.filter((l) => l > suffix)
-    : LETTERS;
+  const next = suffix ? LETTERS.filter((l) => l > suffix) : LETTERS;
   if (next.length === 0) return [];
 
   const base = "http://dati.camera.it/ocd/attocamera.rdf/ac";
