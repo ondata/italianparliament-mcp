@@ -2,6 +2,10 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/` e `docs/news-agent/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna e report dell'agente news-driven, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-08-06 — release v0.32.3
+
+- **v0.32.3 rilasciata**, patch: nessun tool nuovo (restano 43), ma gli atti **variante** della navetta smettono di essere invisibili. Un testo che torna modificato dall'altro ramo prosegue su un atto separato (`C.703` → `C.703-B`) e il pattern con cui il progetto leggeva gli URI d'atto, replicato in quattro punti, rifiutava gli identificativi con suffisso: `bill-progress` dava legislatura, fase e link alla scheda vuoti proprio sulle righe dell'approvazione definitiva, `bill-text links` perdeva la scheda e `camera-amendments` falliva del tutto, rendendo irraggiungibili gli emendamenti dell'ultima lettura. In più `bill-progress`, sul ramo Camera, ora sonda le letture successive e le annuncia: chi chiede l'iter della legge quadro sugli interporti non legge più "Approvato, segue Navette" del 28/02/2024 come stato finale di una legge approvata il 13/11/2025. PR #96.
+
 ## 2026-08-06 — gap-analysis news-driven + spunto skill
 
 - **Run news-driven-cli-gap-analyzer** (`docs/news-agent/2026-08-06_12-54.md`): provate 6 storie (DL PNRR fiducia Senato 5/8, Coltivaitalia, C.2139 Forze armate, legge interporti, DL 16/2020 Milano-Cortina, DL 150/2020 fase Senato). Tutte tracciabili: auto-link Camera→Senato, fiducie con `--ddl-uri`, voti storici leg.18, `bill-rapporteurs`/`bill-signatories`. Unica latenza rilevata: voto finale Camera 6/8 (Coltivaitalia) non ancora nel LOD, segnalata su stderr.
