@@ -2,6 +2,7 @@ import { z } from "zod";
 import { cdQuery } from "../core/client.js";
 import { flattenBindings } from "../core/flatten.js";
 import { decodeHtml } from "../core/decode-html.js";
+import { sparqlStringLiteral } from "../core/sparql-literal.js";
 import { OCD_PREFIXES } from "../core/prefixes.js";
 import { extractBillNumber, billBaseNumber } from "../core/bill-number.js";
 import { cameraFreshnessNote } from "../core/freshness.js";
@@ -29,7 +30,7 @@ const inputSchema = z.object({
   billCode: z
     .string()
     .optional()
-    .describe("Filtra votazioni collegate a un DDL per numero atto (es. '2807', '1665'). Cerca in dc:description."),
+    .describe("Filtra le votazioni collegate a un atto per numero (es. '2807', '1665'). È il numero dell'ATTO Camera, non quello del decreto-legge (il DL 100/2026 è il C.3053) né della legge. Include le varianti: '2790' trova anche il 2790-bis. Aggancia sia il riferimento all'atto sia le citazioni in descrizione (DDL/PDL/A.C./ordini del giorno)."),
   dateFrom: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -144,12 +145,8 @@ export const votesTool: Tool<typeof inputSchema> = {
     const dateToFilter = input.dateTo
       ? `FILTER(STR(?date) <= "${input.dateTo.replace(/-/g, "")}")`
       : "";
-    const billCodeEsc = input.billCode !== undefined
-      ? input.billCode.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
-      : "";
-    const billCodeFilter = input.billCode !== undefined
-      ? `FILTER(CONTAINS(STR(?description), "${billCodeEsc}"))`
-      : "";
+    const billCodeBlock =
+      input.billCode !== undefined ? buildBillCodeBlock(input.billCode) : "";
 
     // Subquery-first: prima selezioniamo/ordiniamo/limitiamo i soli URI delle
     // votazioni (con i filtri come pattern vincolanti), poi agganciamo i ~17
@@ -173,7 +170,7 @@ export const votesTool: Tool<typeof inputSchema> = {
     if (approvedFilter) inner.push(`?s <${V}/approvato> ?approvato . ${approvedFilter}`);
     if (confidenceFilter) inner.push(`?s <${V}/richiestaFiducia> ?richiestaFiducia . ${confidenceFilter}`);
     if (keywordFilter) inner.push(`?s rdfs:label ?label . ?s dc:description ?description . OPTIONAL { ?s dc:title ?title } ${keywordFilter}`);
-    if (billCodeFilter) inner.push(`?s dc:description ?description . ${billCodeFilter}`);
+    if (billCodeBlock) inner.push(billCodeBlock);
 
     const coreSelect = `SELECT DISTINCT ?s ?label ?title ?description ?type ?date
                 ?approvato ?favorevoli ?contrari ?astenuti
@@ -221,7 +218,7 @@ ORDER BY DESC(?date)`;
     if (confidenceFilter) countWhere.push(`?s <${V}/richiestaFiducia> ?richiestaFiducia . ${confidenceFilter}`);
     if (keywordFilter) countWhere.push(`?s rdfs:label ?label . OPTIONAL { ?s dc:title ?title } ${keywordFilter}`);
     if (dateFromFilter || dateToFilter) countWhere.push(`?s dc:date ?date . ${dateFromFilter} ${dateToFilter}`);
-    if (billCodeFilter) countWhere.push(`?s dc:description ?description . ${billCodeFilter}`);
+    if (billCodeBlock) countWhere.push(billCodeBlock);
 
     const query = input.countOnly
       ? `${OCD_PREFIXES}\nSELECT (COUNT(DISTINCT ?s) AS ?count) WHERE {\n${countWhere.join("\n  ")}\n}`
@@ -285,6 +282,10 @@ ORDER BY DESC(?date)`;
       const hint =
         (fresh && !fresh.covered ? fresh.text : undefined) ??
         dayBefore ??
+        // Prima della nota di freschezza generica: con --bill-code la causa più
+        // probabile è il numero sbagliato (numero di decreto invece che di
+        // atto), non il ritardo di pubblicazione.
+        billCodeEmptyHint(input.billCode) ??
         fresh?.text ??
         // Fallback se la sonda di freschezza non risponde: meglio l'avviso
         // generico sul ritardo di pubblicazione che un vuoto muto.
@@ -339,6 +340,65 @@ ORDER BY DESC(?date)`;
     return { rows: deduped, columns, truncated: rows.length >= input.limit };
   },
 };
+
+/**
+ * Vuoto con `--bill-code`: il modo tipico di sbagliare è passare il numero del
+ * **decreto-legge** (DL 100/2026) o della legge invece di quello dell'atto
+ * Camera (C.3053). Da quando il filtro è ancorato al numero d'atto quel numero
+ * non produce più righe spurie, quindi il vuoto va spiegato — altrimenti resta
+ * indistinguibile da "non si è votato".
+ */
+function billCodeEmptyHint(billCode?: string): string | undefined {
+  if (!billCode) return undefined;
+  return `Nessuna votazione collegata all'atto ${billCode}. --bill-code vuole il numero dell'ATTO Camera (es. 3053 per il C.3053), non quello del decreto-legge (DL 100/2026) o della legge: risali all'atto con \`bills list --keyword …\` e riprova con quel numero. Se il numero è giusto, la votazione può esistere senza citarlo in descrizione: filtra per intervallo di date attorno alla fase dell'iter e leggi il dettaglio con vote-detail. Non inventare numeri, date o esiti del voto.`;
+}
+
+/**
+ * Blocco SPARQL che seleziona le votazioni di un numero d'atto.
+ *
+ * Il numero NON va cercato come sottostringa qualsiasi della descrizione: la
+ * `dc:description` mescola numeri d'atto e numerazione degli emendamenti, e un
+ * `CONTAINS` nudo li confonde. Misurato sul grafo: `--bill-code 100` (leg. 19)
+ * restituiva 1.127 votazioni, **nessuna** delle quali sull'atto 100 — erano
+ * `EM 1.100`, `EM 5.1000`, `ART AGG 15.01001` di altri provvedimenti. È il modo
+ * di sbagliare peggiore: non un vuoto, ma mille righe plausibili sul
+ * provvedimento sbagliato.
+ *
+ * Due canali in UNION:
+ * 1. `rif_attoCamera` — il riferimento strutturale, esatto. Prende anche i voti
+ *    che nel testo non citano affatto il numero (gli emendamenti dell'atto), che
+ *    il match testuale perdeva: per C.2682 si passa da 17 a 62 votazioni, tutte
+ *    realmente su quell'atto. Il suffisso di variante è incluso (`2790` trova
+ *    anche `2790-bis`, come `--bill-code 2790-bis`).
+ * 2. il testo, ma ancorato ai modi in cui l'atto compare davvero: `(DDL 2420)`,
+ *    `PDL 1018`, `DDL.n. 2920-A`, `Votazione Fiducia A.C. 3053` (la fiducia sta
+ *    solo qui: niente `rif_attoCamera`), `9/2420/42` per gli ordini del giorno.
+ *    Serve perché gli ODG — 11.538 votazioni nella sola leg. 19 — non hanno
+ *    `rif_attoCamera`.
+ *
+ * Gli ODG usano `CONTAINS`, non `REGEX`: nel motore di Virtuoso la barra ha
+ * semantica anomala, `REGEX("9/2329/1", "9/1")` è **true** (vedi
+ * docs/lod-wiki/trappole-virtuoso-funzioni-stringa.md). Con un `9/<num>/` in
+ * regex ogni ordine del giorno numerato `<num>` risulterebbe sull'atto `<num>`.
+ */
+export function buildBillCodeBlock(code: string): string {
+  // Doppio escape: prima i metacaratteri regex (il numero può contenere '.' o
+  // '-'), poi la grammatica del literal SPARQL.
+  const lit = (s: string) => sparqlStringLiteral(s);
+  const rx = sparqlStringLiteral(
+    `(DDL|PDL|ODG|A[ .]*C)[ .]*n?[ .]*${code.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^0-9]|$)`,
+  );
+  return `{
+      ?s <${V}/rif_attoCamera> ?_bcAtto .
+      FILTER(STRAFTER(STR(?_bcAtto), "_") = ${lit(code)} || STRSTARTS(STRAFTER(STR(?_bcAtto), "_"), ${lit(`${code}-`)}))
+    } UNION {
+      ?s dc:description ?_bcDescr .
+      FILTER(CONTAINS(STR(?_bcDescr), ${lit(code)}))
+      FILTER(REGEX(STR(?_bcDescr), ${rx})
+          || CONTAINS(STR(?_bcDescr), ${lit(`9/${code}/`)})
+          || CONTAINS(STR(?_bcDescr), ${lit(`9/${code}-`)}))
+    }`;
+}
 
 /**
  * Se la ricerca è per voto di fiducia (--confidence-vote true) su un SINGOLO

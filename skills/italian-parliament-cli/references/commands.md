@@ -111,6 +111,8 @@ italianparliament votes list --legislature 19 --format csv
 ```
 Colonne `bill_number` (numero atto dalla descrizione, es. `2920-A`) e `bill_uri` (URI atto, popolato anche senza `rif_attoCamera` risolvendo il numero via `dc:identifier`).
 
+`--bill-code <n>` seleziona i voti di un atto: il **numero dell'atto Camera**, non quello del decreto-legge (il DL 100/2026 è il C.3053) né della legge. Prende sia i voti col riferimento strutturale all'atto — compresi gli emendamenti, che nel testo non citano il numero — sia le citazioni in descrizione (`(DDL 2420)`, `PDL 1018`, `Votazione Fiducia A.C. 3053`, ordini del giorno `9/2420/42`); il numero base copre anche le varianti (`2790` → 2790-bis). Zero righe qui vuol dire quasi sempre numero sbagliato (spesso il numero del decreto): risali all'atto con `bills list --keyword …`.
+
 ### `vote-detail show`
 Come ha votato ogni deputato.
 ```bash

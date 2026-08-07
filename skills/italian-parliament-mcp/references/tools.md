@@ -79,6 +79,7 @@ Votazioni Camera.
 - `limit`: max risultati
 - Colonna `bill_number`: numero atto citato nella descrizione (es. `2920-A`). `bill_uri`: URI dell'atto Camera, popolato anche quando manca `rif_attoCamera` risolvendo il numero via `dc:identifier`.
 - Per mozioni e risoluzioni ("MOZ 1-586", "RIS 6-263"), colonne `aic_code` (es. `1/00586`) e `aic_link` (URL alla scheda AIC).
+- `billCode`: i voti di un atto, dal **numero dell'atto Camera** — non quello del decreto-legge (il DL 100/2026 è il C.3053) né della legge. Prende sia il riferimento strutturale (quindi anche gli emendamenti, che nel testo non citano il numero) sia le citazioni in descrizione (`(DDL 2420)`, `PDL 1018`, `Votazione Fiducia A.C. 3053`, ODG `9/2420/42`); il numero base copre le varianti (`2790` → 2790-bis). Zero righe = quasi sempre numero sbagliato: parti dall'atto trovato con `bills`.
 
 ### `vote-detail`
 Come ha votato ogni deputato in una votazione.
