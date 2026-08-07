@@ -295,6 +295,14 @@ ORDER BY DESC(?date)`;
     // bill_number dal testo della descrizione ("DDL 2920-A - VOTO FINALE" → "2920-A").
     for (const r of deduped) {
       r.bill_number = extractBillNumber(r.description);
+      // Molti voti hanno l'atto nel grafo ma non lo citano nel testo (gli
+      // emendamenti: "EM 1.1077", "Articolo unico del disegno di legge di
+      // conversione…"). Lì il numero si legge dall'URI, che viene dalla fonte:
+      // lasciare la colonna vuota costringerebbe a ricavarlo a mano proprio
+      // sulle righe che si sono chieste per numero d'atto.
+      if (!r.bill_number && r.bill_uri) {
+        r.bill_number = r.bill_uri.match(/\/ac\d+_(.+)$/)?.[1] ?? "";
+      }
       // Estrai codice mozione/risoluzione AIC da description (es. "MOZ 1-586" → 1/00586).
       // Anche label/title per le risoluzioni ("Risoluzione 6_00266" → 6/00266).
       const aic = extractAicCode(r.description) ?? extractAicCode(r.title) ?? extractAicCode(r.label);
