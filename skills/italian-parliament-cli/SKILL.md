@@ -106,6 +106,8 @@ italianparliament bill-text fetch --did 60201 --out testo.md
 ```
 Nota voti Camera: se `--keyword`/numero non trova il **voto finale** o la **fiducia**, filtra per intervallo di date attorno alla data di trasmissione (`votes list --date-from … --date-to …`) e leggi il dettaglio con `vote-detail`, invece di dedurre o inventare il conteggio.
 
+Nota `votes list --bill-code`: vuole il numero dell'**atto Camera**, non quello del decreto-legge né della legge — il DL 100/2026 è il C.3053, e cercare `--bill-code 100` restituisce (correttamente) zero righe. Risali prima all'atto con `bills list --keyword …`. Il numero base include le varianti: `--bill-code 2790` copre anche il 2790-bis. Un vuoto qui non significa "non si è votato": la CLI lo spiega su stderr, e in quel caso si passa a `--date-from/--date-to`.
+
 ## Ricerca testuale (`--keyword`)
 
 `--keyword` (su `bills`, `aic`, `committee-sessions`, ecc.) è un **match letterale** sul **titolo formale** dell'atto, non una ricerca semantica: cerca la stringa così com'è nel testo ufficiale. Il lessico giornalistico spesso **non coincide** con quello normativo, quindi un risultato vuoto è quasi sempre un mismatch di parole, **non** un dato assente.

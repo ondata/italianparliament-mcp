@@ -57,6 +57,22 @@ Regola pratica: **ogni** confronto `>=`/`<=`/`>`/`<` contro un literal stringa n
 
 Il Senato rifiuta `BIND(...)` (vedi [Trappole Virtuoso — Senato](senato/trappole.md)); la Camera lo accetta almeno nel `SELECT`. Per portabilità **non affidarsi a `BIND`**: inlinare l'espressione nel `FILTER`/`SELECT`. In più, come sopra, portare il risultato di `SUBSTR`/`REPLACE` attraverso `BIND` peggiora il problema #2 (il confronto di range fallisce anche dove inline avrebbe retto).
 
+# 4. `REGEX` — la barra `/` non è un carattere letterale
+
+Nel motore di Virtuoso una `/` dentro il pattern di `REGEX` non si comporta come il carattere che è: **matcha attraverso i segmenti**. Verificato sull'endpoint Camera il 2026-08-07:
+
+```sparql
+REGEX("9/2329/1 X", "9/1")     # → true  (!!)  "9/1" NON è sottostringa di "9/2329/1"
+REGEX("9/2329/1 X", "9[/]1")   # → true  (!!)  nemmeno in classe di caratteri
+REGEX("9/2329/1 X", "9/2")     # → true        (questo è corretto)
+REGEX("a/b/c", "a/c")          # → false       con le lettere si comporta bene
+REGEX("9-2329-1", "9/1")       # → false       serve la barra nella stringa
+```
+
+Il difetto si manifesta con le **cifre** attorno alla barra, cioè esattamente sulle numerazioni parlamentari (`9/<atto>/<progressivo>` degli ordini del giorno). Conseguenza pratica: un pattern `9/2420/` pensato per gli ODG dell'atto 2420 matcha **anche** `9/1633/2420`-simili, e un `9/1` attribuisce all'atto 1 ogni ordine del giorno numerato 1.
+
+**Regola**: per cercare una sequenza che contiene una barra usare `CONTAINS`, che è letterale, e tenere la barra **fuori** da ogni `REGEX`. Se il pattern deve per forza attraversare la barra, spezzarlo in più `CONTAINS` in `||`.
+
 # Caso reale
 
 Il filtro data di `aic list` (`src/tools/aic.ts`) deve matchare sia la presentazione (`SUBSTR(dc:date,1,8)`) sia la modifica/trattazione d'Aula dei question time (2° gruppo del composto `AAAAMMGG-AAAAMMGG`). La prima stesura usava `STRLEN(...) >= 17 && SUBSTR(...,10,8)` (→ abortiva, trappola #1) e confronti `>=`/`<=` non avvolti in `STR()` (→ 0 righe, trappola #2). La forma corretta estrae la modifica con `REPLACE` e avvolge entrambe le date in `STR()`. Vedi [Date degli atti aic](camera/aic-date.md).
@@ -68,3 +84,5 @@ Un secondo caso, più insidioso perché **senza funzioni stringa di mezzo**: il 
 [1] Verifica 2026-07-06 su `dati.camera.it/sparql`: `SUBSTR(STR(?date),10,8)` su valori lunghi 8 → `SR026 Bad string subrange` anche con guard `STRLEN>=17 &&`; `REPLACE(...) >= "20250709"` → 0 righe mentre `STR(REPLACE(...)) >= "20250709"` → righe corrette; caso interrogazioni a risposta immediata del 2025-07-09 (question time, `dc:date="20250708-20250709"`).
 
 [2] Verifica 2026-07-07 su `dati.camera.it/sparql`: votazioni leg. 19, `FILTER(?date >= "20250201") FILTER(?date <= "20250228")` → 0 righe, mentre `FILTER(STR(?date) >= "20250201") FILTER(STR(?date) <= "20250228")` → 436 (coerente con `STRSTARTS(STR(?date),"202502")`). Stesso confronto su gennaio senza `STR()` → 7378 (falso). Riprodotto anche su leg. 18 marzo 2020 (2 → 35).
+
+[3] Verifica 2026-08-07 su `dati.camera.it/sparql`: `SELECT (REGEX("9/2329/1 X","9/1") AS ?b) (REGEX("9/2329/1 X","9[/]1") AS ?c) (REGEX("a/b/c","a/c") AS ?u1) WHERE {}` → `?b=1`, `?c=1`, `?u1=0`. Emerso costruendo il filtro `--bill-code` di `votes`: il ramo testuale sugli ordini del giorno è stato riscritto con `CONTAINS`.

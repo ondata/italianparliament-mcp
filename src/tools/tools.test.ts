@@ -324,6 +324,84 @@ describe("Camera tools", () => {
     expect(result.hint).toMatch(/interamente coperta/);
   }, 30000);
 
+  it("votes: --bill-code non attribuisce all'atto 100 i voti che citano '100' negli emendamenti", async () => {
+    // Sentinella del difetto originale: con un CONTAINS nudo su dc:description
+    // questa chiamata restituiva 1.127 votazioni, nessuna delle quali sull'atto
+    // 100 (erano "EM 1.100", "EM 5.1000", "ART AGG 15.01001" di altri atti).
+    // Nella leg. 19 l'atto C.100 non ha alcuna votazione: il risultato giusto è
+    // zero righe, con un hint che spiega il vuoto invece di un elenco muto.
+    const result = await votesTool.execute({
+      legislature: 19,
+      billCode: "100",
+      limit: 100,
+      offset: 0,
+    });
+    expect(result.rows.length).toBe(0);
+    expect(result.hint).toMatch(/numero dell'ATTO Camera/);
+  }, 30000);
+
+  it("votes: --bill-code prende voto finale e ordini del giorno (DL Pnrr, C.2420)", async () => {
+    const result = await votesTool.execute({
+      legislature: 19,
+      billCode: "2420",
+      limit: 100,
+      offset: 0,
+    });
+    expect(result.rows.length).toBeGreaterThanOrEqual(26);
+    expect(
+      result.rows.some((r) => r.description?.includes("decreto-legge 7 aprile 2025, n. 45")),
+    ).toBe(true);
+    expect(result.rows.some((r) => r.description?.includes("9/2420/"))).toBe(true);
+    // Il numero d'atto va esposto anche sulle righe agganciate dal grafo, che
+    // nel testo non lo citano ("Articolo unico del disegno di legge…").
+    for (const r of result.rows) expect(r.bill_number).toBeTruthy();
+  }, 30000);
+
+  it("votes: --bill-code non perde la fiducia, che vive solo nel testo ('Votazione Fiducia A.C. 3053')", async () => {
+    // Il voto di fiducia non ha rif_attoCamera e non usa la sigla DDL: senza il
+    // prefisso "A.C." nel pattern sparirebbe il voto politicamente decisivo.
+    const result = await votesTool.execute({
+      legislature: 19,
+      billCode: "3053",
+      limit: 100,
+      offset: 0,
+    });
+    expect(result.rows.some((r) => r.description?.includes("Fiducia A.C. 3053"))).toBe(true);
+  }, 30000);
+
+  it("votes: --bill-code col numero base trova anche la variante (C.2790 → 2790-bis)", async () => {
+    const base = await votesTool.execute({
+      legislature: 18,
+      billCode: "2790",
+      countOnly: true,
+      limit: 1,
+      offset: 0,
+    });
+    const variant = await votesTool.execute({
+      legislature: 18,
+      billCode: "2790-bis",
+      countOnly: true,
+      limit: 1,
+      offset: 0,
+    });
+    expect(Number(base.rows[0].count)).toBeGreaterThan(40);
+    expect(base.rows[0].count).toBe(variant.rows[0].count);
+  }, 30000);
+
+  it("votes: --bill-code regge le legislature storiche (leg. 17, C.4144)", async () => {
+    // Il ramo strutturale è quello che porta il grosso sugli atti storici: col
+    // vecchio CONTAINS erano 24 votazioni, quasi tutte le altre sono voti su
+    // emendamenti che nel testo l'atto non lo citano.
+    const result = await votesTool.execute({
+      legislature: 17,
+      billCode: "4144",
+      countOnly: true,
+      limit: 1,
+      offset: 0,
+    });
+    expect(Number(result.rows[0].count)).toBeGreaterThan(100);
+  }, 30000);
+
   it("speeches: returns speeches for legislature 19", async () => {
     const result = await speechesTool.execute({ legislature: 19, limit: 3, offset: 0, chamber: "camera", countOnly: false });
     expect(result.rows.length).toBe(3);

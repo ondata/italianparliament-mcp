@@ -62,6 +62,24 @@ Solo il 37% delle sedute è monotematico: l'ereditarietà va applicata **solo** 
 * la monotematicità va calcolata con una query dedicata **sull'intera seduta**, mai sulle righe già filtrate in memoria: un filtro per data o un `LIMIT` stretto possono mostrare un solo atto quando la seduta ne tratta quattro;
 * l'insieme degli atti della seduta va costruito dall'unione di `rif_attoCamera` **e** dei numeri citati nelle `dc:description` delle altre votazioni — sulle sedute come `s19_689` il primo insieme è vuoto.
 
+# Il percorso inverso: dal numero d'atto ai suoi voti
+
+Cercare "i voti dell'atto N" con un `CONTAINS(STR(?description), "N")` è la scorciatoia sbagliata, e sui numeri corti è catastrofica: nella `dc:description` convivono i numeri d'atto e la **numerazione degli emendamenti** (`EM 1.100`, `EM 5.1000`, `ART AGG 15.01001`, `SUBEM 0.1.1077.4`), che è a più segmenti. Misurato il 2026-08-07 sulla leg. 19: `CONTAINS(?description, "100")` restituisce **1.127 votazioni**, e **nessuna** riguarda l'atto 100 (che in quella legislatura non ha alcuna votazione). Stesso ordine di grandezza per `"1"` (13.439) e `"5"` (9.609).
+
+I due canali da mettere in **UNION**, in questo ordine di affidabilità:
+
+1. **`rif_attoCamera`**, confrontando il segmento dopo l'underscore dell'URI (`…/ac19_2682` → `2682`), con la variante come prefisso (`2790` deve prendere anche `2790-bis`). Esatto, e prende anche i voti che nel testo non citano affatto il numero: per il C.2682 si passa da 17 a 62 votazioni, la differenza sono gli emendamenti di quell'atto.
+2. **il testo**, ma ancorato alle forme in cui l'atto compare davvero — e sono poche:
+   * `(DDL 2420)`, `PDL 1018`, `DDL.n. 2920-A`, `Testo unificato PDL 1091-1240`
+   * `Votazione Fiducia A.C. 3053` ← **la fiducia sta solo qui**: non ha `rif_attoCamera` e non usa la sigla `DDL`. Un pattern che dimentica `A.C.` perde il voto di fiducia, cioè spesso il voto politicamente decisivo
+   * `Ordine del giorno n. 9/2420/42` e `ODG 9/2753-A/100` ← 11.538 votazioni nella sola leg. 19, tutte senza `rif_attoCamera`
+
+Il ramo degli ordini del giorno va scritto con `CONTAINS("9/<num>/")`, **mai** con `REGEX`: la barra nel motore Virtuoso non è letterale (`REGEX("9/2329/1","9/1")` è `true`), quindi in regex ogni ODG numerato `<num>` finirebbe attribuito all'atto `<num>` — vedi [Trappole Virtuoso — funzioni stringa](../trappole-virtuoso-funzioni-stringa.md#4-regex--la-barra--non-è-un-carattere-letterale).
+
+Restano fuori i voti a codice secco (famiglia 2 qui sopra) privi di `rif_attoCamera`: per quelli l'unico aggancio è la monotematicità della seduta, che agisce **dopo** il filtro.
+
 # Implementazione nel progetto
 
 `src/tools/votes.ts` applica i tre livelli in cascata: `rif_attoCamera` → numero citato in `dc:description` (`extractBillNumber`, copre DDL/PDL e ODG) → ereditarietà dalla seduta monotematica (`inheritBillFromSession`, esclude mozioni e risoluzioni). Il numero base è sempre risolto a URI verificandone l'esistenza via `dc:identifier`: nessun URI fabbricato.
+
+Il percorso inverso è `buildBillCodeBlock()` nello stesso file, usato da `--bill-code` sia nell'elenco sia nel `--count-only`.
