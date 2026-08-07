@@ -13,6 +13,8 @@ Pensato per giornalisti, ricercatori e analisti parlamentari: ogni comando resti
 > ⚠️ **Nota sulla copertura**: al momento lo strumento è testato e verificato soprattutto sulla **legislatura corrente (la 19)**. Gli endpoint espongono anche i dati delle legislature precedenti e molti comandi accettano `--legislature <n>`, ma la copertura storica è meno battuta: su legislature passate possono emergere lacune o campi non popolati.
 
 > 🌌 **[Il cielo del Parlamento](https://ondata.github.io/italianparliament-mcp/)** — la pagina che racconta il progetto: ogni stella è un parlamentare in carica, ogni tappa una legislatura dal 1848. I dati arrivano in tempo reale dal server MCP, a ogni visita.
+>
+> 📊 **[KPI: l'attività parlamentare](https://ondata.github.io/italianparliament-mcp/kpi.html)** — chi lavora di più, chi controlla di più, rappresentanza di genere, presenza in Aula, audizioni per commissione. Snapshot statico, rigenerato a mano dai dati aperti (gli endpoint SPARQL bloccano le richieste da CI).
 
 Usabile in tre modi:
 

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KPI — italianparliament-mcp</title>
+<meta name="description" content="Indicatori pubblici sull'attività della Camera dei Deputati, calcolati dai dati aperti in uno snapshot statico.">
+<meta property="og:title" content="KPI — italianparliament-mcp">
+<meta property="og:description" content="Chi lavora di più: disegni di legge per gruppo parlamentare, in uno snapshot statico dai dati aperti della Camera.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="kpi-hero">
+  <p class="overline mono"><a class="kpi-back" href="index.html">← il cielo del Parlamento</a></p>
+  <h1>KPI: l'<em>attività</em> parlamentare</h1>
+  <p class="section-lede">Indicatori pubblici sull'attività della Camera — la stessa domanda che puoi fare tu da terminale o da un assistente AI. Lo snapshot è statico: non serve la freschezza al secondo per capire chi lavora e chi controlla di più, e ogni card dichiara quando è stato generato.</p>
+  <p class="kpi-updated mono" id="kpi-updated"></p>
+</header>
+
+<!-- ============ PRODUTTIVITÀ LEGISLATIVA ============ -->
+<section class="kpi-section" id="produttivita">
+  <div class="section-head">
+    <p class="overline mono">snapshot statico · equivalente a <code>group-rank list --rank-by bills</code></p>
+    <h2>Chi <em>lavora</em> di più</h2>
+    <p class="section-lede">Disegni di legge presentati come primo firmatario, per gruppo parlamentare, legislatura XIX. Il conteggio grezzo premia i gruppi grandi: la colonna "per membro" pesa in proporzione, ed è quella che conta davvero per confrontare gruppi di dimensioni diverse.</p>
+  </div>
+  <div class="kpi-wrap">
+    <div class="kpi-total">
+      <span class="kpi-total-num mono" data-count id="c-bills">—</span>
+      <span class="kpi-total-cap">disegni di legge presentati<br>in legislatura XIX</span>
+    </div>
+    <div class="kpi-rank-col">
+      <div class="kpi-toggle mono" id="bills-toggle" role="tablist" aria-label="Ordina classifica">
+        <button type="button" data-sort="count" class="active" role="tab" aria-selected="true">totale</button>
+        <button type="button" data-sort="count_per_member" role="tab" aria-selected="false">per membro</button>
+      </div>
+      <ol class="kpi-rank" id="bills-rank">
+        <li class="kpi-fallback mono" id="bills-fallback" hidden>endpoint non raggiungibile in questo momento</li>
+      </ol>
+      <p class="rank-legend mono" id="bills-legend"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONTROLLO ISPETTIVO ============ -->
+<section class="kpi-section" id="controllo">
+  <div class="section-head">
+    <p class="overline mono">snapshot statico · equivalente a <code>group-rank list --rank-by aic</code></p>
+    <h2>Chi <em>controlla</em> di più</h2>
+    <p class="section-lede">Interrogazioni, interpellanze, mozioni e ordini del giorno presentati come primo firmatario, per gruppo parlamentare, legislatura XIX. Anche qui il divario tra conteggio grezzo e "per membro" può essere enorme: un gruppo piccolo e molto attivo supera facilmente uno grande ma meno battagliero.</p>
+  </div>
+  <div class="kpi-wrap">
+    <div class="kpi-total">
+      <span class="kpi-total-num mono" data-count id="c-aic">—</span>
+      <span class="kpi-total-cap">atti di indirizzo e controllo<br>in legislatura XIX</span>
+    </div>
+    <div class="kpi-rank-col">
+      <div class="kpi-toggle mono" id="aic-toggle" role="tablist" aria-label="Ordina classifica">
+        <button type="button" data-sort="count" class="active" role="tab" aria-selected="true">totale</button>
+        <button type="button" data-sort="count_per_member" role="tab" aria-selected="false">per membro</button>
+      </div>
+      <ol class="kpi-rank" id="aic-rank">
+        <li class="kpi-fallback mono" id="aic-fallback" hidden>endpoint non raggiungibile in questo momento</li>
+      </ol>
+      <p class="rank-legend mono" id="aic-legend"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RAPPRESENTANZA DI GENERE ============ -->
+<section class="kpi-section" id="genere">
+  <div class="section-head">
+    <p class="overline mono">snapshot statico · equivalente a <code>deputies/senators list --gender</code></p>
+    <h2>Chi <em>rappresenta</em></h2>
+    <p class="section-lede">Quota di donne elette, per ramo del Parlamento, legislatura XIX.</p>
+  </div>
+  <div class="gender-grid" id="gender-grid">
+    <p class="kpi-fallback mono" id="gender-fallback" hidden>endpoint non raggiungibile in questo momento</p>
+  </div>
+</section>
+
+<!-- ============ PRESENZA IN AULA ============ -->
+<section class="kpi-section" id="presenza">
+  <div class="section-head">
+    <p class="overline mono">snapshot statico · equivalente a <code>votes list</code></p>
+    <h2>Chi <em>c'è</em> in Aula</h2>
+    <p class="section-lede">Presenza media alle votazioni elettroniche della Camera — il campo "presenti" viene letto direttamente dalla fonte, non calcolato da noi. Media sulle 1.000 votazioni più recenti, non sull'intera legislatura: un campione dichiarato, non un totale silenzioso.</p>
+  </div>
+  <div class="attendance-wrap" id="attendance-wrap">
+    <p class="kpi-fallback mono" id="attendance-fallback" hidden>endpoint non raggiungibile in questo momento</p>
+  </div>
+</section>
+
+<!-- ============ AUDIZIONI PER COMMISSIONE ============ -->
+<section class="kpi-section" id="commissioni">
+  <div class="section-head">
+    <p class="overline mono">snapshot statico · equivalente a <code>audizioni list</code></p>
+    <h2>Chi <em>ascolta</em> di più</h2>
+    <p class="section-lede">Audizioni svolte per commissione, legislatura XIX: esperti, associazioni, ministri sentiti prima di legiferare o nell'ambito di un'inchiesta.</p>
+  </div>
+  <div class="kpi-wrap">
+    <div class="kpi-total">
+      <span class="kpi-total-num mono" data-count id="c-committees">—</span>
+      <span class="kpi-total-cap">audizioni svolte<br>in legislatura XIX</span>
+    </div>
+    <ol class="kpi-rank committee-rank" id="committees-rank">
+      <li class="kpi-fallback mono" id="committees-fallback" hidden>endpoint non raggiungibile in questo momento</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <div class="footer-inner">
+    <p class="footer-star">✦</p>
+    <p>Dati aperti di <a href="https://dati.camera.it">dati.camera.it</a> (SPARQL / Linked Open Data), rigenerati come snapshot statico con la stessa CLI/MCP dietro <a href="https://italianparliament-mcp.andy-pr.workers.dev">italianparliament-mcp</a>.</p>
+    <p class="mono footer-links">
+      <a href="index.html">il cielo del Parlamento</a> ·
+      <a href="https://github.com/aborruso/italianparliament-mcp">github</a> ·
+      <a href="https://www.npmjs.com/package/@aborruso/italianparliament-mcp">npm</a>
+    </p>
+    <p class="footer-meta mono" id="footer-meta"></p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script src="shared.js"></script>
+<script src="kpi.js"></script>
+</body>
+</html>

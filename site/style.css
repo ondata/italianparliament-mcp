@@ -344,6 +344,131 @@ h2 {
 .vote-bar.a .bar-fill { background: var(--abst); }
 .vote-bar .bar-n { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
 
+/* ---------------- pagina KPI ---------------- */
+
+.kpi-hero {
+  max-width: 720px;
+  padding: clamp(3rem, 8vh, 5.5rem) clamp(1.2rem, 6vw, 6rem) 0;
+}
+.kpi-back {
+  color: var(--text-dim);
+  border-bottom-color: transparent;
+}
+.kpi-back:hover { color: var(--gold-hi); border-bottom-color: var(--gold); }
+.kpi-hero h1 {
+  font-size: clamp(2rem, 5.5vw, 3.6rem);
+  font-variation-settings: "opsz" 144;
+  line-height: 1.05;
+  margin: 0.6rem 0 1.1rem;
+}
+.kpi-hero h1 em { font-weight: 340; color: var(--gold-hi); font-style: italic; }
+.kpi-hero .section-lede { margin-bottom: 1.2rem; }
+
+.kpi-updated {
+  display: inline-block;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: var(--ok);
+  border: 1px solid rgba(111, 214, 149, 0.35);
+  border-radius: 2px;
+  padding: 0.3rem 0.7rem;
+}
+
+.kpi-section { background: linear-gradient(180deg, var(--ink-0), var(--ink-1) 40%, var(--ink-1) 60%, var(--ink-0)); }
+
+.kpi-wrap {
+  display: grid;
+  grid-template-columns: minmax(200px, 280px) 1fr;
+  gap: clamp(2rem, 5vw, 4rem);
+  align-items: start;
+}
+@media (max-width: 700px) { .kpi-wrap { grid-template-columns: 1fr; } }
+
+.kpi-total {
+  border: 1px solid var(--line);
+  padding: 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.kpi-total-num {
+  font-size: clamp(2.4rem, 6vw, 3.4rem);
+  font-weight: 600;
+  color: var(--gold-hi);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.kpi-total-cap { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.04em; color: var(--text-dim); line-height: 1.5; }
+
+.kpi-rank-col { display: flex; flex-direction: column; gap: 1rem; }
+
+.kpi-toggle { display: flex; gap: 0.4rem; }
+.kpi-toggle button {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 0.32rem 0.7rem;
+  cursor: pointer;
+}
+.kpi-toggle button:hover { color: var(--gold-hi); border-color: var(--gold); }
+.kpi-toggle button.active { color: var(--ink-0); background: var(--gold); border-color: var(--gold); font-weight: 600; }
+
+.kpi-rank { display: flex; flex-direction: column; gap: 0.7rem; list-style: none; }
+
+.rank-item {
+  display: grid;
+  grid-template-columns: 1.4rem 0.6rem 8rem 1fr 3.2rem 5.2rem;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}
+@media (max-width: 560px) { .rank-item { grid-template-columns: 1.2rem 0.5rem 5.5rem 1fr 2.4rem; } .rank-per { display: none; } }
+
+.rank-pos { color: var(--text-dim); text-align: right; }
+.rank-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.rank-name { color: var(--star); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-bar-track { display: block; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+.rank-bar-fill { display: block; height: 100%; width: 0; border-radius: 2px; }
+.rank-count { text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
+.rank-per { color: var(--text-dim); }
+
+.kpi-fallback { color: var(--text-dim); font-size: 0.8rem; padding: 1rem 0; }
+
+.rank-legend { font-size: 0.66rem; letter-spacing: 0.01em; color: var(--text-dim); line-height: 1.6; }
+.rank-legend b { color: var(--text); font-weight: 600; }
+
+/* ---------------- genere ---------------- */
+
+.gender-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: clamp(1.5rem, 4vw, 3rem); max-width: 700px; }
+
+.gender-card { border: 1px solid var(--line); padding: 1.6rem; }
+.gender-card .gc-chamber { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.8rem; }
+.gender-card .gc-pct { font-family: var(--mono); font-size: clamp(2rem, 5vw, 2.8rem); font-weight: 600; color: var(--gold-hi); font-variant-numeric: tabular-nums; line-height: 1; }
+.gender-card .gc-bar { height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; margin: 0.9rem 0 0.6rem; }
+.gender-card .gc-bar-fill { display: block; height: 100%; width: 0; border-radius: 4px; background: linear-gradient(90deg, #f48fd0, #7fa3ff); }
+.gender-card .gc-detail { font-family: var(--mono); font-size: 0.7rem; color: var(--text-dim); }
+
+/* ---------------- presenza in aula ---------------- */
+
+.attendance-wrap { max-width: 460px; }
+.attendance-card { border: 1px solid var(--line); padding: 1.8rem; }
+.attendance-card .ac-pct { font-family: var(--mono); font-size: clamp(2.4rem, 6vw, 3.4rem); font-weight: 600; color: var(--gold-hi); font-variant-numeric: tabular-nums; line-height: 1; }
+.attendance-card .ac-cap { font-family: var(--mono); font-size: 0.7rem; color: var(--text-dim); margin-top: 0.5rem; }
+.attendance-card .ac-bar { height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; margin: 1rem 0 0.6rem; }
+.attendance-card .ac-bar-fill { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--ok); }
+.attendance-card .ac-range { font-family: var(--mono); font-size: 0.66rem; color: var(--text-dim); }
+
+/* ---------------- audizioni per commissione ---------------- */
+
+.committee-rank .rank-item { grid-template-columns: 1.4rem 1fr 3.4rem; }
+.committee-rank .rank-name { white-space: normal; overflow: visible; text-overflow: clip; color: var(--star); }
+@media (max-width: 560px) { .committee-rank .rank-item { grid-template-columns: 1.2rem 1fr 2.6rem; } }
+
 /* ---------------- strumenti ---------------- */
 
 .tools-section { background: linear-gradient(180deg, var(--ink-0), var(--ink-1) 30%, var(--ink-0)); }

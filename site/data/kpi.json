@@ -1,0 +1,269 @@
+{
+  "generatedAt": "2026-08-07T07:48:23.435Z",
+  "legislature": 19,
+  "cards": {
+    "bills": {
+      "total": 3102,
+      "rank": [
+        {
+          "rank": 1,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4136",
+          "group_label": "PARTITO DEMOCRATICO - ITALIA DEMOCRATICA E PROGRESSISTA (PD-IDP)",
+          "group_acronym": "PD-IDP",
+          "count": 501,
+          "members": 68,
+          "count_per_member": 7.4
+        },
+        {
+          "rank": 2,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4132",
+          "group_label": "LEGA - SALVINI PREMIER (LEGA)",
+          "group_acronym": "LEGA",
+          "count": 482,
+          "members": 57,
+          "count_per_member": 8.5
+        },
+        {
+          "rank": 3,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4111",
+          "group_label": "MISTO (MISTO)",
+          "group_acronym": "MISTO",
+          "count": 465,
+          "members": 21,
+          "count_per_member": 22.1
+        },
+        {
+          "rank": 4,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4133",
+          "group_label": "FRATELLI D'ITALIA (FDI)",
+          "group_acronym": "FDI",
+          "count": 442,
+          "members": 118,
+          "count_per_member": 3.7
+        },
+        {
+          "rank": 5,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4131",
+          "group_label": "MOVIMENTO 5 STELLE (M5S)",
+          "group_acronym": "M5S",
+          "count": 413,
+          "members": 48,
+          "count_per_member": 8.6
+        },
+        {
+          "rank": 6,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4134",
+          "group_label": "FORZA ITALIA - BERLUSCONI PRESIDENTE - PPE (FI-PPE)",
+          "group_acronym": "FI-PPE",
+          "count": 311,
+          "members": 52,
+          "count_per_member": 6
+        },
+        {
+          "rank": 7,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4154",
+          "group_label": "ALLEANZA VERDI E SINISTRA (AVS)",
+          "group_acronym": "AVS",
+          "count": 160,
+          "members": 10,
+          "count_per_member": 16
+        },
+        {
+          "rank": 8,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4135",
+          "group_label": "AZIONE-POPOLARI EUROPEISTI RIFORMATORI-RENEW EUROPE (AZ-PER-RE)",
+          "group_acronym": "AZ-PER-RE",
+          "count": 149,
+          "members": 10,
+          "count_per_member": 14.9
+        },
+        {
+          "rank": 9,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4152",
+          "group_label": "NOI MODERATI (NOI CON L'ITALIA, CORAGGIO ITALIA, UDC E ITALIA AL CENTRO)-MAIE-CENTRO POPOLARE (NM(N-C-U-I)M-CP)",
+          "group_acronym": "N-C-U-I",
+          "count": 132,
+          "members": 8,
+          "count_per_member": 16.5
+        },
+        {
+          "rank": 10,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4211",
+          "group_label": "ITALIA VIVA-CASA RIFORMISTA (IV-CR)",
+          "group_acronym": "IV-CR",
+          "count": 69,
+          "members": 7,
+          "count_per_member": 9.9
+        }
+      ]
+    },
+    "aic": {
+      "total": 42823,
+      "rank": [
+        {
+          "rank": 1,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4136",
+          "group_label": "PARTITO DEMOCRATICO - ITALIA DEMOCRATICA E PROGRESSISTA (PD-IDP)",
+          "group_acronym": "PD-IDP",
+          "count": 8608,
+          "members": 68,
+          "count_per_member": 126.6
+        },
+        {
+          "rank": 2,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4131",
+          "group_label": "MOVIMENTO 5 STELLE (M5S)",
+          "group_acronym": "M5S",
+          "count": 7466,
+          "members": 48,
+          "count_per_member": 155.5
+        },
+        {
+          "rank": 3,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4111",
+          "group_label": "MISTO (MISTO)",
+          "group_acronym": "MISTO",
+          "count": 5990,
+          "members": 21,
+          "count_per_member": 285.2
+        },
+        {
+          "rank": 4,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4154",
+          "group_label": "ALLEANZA VERDI E SINISTRA (AVS)",
+          "group_acronym": "AVS",
+          "count": 4334,
+          "members": 10,
+          "count_per_member": 433.4
+        },
+        {
+          "rank": 5,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4133",
+          "group_label": "FRATELLI D'ITALIA (FDI)",
+          "group_acronym": "FDI",
+          "count": 2910,
+          "members": 118,
+          "count_per_member": 24.7
+        },
+        {
+          "rank": 6,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4135",
+          "group_label": "AZIONE-POPOLARI EUROPEISTI RIFORMATORI-RENEW EUROPE (AZ-PER-RE)",
+          "group_acronym": "AZ-PER-RE",
+          "count": 2720,
+          "members": 10,
+          "count_per_member": 272
+        },
+        {
+          "rank": 7,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4132",
+          "group_label": "LEGA - SALVINI PREMIER (LEGA)",
+          "group_acronym": "LEGA",
+          "count": 1945,
+          "members": 57,
+          "count_per_member": 34.1
+        },
+        {
+          "rank": 8,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4134",
+          "group_label": "FORZA ITALIA - BERLUSCONI PRESIDENTE - PPE (FI-PPE)",
+          "group_acronym": "FI-PPE",
+          "count": 1771,
+          "members": 52,
+          "count_per_member": 34.1
+        },
+        {
+          "rank": 9,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4211",
+          "group_label": "ITALIA VIVA-CASA RIFORMISTA (IV-CR)",
+          "group_acronym": "IV-CR",
+          "count": 886,
+          "members": 7,
+          "count_per_member": 126.6
+        },
+        {
+          "rank": 10,
+          "group_uri": "http://dati.camera.it/ocd/gruppoParlamentare.rdf/gr4152",
+          "group_label": "NOI MODERATI (NOI CON L'ITALIA, CORAGGIO ITALIA, UDC E ITALIA AL CENTRO)-MAIE-CENTRO POPOLARE (NM(N-C-U-I)M-CP)",
+          "group_acronym": "N-C-U-I",
+          "count": 507,
+          "members": 8,
+          "count_per_member": 63.4
+        }
+      ]
+    },
+    "gender": {
+      "camera": {
+        "female": 136,
+        "total": 414
+      },
+      "senato": {
+        "female": 75,
+        "total": 212
+      }
+    },
+    "attendance": {
+      "sampleSize": 1000,
+      "seats": 400,
+      "avgPresent": 273.7,
+      "avgPresentPct": 68.4,
+      "minPresent": 194,
+      "maxPresent": 375
+    },
+    "committees": {
+      "total": 3420,
+      "rank": [
+        {
+          "rank": 1,
+          "committee": "X Commissione (Attività produttive, commercio e turismo)",
+          "count": 336
+        },
+        {
+          "rank": 2,
+          "committee": "VIII Commissione (Ambiente, territorio e lavori pubblici)",
+          "count": 251
+        },
+        {
+          "rank": 3,
+          "committee": "XI Commissione (Lavoro pubblico e privato)",
+          "count": 192
+        },
+        {
+          "rank": 4,
+          "committee": "Commissione parlamentare di inchiesta sul fenomeno delle mafie e sulle altre associazioni criminali, anche straniere",
+          "count": 191
+        },
+        {
+          "rank": 5,
+          "committee": "Commissione parlamentare di inchiesta sul femminicidio, nonché su ogni forma di violenza di genere",
+          "count": 180
+        },
+        {
+          "rank": 6,
+          "committee": "IX Commissione (Trasporti, poste e telecomunicazioni)",
+          "count": 174
+        },
+        {
+          "rank": 7,
+          "committee": "II Commissione (Giustizia)",
+          "count": 149
+        },
+        {
+          "rank": 8,
+          "committee": "III Commissione (Affari esteri e comunitari)",
+          "count": 148
+        },
+        {
+          "rank": 9,
+          "committee": "XIV Commissione (Politiche dell'Unione europea)",
+          "count": 132
+        },
+        {
+          "rank": 10,
+          "committee": "Commissione parlamentare di inchiesta sulla gestione dell'emergenza sanitaria causata dalla diffusione epidemica del virus SARS-CoV-2 e sulle misure adottate per prevenire e affrontare l'emergenza epidemiologica da SARS-CoV-2",
+          "count": 118
+        }
+      ]
+    }
+  }
+}
