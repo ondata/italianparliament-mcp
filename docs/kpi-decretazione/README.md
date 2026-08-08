@@ -73,6 +73,8 @@ Il doppio binario: nella legislatura 19 una legge del Governo chiude in mediana 
 | 18 | 126 | 104 | 17 | 364 | **28,6%** | 54 |
 | 19 | 134 | 118 | 4 | 382 | **30,9%** | 71 |
 
+La colonna "DL presentati" conta i **disegni di conversione presentati alla Camera**. Per confronto, i decreti-legge *emanati* nello stesso periodo sono 137 secondo Normattiva: lo scarto è fatto di decreti recentissimi o presentati al Senato e non ancora trasmessi (vedi i limiti in fondo).
+
 I decreti-legge presentati crescono (102 → 126 → 134) mentre le leggi approvate calano, quindi la quota di produzione legislativa che passa dalla decretazione d'urgenza è quasi raddoppiata in tre legislature. Le 71 fiducie della legislatura 19 sono già più delle 54 dell'intera legislatura 18.
 
 ## Definizioni operative
@@ -97,7 +99,26 @@ Cercare "decreto-legge" invece di "conversione in legge" sarebbe un errore da 60
 
 **Solo atti Camera.** Il denominatore dei "presentati" conta ciò che è stato presentato alla Camera. Un disegno di legge nato al Senato e mai trasmesso non compare, quindi il tasso di successo dell'iniziativa parlamentare è calcolato su una base parziale. Al numeratore il problema in linea di principio non si pone — una legge deve passare da entrambi i rami, quindi ha un atto Camera — e il dato è coerente con questa lettura (nella leg. 19 gli stati "Approvato definitivamente **dal Senato**" convivono nel grafo Camera con quelli approvati per ultimi alla Camera), ma è ragionamento costituzionale, non una misura: non è stato verificato contro l'elenco delle leggi promulgate.
 
-**Il conteggio dei DL è un text-match e non è stato validato contro una fonte autorevole.** Prima di pubblicarlo, confrontare i 134 della legislatura 19 con Normattiva o con la Gazzetta Ufficiale.
+**Il conteggio dei DL è un text-match, validato contro Normattiva l'8 agosto 2026. La validazione ha retto sul metodo ma ha corretto il numero, e va letta prima di usare questi dati.**
+
+Normattiva conta **137** decreti-legge emanati fra il 13 ottobre 2022 (inizio della legislatura 19) e l'8 agosto 2026. Alla Camera i **disegni di conversione** presentati sono 134, ma non è il numero da confrontare: alcuni sono varianti dello stesso provvedimento (`-A`, `-B`) o passaggi di navetta. Riducendoli ai decreti distinti effettivamente convertiti, e filtrandoli per data di emanazione nella stessa finestra, restano **128**.
+
+Il divario reale è quindi di **9 decreti**, non di 3 come indicato in una prima stesura di questa nota. Distribuzione per anno di emanazione:
+
+| anno | Normattiva | con atto Camera | senza |
+|---|---:|---:|---:|
+| 2022 (dal 13/10) | 11 | 10 | 1 |
+| 2023 | 39 | 38 | 1 |
+| 2024 | 32 | 29 | 3 |
+| 2025 | 34 | 33 | 1 |
+| 2026 (all'8/8) | 21 | 18 | 3 |
+| **totale** | **137** | **128** | **9** |
+
+Dei nove è stato identificato con certezza il **DL 179/2022**, presente in Normattiva e privo di atto Camera. Gli altri otto sono localizzati per anno ma non ancora per numero.
+
+Ne segue la precisazione che più conta se questi numeri finiscono in un pezzo: **quello che misuriamo sono disegni di legge di conversione presentati alla Camera, non decreti-legge emanati.** Sono popolazioni diverse, e i nove mancanti sono decreti presentati al Senato e non ancora trasmessi, oppure emanati negli ultimi giorni e non ancora recepiti. Per il numero dei decreti emanati la fonte è Normattiva; il nostro conto misura l'attività parlamentare di conversione alla Camera. La tendenza mostrata dai KPI — la quota crescente di leggi che nascono da un decreto — non cambia, perché lo scarto è costante e piccolo; cambia l'etichetta da mettere in tabella.
+
+Come rifare la verifica: sul portale open data di Normattiva la ricerca avanzata è parametrizzata in query string (`dati.normattiva.it/risultati?isAdvancedSearch=true&denominazioneAtto=DECRETO-LEGGE&dataInizioPubblicazione=…&dataFinePubblicazione=…`) e il totale si legge nell'etichetta "Elenco atti scaricabili (N)". **Attenzione**: la SPA applica il filtro di data fine in modo inaffidabile quando si passa da una ricerca all'altra, e restituisce il conteggio cumulativo della sola data d'inizio — va verificato che il numero cambi davvero fra una finestra e l'altra, altrimenti si legge un residuo. Per l'elenco completo conviene il download ufficiale della collezione (ZIP in AKN/XML/JSON), che passa da un flusso via email con conferma.
 
 **Le fiducie sono votazioni, non atti.** La colonna conta le votazioni con richiesta di fiducia (`ocd:richiestaFiducia`), non i provvedimenti su cui la fiducia è stata posta: un singolo decreto può portarne più di una. Per legarle ai provvedimenti serve un passaggio in più, via `votes --bill-code`.
 
