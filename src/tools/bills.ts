@@ -90,6 +90,47 @@ export function buildNaturaFilter(natura: string): string {
   return `FILTER(CONTAINS(LCASE(STRAFTER(STR(?natura), "natura.rdf/")), LCASE("${sparqlEscape(natura)}")))`;
 }
 
+/**
+ * Elenco: una riga per ATTO, non per tupla.
+ *
+ * `ocd:primo_firmatario` è l'unica proprietà multi-valore fra quelle
+ * selezionate, e senza aggregazione un atto con 11 firmatari produceva 11 righe
+ * identiche tranne `sponsor_uri`. Il `GROUP BY` le collassa; sulle altre
+ * variabili raggruppare è a costo zero perché sono singole per atto.
+ *
+ * Il MIN va sulla variabile interna `?_sponsor`: proiettare
+ * `(MIN(?sponsor_uri) AS ?sponsor_uri)` sarebbe illegale in SPARQL (la
+ * variabile risulterebbe già in uso), e l'alias deve restare `?sponsor_uri`
+ * perché è il nome della colonna esposta.
+ */
+export function buildListQuery(
+  whereBody: string,
+  limit: number,
+  offset: number,
+): string {
+  return `SELECT ?s ?label ?title ?type ?natura ?date ?description
+                ?initiative ?identifier ?rif_leg (MIN(?_sponsor) AS ?sponsor_uri) ?url
+${whereBody}
+GROUP BY ?s ?label ?title ?type ?natura ?date ?description ?initiative ?identifier ?rif_leg ?url
+ORDER BY DESC(?date)
+LIMIT ${limit}
+OFFSET ${offset}`;
+}
+
+/**
+ * Conteggio: quanti ATTI soddisfano i filtri.
+ *
+ * Non serve il GROUP BY dell'elenco — `COUNT(DISTINCT ?s)` sul corpo nudo è sia
+ * corretto sia più economico. La versione precedente contava le righe di una
+ * subquery `SELECT DISTINCT` su tutta la tupla, quindi restituiva 160.454
+ * contro 121.021 atti reali: un denominatore gonfio del 32%, silenzioso perché
+ * sulle legislature recenti (dove il firmatario è sempre uno) il numero era
+ * giusto.
+ */
+export function buildCountQuery(whereBody: string): string {
+  return `SELECT (COUNT(DISTINCT ?s) AS ?count) ${whereBody}`;
+}
+
 export const billsTool: Tool<typeof inputSchema> = {
   name: "bills",
   description:
@@ -142,9 +183,16 @@ export const billsTool: Tool<typeof inputSchema> = {
       ? `FILTER(STR(?date) <= "${input.dateTo.replace(/-/g, "")}")`
       : "";
 
-    const coreSelect = `SELECT DISTINCT ?s ?label ?title ?type ?natura ?date ?description
-                ?initiative ?identifier ?rif_leg ?sponsor_uri ?url
-WHERE {
+    // `ocd:primo_firmatario` è l'UNICA proprietà multi-valore fra quelle
+    // selezionate: 15.514 atti del grafo ne hanno più d'uno non-blank (tutti in
+    // legislature storiche — nella 19 sono zero, ed è per questo che il difetto
+    // non si vedeva sui casi che si guardano di solito). Senza aggregazione un
+    // atto con 11 firmatari produce 11 righe identiche tranne `sponsor_uri`:
+    // consuma il budget di `--limit`, sfasa la paginazione con `--offset` e
+    // gonfia il conteggio del 32% (160.454 righe contro 121.021 atti).
+    // Tutte le altre proprietà sono singole per atto (verificato una per una),
+    // quindi raggrupparci sopra equivale a raggruppare per ?s.
+    const whereBody = `WHERE {
   ?s a <http://dati.camera.it/ocd/atto> .
   ?s rdfs:label ?label .
   OPTIONAL { ?s dc:title ?title }
@@ -155,7 +203,7 @@ WHERE {
   OPTIONAL { ?s <http://dati.camera.it/ocd/iniziativa> ?initiative }
   OPTIONAL { ?s dc:identifier ?identifier }
   OPTIONAL { ?s <http://dati.camera.it/ocd/rif_leg> ?rif_leg }
-  OPTIONAL { ?s <http://dati.camera.it/ocd/primo_firmatario> ?sponsor_uri . FILTER(!isBlank(?sponsor_uri)) }
+  OPTIONAL { ?s <http://dati.camera.it/ocd/primo_firmatario> ?_sponsor . FILTER(!isBlank(?_sponsor)) }
   OPTIONAL { ?s dcterms:isReferencedBy ?url }
   ${legFilter}
   ${keywordFilter}
@@ -167,8 +215,8 @@ WHERE {
 }`;
 
     const query = input.countOnly
-      ? `${OCD_PREFIXES}\nSELECT (COUNT(*) AS ?count) WHERE {\n${coreSelect}\n}`
-      : `${OCD_PREFIXES}\n${coreSelect}\nORDER BY DESC(?date)\nLIMIT ${input.limit}\nOFFSET ${input.offset}`;
+      ? `${OCD_PREFIXES}\n${buildCountQuery(whereBody)}`
+      : `${OCD_PREFIXES}\n${buildListQuery(whereBody, input.limit, input.offset)}`;
 
     const results = await cdQuery(query);
     if (input.countOnly) {

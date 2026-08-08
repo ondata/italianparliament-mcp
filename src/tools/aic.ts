@@ -194,8 +194,15 @@ WHERE {
   ${chamberFilter}
 }`;
 
+    // COUNT(DISTINCT ?s), non COUNT(*) sulla subquery: contare le righe della
+    // tupla dà il numero giusto solo finché nessuna proprietà selezionata è
+    // multi-valore. Oggi per gli AIC è così (verificato: zero atti con più di
+    // un firmatario, ramo, data o URL), quindi il numero non cambia — ma è la
+    // stessa forma che su `bills` produceva un +32% silenzioso, e lì bastava un
+    // `ocd:primo_firmatario` ripetuto. Contare gli atti è corretto per
+    // costruzione, non per come sono fatti i dati oggi.
     const query = input.countOnly
-      ? `${OCD_PREFIXES}\nSELECT (COUNT(*) AS ?count) WHERE {\n${coreSelect}\n}`
+      ? `${OCD_PREFIXES}\nSELECT (COUNT(DISTINCT ?s) AS ?count) WHERE {\n${coreSelect}\n}`
       : `${OCD_PREFIXES}\n${coreSelect}\nORDER BY DESC(?date)\nLIMIT ${input.limit}\nOFFSET ${input.offset}`;
 
     const results = await cdQuery(query);
