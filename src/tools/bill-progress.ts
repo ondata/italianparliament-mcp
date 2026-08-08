@@ -248,6 +248,11 @@ export const billProgressTool: Tool<typeof inputSchema> = {
  * COUNT(DISTINCT ?s) e non una subquery: Virtuoso Senato non regge la subquery
  * con COUNT. Gli OPTIONAL restano perché i filtri (titolo, data, numero fase)
  * ne usano le variabili.
+ *
+ * Contare i ?s distinti è lecito solo se nessuna proprietà in OPTIONAL è
+ * multivalore, altrimenti l'elenco avrebbe più righe del totale che lo
+ * riassume (è quel che succede alle audizioni). Verificato su un campione
+ * ampio: primo semestre 2026 in leg. 19 → 441 di conteggio, 441 di elenco.
  */
 async function countSenatoDdl(filters: string[]): Promise<string> {
   const query = `${OSR_PREFIXES}
