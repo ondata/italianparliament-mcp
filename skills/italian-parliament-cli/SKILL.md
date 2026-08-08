@@ -104,9 +104,13 @@ italianparliament senato-votes list --ddl-uri http://dati.senato.it/ddl/60201
 italianparliament bill-text links --uri http://dati.camera.it/ocd/attocamera.rdf/ac19_2911
 italianparliament bill-text fetch --did 60201 --out testo.md
 ```
-Nota voti Camera: se `--keyword`/numero non trova il **voto finale** o la **fiducia**, filtra per intervallo di date attorno alla data di trasmissione (`votes list --date-from … --date-to …`) e leggi il dettaglio con `vote-detail`, invece di dedurre o inventare il conteggio.
+Voti Camera di un provvedimento: **parti da `votes list --bill-code <numero atto>`**, non da `--keyword` né dalle date. Prende il voto finale, la **fiducia**, gli ordini del giorno e i voti sugli emendamenti che il grafo collega all'atto — cose che la ricerca per parola chiave manca sistematicamente, perché la descrizione di una votazione spesso è solo un codice (`EM 1.1077`).
 
-Nota `votes list --bill-code`: vuole il numero dell'**atto Camera**, non quello del decreto-legge né della legge — il DL 100/2026 è il C.3053, e cercare `--bill-code 100` restituisce (correttamente) zero righe. Risali prima all'atto con `bills list --keyword …`. Il numero base include le varianti: `--bill-code 2790` copre anche il 2790-bis. Un vuoto qui non significa "non si è votato": la CLI lo spiega su stderr, e in quel caso si passa a `--date-from/--date-to`.
+Tre cose da sapere:
+
+- **È il numero dell'atto Camera**, non quello del decreto-legge né della legge: il DL 100/2026 è il C.3053, e `--bill-code 100` dà (correttamente) zero righe. Risali prima all'atto con `bills list --keyword …`. Il numero base include le varianti: `2790` copre anche il 2790-bis.
+- **Un vuoto non significa "non si è votato"**: la CLI lo spiega su stderr. Quasi sempre è il numero sbagliato.
+- **Un risultato pieno non è per forza completo.** Restano fuori i voti a codice secco (`EM 1.1077`, `SUBEM 0.1.1077.4`) delle sedute in cui la fonte non ha popolato il riferimento all'atto: capita a **sedute intere**, e capita sui provvedimenti più contesi. Caso reale: la prima lettura della legge elettorale (C.2822), dove `--bill-code 2822` dà 28 votazioni ma le 12 della seduta del 14/7/2026 — compreso l'emendamento preferenze passato 188-187 — non ci sono. Quando l'atto ha avuto un esame in Aula lungo, incrocia sempre con `votes list --date-from … --date-to …` sulle date che leggi in `bill-progress`: lì la colonna `bill_number` è comunque valorizzata, perché l'atto viene ereditato dalla seduta monotematica. Poi il dettaglio con `vote-detail`, mai il conteggio dedotto.
 
 ## Ricerca testuale (`--keyword`)
 
