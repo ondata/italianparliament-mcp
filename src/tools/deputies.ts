@@ -106,6 +106,20 @@ const columns = [
   "html_url",
 ];
 
+/**
+ * Filtro sul luogo di nascita, ancorato al **local name** dell'IRI.
+ *
+ * `?birth_place_uri` è un IRI (`http://dati.camera.it/ocd/luogo.rdf/genova_genova_liguria`):
+ * un CONTAINS sullo `STR()` nudo batte anche sul percorso, quindi `--birth-place camera`
+ * (o `ocd`, `dati`, `rdf`, `http`, `luogo`) restituiva tutti i deputati con un luogo di
+ * nascita — 414 nella leg. 19, indistinguibile da "nessun filtro". Lo STRAFTER isola il
+ * local name, che è già la forma leggibile esposta nella colonna `birth_place`
+ * (comune_provincia_regione), quindi il filtro batte esattamente su ciò che l'utente vede.
+ */
+export function buildBirthPlaceFilter(birthPlace: string): string {
+  return `FILTER(CONTAINS(LCASE(STRAFTER(STR(?birth_place_uri), "luogo.rdf/")), LCASE("${sparqlEsc(birthPlace)}")))`;
+}
+
 export const deputiesTool: Tool<typeof inputSchema> = {
   name: "deputies",
   description:
@@ -133,9 +147,7 @@ export const deputiesTool: Tool<typeof inputSchema> = {
       input.gender ? `FILTER(?gender = "${input.gender}")` : "",
       input.bornFrom ? `FILTER(STR(?birth_date) >= "${input.bornFrom.replace(/-/g, "")}")` : "",
       input.bornTo ? `FILTER(STR(?birth_date) <= "${input.bornTo.replace(/-/g, "")}")` : "",
-      input.birthPlace
-        ? `FILTER(CONTAINS(LCASE(STR(?birth_place_uri)), LCASE("${sparqlEsc(input.birthPlace)}")))`
-        : "",
+      input.birthPlace ? buildBirthPlaceFilter(input.birthPlace) : "",
     ]
       .filter(Boolean)
       .join("\n  ");

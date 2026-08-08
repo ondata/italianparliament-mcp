@@ -2,6 +2,18 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/` e `docs/news-agent/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna e report dell'agente news-driven, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-08-08 — caccia agli altri «risultati plausibili e sbagliati» (stessa classe del bug `--natura`)
+
+Il bug corretto su `--natura` — filtro per sottostringa applicato a un IRI, che al posto di zero righe restituisce l'intero stock — non era un caso isolato. Rastrellati tutti i `CONTAINS` dei tool e i punti dove un errore può passare per risultato:
+
+- **`deputies --birth-place` aveva lo stesso identico bug.** `?birth_place_uri` lega `ocd:rif_luogo`, cioè un IRI (`.../luogo.rdf/genova_genova_liguria`): `--birth-place camera` (o `ocd`, `dati`, `rdf`, `http`, `luogo`) restituiva **414 deputati**, tutti quelli con un luogo di nascita, mentre `genova` ne dà 12. Corretto con lo stesso `STRAFTER` di `bills`, builder estratto (`buildBirthPlaceFilter`) e test deterministico in CI. Verificato sull'endpoint: `genova` 12 e `sicilia` 28 invariati, tutto il rumore dell'IRI a 0. Il Senato non era colpito (`osr:cittaNascita` è un letterale).
+
+- **Nessun altro filtro colpito**: verificati uno per uno i restanti `CONTAINS` (`ocd:ramo` = "Camera dei Deputati", `election_label` è la label e non l'URI, `?titolo`/`?label`/`?description`/`?type`/`?initiative` sono letterali). Il rastrellamento è chiuso, non campionato.
+
+- **Ogni flag booleano della CLI ignorava in silenzio l'invocazione nuda.** `votes list --legislature 19 --confidence-vote` — la cosa più naturale da digitare — restituiva **19.428** votazioni invece di 71, perché citty mette la stringa vuota e `parseBoolFlag` la trattava come "opzione assente". È esattamente la trappola che `core/cli-flags.ts` esiste per chiudere («riceve un risultato normale, senza il filtro che credeva di aver applicato»), sfuggita sul caso del flag nudo. `parseBoolFlag` spostato lì dentro (era duplicato in `cli.ts`, con due copie inline per `--approved` e `--confidence-vote`), stringa vuota ora è errore con messaggio che dice cosa scrivere, +4 test.
+
+- **Nello script KPI la guardia sul troncamento era codice morto**: cercava l'`AVVISO` dentro lo stdout, ma la CLI lo emette su **stderr** — quindi non sarebbe mai scattata, e il troncamento a 25 righe visto in sviluppo l'avevo notato a occhio, non intercettato. Segnalato in review su #100 da Copilot; corretto e **verificato scattando davvero** su una query da oltre 1000 righe. Sostituito anche `rdfs:label` con l'IRI esteso: funzionava solo perché Virtuoso Camera ha quel prefisso predefinito.
+
 ## 2026-08-08 — KPI su come si fanno le leggi: iniziativa, tempi, decretazione d'urgenza
 
 - **Cosa misura**: tre legislature (17, 18, 19) con definizioni identiche, per rispondere a «chi scrive davvero le leggi e quanto pesa il decreto-legge». Il Governo presenta il 7,7% → 8,8% → **10,8%** degli atti e firma il 62,7% → 68,4% → **68,3%** delle leggi approvate. Tasso di successo: **Governo ~76%, Parlamentare ~4%** in tutte e tre le legislature (rapporto fra 17,7× e 22,7×). Mediana dei giorni presentazione→approvazione definitiva in leg. 19: **55 per il Governo, 293 per il Parlamento**, e la corsia governativa si è accorciata da 90 giorni nella leg. 17 mentre l'altra è ferma. Quota di leggi che nascono da un decreto-legge: 18,3% → 28,6% → **30,9%**. Fiducie: 58 → 54 → **71**, con la leg. 19 ancora aperta. Le 33 proposte di iniziativa popolare della leg. 17 sono diventate **zero** leggi.

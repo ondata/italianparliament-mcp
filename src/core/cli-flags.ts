@@ -9,6 +9,33 @@
  * ignoti diventano un errore esplicito, con il suggerimento del nome più vicino.
  */
 
+/**
+ * Valore booleano di un'opzione, con il flag nudo trattato come errore.
+ *
+ * I flag booleani sono dichiarati `type: "string"` perché devono accettare sia
+ * `true` sia `false`: citty, per un `--confidence-vote` senza valore, mette in
+ * args la stringa vuota. Trattarla come "opzione assente" è la stessa trappola
+ * che questo modulo esiste per chiudere — chi scrive `votes list --legislature 19
+ * --confidence-vote` intende filtrare le fiducie e si vede restituire TUTTE le
+ * votazioni (19.428 invece di 71), un numero plausibile e sbagliato, senza un
+ * segnale che il filtro non è mai stato applicato.
+ */
+export function parseBoolFlag(
+  raw: string | boolean | undefined,
+  name: string,
+): boolean | undefined {
+  if (raw === undefined) return undefined;
+  if (raw === true || raw === "true") return true;
+  if (raw === false || raw === "false") return false;
+  if (raw === "")
+    throw new Error(
+      `--${name} richiede un valore: true o false. ` +
+        `Scritto da solo non filtra nulla, e il risultato che ricevi è quello NON filtrato: ` +
+        `usa --${name} true.`,
+    );
+  throw new Error(`Invalid --${name} value "${raw}". Expected: true or false.`);
+}
+
 /** `date-from` → `dateFrom` */
 function camelCase(s: string): string {
   return s.replace(/-([a-z0-9])/g, (_, c: string) => c.toUpperCase());

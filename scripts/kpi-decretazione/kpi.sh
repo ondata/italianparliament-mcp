@@ -123,8 +123,8 @@ for L in "${LEGS[@]}"; do
 
   # --- Voti di fiducia ------------------------------------------------------
   # Via il tool votes, che conosce già la proprietà richiestaFiducia.
-  # Il valore del flag è obbligatorio: `--confidence-vote` nudo viene ignorato
-  # in silenzio e restituisce TUTTE le votazioni.
+  # Il valore del flag è obbligatorio: `--confidence-vote` nudo restituiva
+  # TUTTE le votazioni in silenzio (19.428 invece di 71), ora è un errore.
   echo "  fiducie" >&2
   # Niente `|| true`: se l'endpoint cade, meglio fermarsi che scrivere un CSV
   # vuoto e ritrovarsi una legislatura senza fiducie in tabella, senza sapere

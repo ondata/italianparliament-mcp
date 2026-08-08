@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildUnknownFlagError,
   dashPrefixes,
+  parseBoolFlag,
   suggestFlag,
   unknownFlags,
 } from "./cli-flags.js";
@@ -77,5 +78,34 @@ describe("dashPrefixes", () => {
     expect(m.get("q")).toBe("-");
     expect(m.get("limit")).toBe("--");
     expect(m.get("date-from")).toBe("--");
+  });
+});
+
+describe("parseBoolFlag", () => {
+  it("legge true e false, in entrambe le forme", () => {
+    expect(parseBoolFlag("true", "confidence-vote")).toBe(true);
+    expect(parseBoolFlag("false", "confidence-vote")).toBe(false);
+    expect(parseBoolFlag(true, "confidence-vote")).toBe(true);
+    expect(parseBoolFlag(false, "confidence-vote")).toBe(false);
+  });
+
+  it("opzione assente resta indefinita: nessun filtro, ed è corretto così", () => {
+    expect(parseBoolFlag(undefined, "confidence-vote")).toBeUndefined();
+  });
+
+  it("il flag nudo è un ERRORE, non un filtro assente", () => {
+    // citty mette la stringa vuota per `--confidence-vote` senza valore.
+    // Trattarla come "opzione assente" restituiva TUTTE le votazioni (19.428)
+    // a chi ne voleva 71, senza alcun segnale: risultato plausibile e sbagliato.
+    expect(() => parseBoolFlag("", "confidence-vote")).toThrow(
+      /richiede un valore/,
+    );
+    expect(() => parseBoolFlag("", "confidence-vote")).toThrow(
+      /--confidence-vote true/,
+    );
+  });
+
+  it("un valore non booleano resta un errore", () => {
+    expect(() => parseBoolFlag("si", "approved")).toThrow(/Expected: true or false/);
   });
 });

@@ -7,6 +7,7 @@ import {
 import {
   buildUnknownFlagError,
   dashPrefixes,
+  parseBoolFlag,
   unknownFlags,
 } from "./core/cli-flags.js";
 import { deputiesTool } from "./tools/deputies.js";
@@ -175,18 +176,6 @@ function parseIntFlag(raw: string | undefined, name: string): number | undefined
     );
   }
   return n;
-}
-
-function parseBoolFlag(
-  raw: string | boolean | undefined,
-  name: string,
-): boolean | undefined {
-  if (raw === undefined || raw === "") return undefined;
-  if (raw === true || raw === "true") return true;
-  if (raw === false || raw === "false") return false;
-  throw new Error(
-    `Invalid --${name} value "${raw}". Expected: true or false.`,
-  );
 }
 
 const deputiesList = defineCommand({
@@ -401,24 +390,11 @@ const votesList = defineCommand({
     format: { type: "string", default: "csv", description: "csv | jsonl" },
   },
   async run({ args }) {
-    let approved: boolean | undefined;
-    if (args.approved !== undefined && args.approved !== "") {
-      if (args.approved === "true") approved = true;
-      else if (args.approved === "false") approved = false;
-      else
-        throw new Error(
-          `Invalid --approved value "${args.approved}". Expected: true or false.`,
-        );
-    }
-    let confidenceVote: boolean | undefined;
-    if (args["confidence-vote"] !== undefined && args["confidence-vote"] !== "") {
-      if (args["confidence-vote"] === "true") confidenceVote = true;
-      else if (args["confidence-vote"] === "false") confidenceVote = false;
-      else
-        throw new Error(
-          `Invalid --confidence-vote value "${args["confidence-vote"]}". Expected: true or false.`,
-        );
-    }
+    const approved = parseBoolFlag(args.approved as string, "approved");
+    const confidenceVote = parseBoolFlag(
+      args["confidence-vote"] as string,
+      "confidence-vote",
+    );
     const result = await runTool(votesTool, {
       countOnly: args["count-only"] === true,
       legislature: parseIntFlag(args.legislature as string, "legislature"),
