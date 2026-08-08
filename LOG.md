@@ -2,6 +2,14 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/` e `docs/news-agent/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna e report dell'agente news-driven, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-08-08 — release v0.33.0
+
+- **v0.33.0 rilasciata**, minor: nessun tool nuovo (restano **43**), ma una capacità nuova e tre correzioni che cambiavano risultati senza dirlo.
+- **Nuovo**: `bills --natura` con la colonna `natura` — l'unico asse che distingue costituzionale da ordinario e disegno da proposta, visto che `dc:type` vale "Progetto di Legge" su tutti gli atti.
+- **Corretti tre filtri che restituivano l'intero stock invece di zero righe**: `bills --natura` e `deputies --birth-place` battevano per sottostringa sull'IRI e non sul codice (`--birth-place camera` dava 414 deputati, tutti quelli con un luogo di nascita); `bills --count-only` gonfiava del 32% sul grafo e l'elenco duplicava gli atti con più primi firmatari (1.000 righe = 557 atti).
+- **Cambio di comportamento osservabile, ed è il motivo della minor**: i flag booleani nudi ora sono un errore. `votes list --confidence-vote` senza valore restituiva 19.428 votazioni invece di 71, in silenzio. Chi lo usava così riceveva già risultati sbagliati, quindi la rottura è solo apparente.
+- 356 test verdi (suite completa, live inclusi); 241 nel job deterministico, che ora dura 840 ms invece di 18 s da quando i test live sono stati spostati dove dovevano stare.
+
 ## 2026-08-08 — issue #99: `bills` duplicava gli atti, e il conteggio era solo il sintomo
 
 - **La radice non era il `--count-only` ma la forma della query.** `ocd:primo_firmatario` è l'**unica** proprietà multi-valore fra quelle selezionate (verificate una per una: label, title, type, natura, date, description, iniziativa, identifier, rif_leg, isReferencedBy sono tutte singole per atto). Senza aggregazione un atto con 11 firmatari produceva **11 righe** identiche tranne `sponsor_uri`: su 1.000 righe senza filtro c'erano solo **557 atti distinti**, il budget di `--limit` si consumava sui duplicati e `--offset` saltava atti. Il conteggio gonfio del 32% era la conseguenza, non la causa.
