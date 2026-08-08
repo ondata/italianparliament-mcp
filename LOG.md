@@ -2,6 +2,16 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/` e `docs/news-agent/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna e report dell'agente news-driven, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-08-08 — verifica di un report M2M sulla CLI: uno su sei era un difetto vero
+
+Riverificati comando alla mano i sei "punti critici" di un report esterno sull'uso M2M della CLI (`tmp/report-cli-m2m.md`, non versionato). Solo uno ha retto.
+
+- **Non confermato lo stack trace negli errori CLI.** Sette varianti di errore su due binari 0.33.0 (dist locale e installazione globale): zero occorrenze di `    at `. La riga citata dal report è il `throw` della validazione dei flag, il cui stack è soppresso in `src/cli.ts` dal 12/04 (0ddcee9).
+- **Non confermato il crash della ricetta "dissidenti".** Con jq vero (1.7.1) un gruppo senza voti espressi dà `null` da `max_by(length)` e contribuisce `[]`: risultato corretto, exit 0. Il crash è di `jaq`, il clone che il reporter aveva al posto di jq — stessa radice del punto sui prerequisiti. La guardia `select(($exp|length) > 0)` è stata aggiunta lo stesso come compatibilità, riverificando il caso reale (DDL 2957 → 1 dissidente, Toccalini).
+- **Confermato e corretto il `--count-only` mancante**: `countOnly` su `audizioni` e su `bill-progress` (ramo Senato), CLI + MCP + quattro test. Il gap era misurabile: 3.420 audizioni in leg. 19 (quattro pagine da 1000 per contarle) e 5.164 DDL nel repertorio Senato (sei pagine); `bills --count-only` non copriva il secondo caso perché `bills` è solo Camera.
+- **Dalla review della PR è uscito un bug preesistente**: un `--uri`/`--ddl-uri` di un dominio diverso da `dati.camera.it`/`dati.senato.it` veniva scartato in silenzio e `bill-progress` rispondeva con l'elenco del repertorio Senato — con `--count-only`, l'intero corpus (58.588) — come se fosse la risposta alla richiesta. Ora è un errore instradante, con test.
+- **Due trappole aggirate nell'implementazione**, entrambe di quelle che danno un numero plausibile e sbagliato: (a) contare i soli `?dib`/`?d` delle audizioni dava 3.134 contro 3.420, cioè un totale **più basso** dell'elenco che riassume — il conteggio ripete le stesse variabili del `GROUP BY`; (b) `countOnly` con `--number` su `bill-progress` restituirebbe `0` per un numero Camera cercato sul ramo S, proprio dove l'aggancio cross-ramo troverebbe l'atto: rifiutato con un errore, come sul ramo Camera.
+
 ## 2026-08-08 — revisione della nota ai gestori LOD Camera: quattro punti su dieci non erano più veri
 
 Rilettura di `docs/note-gestori-lod/camera-assistenza-dati.md` (bozza mai inviata, verificata a inizio luglio) **riverificando ogni affermazione sull'endpoint**, non solo rileggendola. Il grafo è cambiato, e spedirla com'era avrebbe significato segnalare alla Camera cose già risolte — o mai vere.

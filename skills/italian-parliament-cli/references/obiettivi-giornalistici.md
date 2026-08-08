@@ -6,7 +6,7 @@ Catalogo di analisi giornalistiche ricorrenti che **non richiedono un tool dedic
 
 Due modi di applicare la stessa ricetta, a seconda del contesto:
 
-- **CLI**: pipeline shell (`italianparliament <tool> ... --format jsonl | jq ...`), come negli esempi.
+- **CLI**: pipeline shell (`italianparliament <tool> ... --format jsonl | jq ...`), come negli esempi. Prerequisiti: `jq` ≥ 1.6 (i cloni non sono equivalenti: `jaq` cambia i messaggi d'errore e non tollera tutto ciò che jq tollera — se `jq --version` non risponde `jq-1.x`, non è jq); per i volumi grossi conviene `duckdb` sul CSV, più veloce e tipizzato.
 - **MCP** (Claude Desktop / Claude Code): si chiama lo stesso tool e si esegue l'aggregazione **nel ragionamento** (o generando ed eseguendo lo snippet). Gli ingredienti — quali tool e quali campi — sono identici; cambia solo chi calcola la moda/aggregazione.
 
 Ogni voce dichiara: cosa produce, gli ingredienti (quali tool/campi), la ricetta, le scelte analitiche da fare e i limiti di scope.
@@ -34,6 +34,7 @@ italianparliament vote-detail show --vote-uri <V> --limit 1000 --format jsonl | 
   group_by(.group_acronym)
   | map(
       (map(select(.vote as $v | expressed | index($v)))) as $exp
+      | select(($exp | length) > 0)                                     # gruppo senza voti espressi: nessuna linea, nessun dissidente
       | ($exp | group_by(.vote) | max_by(length) | .[0].vote) as $maj   # linea del gruppo = moda dei voti espressi
       | $exp | map(select(.vote != $maj)
           | {deputy_name, group: .group_acronym, group_majority_vote: $maj, actual_vote: .vote})
@@ -51,6 +52,7 @@ italianparliament senato-vote-detail show --vote-uri <V> --format jsonl | jq -s 
   group_by(.group_label)
   | map(
       (map(select(.vote as $v | expressed | index($v)))) as $exp
+      | select(($exp | length) > 0)
       | ($exp | group_by(.vote) | max_by(length) | .[0].vote) as $maj
       | $exp | map(select(.vote != $maj)
           | {senator_name, group: .group_label, group_majority_vote: $maj, actual_vote: .vote})
@@ -69,6 +71,7 @@ Stessa logica senza pipeline: chiama `vote-detail` (o `senato-vote-detail`) con 
 - **L'astensione conta come dissenso?** Nella ricetta sì: se il gruppo vota Favorevole e un membro si astiene, è un divergente. Per escluderla, togli l'astensione da `expressed`.
 - **Assenze** (`Non ha votato`, `In congedo/missione`, `Presente non votante`): escluse sia dal calcolo della maggioranza sia dai dissidenti (un assente non dissente).
 - **Pareggio in gruppi piccoli**: `max_by(length)` sceglie deterministicamente una delle mode; per i gruppi molto piccoli o spaccati la "linea" è ambigua — valutare caso per caso.
+- **Gruppo con zero voti espressi** (tutti assenti o in missione: capita ai gruppi piccoli, es. `M-+E-S` sul voto finale del DDL 2957): non ha una linea, quindi la ricetta lo salta con `select(($exp|length) > 0)`. Senza quella guardia jq restituisce comunque il risultato giusto — `max_by(length)` su lista vuota dà `null` e il gruppo contribuisce zero righe — ma un clone come `jaq` si ferma con un errore.
 
 ### Limite di scope
 

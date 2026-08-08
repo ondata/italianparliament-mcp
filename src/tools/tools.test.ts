@@ -21,6 +21,7 @@ import { rolesTool } from "./roles.js";
 import { govMembersTool } from "./gov-members.js";
 import { committeesTool } from "./committees.js";
 import { billProgressTool } from "./bill-progress.js";
+import { audizioniTool } from "./audizioni.js";
 import { billSignatoriesTool } from "./bill-signatories.js";
 import { amendmentsTool, enrichProponents, checkAknTruncation, aknEmptyHint } from "./amendments.js";
 import { senatoVotesTool } from "./senato-votes.js";
@@ -845,6 +846,71 @@ describe("Senato tools", () => {
     expect(giustizia).toBeDefined();
     expect(giustizia!.category).toBe("COMMISSIONE PERMANENTE");
     expect(Number(giustizia!.session_count)).toBeGreaterThan(10);
+  }, 30000);
+
+  it("audizioni: countOnly coincide con le righe elencate (stesso filtro)", async () => {
+    // Il conteggio deve contare i gruppi del GROUP BY, non i dibattiti: con un
+    // COUNT sui soli ?dib/?d il totale sarebbe più basso dell'elenco.
+    const filter = { legislature: 19, committeeName: "femminicidio" };
+    const count = await audizioniTool.execute({ ...filter, countOnly: true, limit: 200, offset: 0 });
+    expect(count.columns).toEqual(["count"]);
+    const rows = await audizioniTool.execute({ ...filter, limit: 1000, offset: 0 });
+    expect(Number(count.rows[0].count)).toBe(rows.rows.length);
+  }, 60000);
+
+  it("audizioni: countOnly rifiuta le date in leg. 14 (filtro post-query)", async () => {
+    await expect(
+      audizioniTool.execute({
+        legislature: 14,
+        dateFrom: "2003-01-01",
+        countOnly: true,
+        limit: 200,
+        offset: 0,
+      }),
+    ).rejects.toThrow(/legislatura 14/i);
+  }, 30000);
+
+  it("bill-progress: countOnly coincide con le righe elencate (Senato)", async () => {
+    const filter = { legislature: 19, keyword: "autonomia" };
+    const count = await billProgressTool.execute({ ...filter, countOnly: true, limit: 100, offset: 0 });
+    expect(count.columns).toEqual(["count"]);
+    const rows = await billProgressTool.execute({ ...filter, limit: 1000, offset: 0 });
+    expect(Number(count.rows[0].count)).toBe(rows.rows.length);
+  }, 60000);
+
+  it("bill-progress: countOnly rifiutato sul ramo Camera e con --number", async () => {
+    await expect(
+      billProgressTool.execute({ number: "3053", branch: "C", countOnly: true, limit: 100, offset: 0 }),
+    ).rejects.toThrow(/solo sull'elenco dei DDL del Senato/i);
+    await expect(
+      billProgressTool.execute({ number: "1353", branch: "S", countOnly: true, limit: 100, offset: 0 }),
+    ).rejects.toThrow(/--number/i);
+  }, 30000);
+
+  it("bill-progress: un URI di host sconosciuto è un errore, non l'elenco intero", async () => {
+    // Prima l'URI veniva scartato in silenzio: l'elenco tornava con DDL a caso
+    // e countOnly con l'intero corpus (58.588), come se fosse la risposta.
+    await expect(
+      billProgressTool.execute({ uri: "https://example.com/ddl/123", limit: 3, offset: 0 }),
+    ).rejects.toThrow(/URI non riconosciuto/i);
+    await expect(
+      billProgressTool.execute({
+        uri: "https://example.com/ddl/123",
+        countOnly: true,
+        limit: 3,
+        offset: 0,
+      }),
+    ).rejects.toThrow(/URI non riconosciuto/i);
+    // Host che *contiene* il dominio senza esserlo: prima passava il controllo
+    // per sottostringa e finiva sull'endpoint della Camera, dove tornava vuoto
+    // — un "non trovato" al posto di "URI non riconosciuto".
+    await expect(
+      billProgressTool.execute({
+        uri: "https://dati.camera.it.example.org/ocd/attocamera.rdf/ac19_302",
+        limit: 3,
+        offset: 0,
+      }),
+    ).rejects.toThrow(/URI non riconosciuto/i);
   }, 30000);
 
   it("bill-progress: returns DDL for legislature 19", async () => {

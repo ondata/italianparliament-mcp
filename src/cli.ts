@@ -974,6 +974,11 @@ const billProgressList = defineCommand({
       description: "Presentation end date (YYYY-MM-DD)",
     },
     legislature: { type: "string", description: "Legislature number" },
+    "count-only": {
+      type: "boolean",
+      description:
+        "Return only the total count of Senato DDL (column count). Senato list mode only: rejected with --uri/--branch C and with --number",
+    },
     limit: { type: "string", default: "100", description: "Max rows to return" },
     offset: { type: "string", default: "0", description: "Offset for pagination" },
     format: { type: "string", default: "csv", description: "csv | jsonl" },
@@ -992,6 +997,7 @@ const billProgressList = defineCommand({
       dateFrom: (args["date-from"] as string) || undefined,
       dateTo: (args["date-to"] as string) || undefined,
       legislature: parseIntFlag(args.legislature as string, "legislature"),
+      countOnly: args["count-only"] === true,
       limit: parseIntFlag(args.limit as string, "limit") ?? 100,
       offset: Number(args.offset ?? 0),
     });
@@ -1439,6 +1445,11 @@ const audizioniList = defineCommand({
     keyword: { type: "string", description: 'Keyword in the hearing title, e.g. "prefetto", "Enel", "equo compenso".' },
     "date-from": { type: "string", description: "Start date inclusive. AAAAMMGG or AAAA-MM-GG." },
     "date-to": { type: "string", description: "End date inclusive. AAAAMMGG or AAAA-MM-GG." },
+    "count-only": {
+      type: "boolean",
+      description:
+        "Return only the total count (column count); rejected in leg. 14 together with a date filter (there the date is filtered after the query)",
+    },
     limit: { type: "string", default: "200", description: "Max rows to return" },
     offset: { type: "string", default: "0", description: "Offset for pagination" },
     format: { type: "string", default: "csv", description: "csv | jsonl" },
@@ -1451,6 +1462,7 @@ const audizioniList = defineCommand({
       keyword: (args.keyword as string) || undefined,
       dateFrom: (args["date-from"] as string) || undefined,
       dateTo: (args["date-to"] as string) || undefined,
+      countOnly: args["count-only"] === true,
       limit: parseIntFlag(args.limit as string, "limit") ?? 200,
       offset: Number(args.offset ?? 0),
     });
@@ -1640,7 +1652,7 @@ FLUSSO TIPICO (le schede di dettaglio richiedono un URI, ottenuto da un comando 
 
 OPZIONI TRASVERSALI:
   --format csv|jsonl     formato output (default csv)
-  --count-only           solo il totale (su bills/aic/votes/senato-votes), per confronti senza scaricare le righe
+  --count-only           solo il totale (su bills/aic/votes/senato-votes/audizioni/bill-progress e altri), per confronti senza scaricare le righe
   --legislature 19       legislatura corrente (default dove applicabile)
 
 SCOPERTA COMANDI:

@@ -116,6 +116,8 @@ Iter di un disegno di legge, Camera o Senato (stesse colonne in entrambi i casi)
   - `number`: numero dell'atto (es. `1809` → S.1809), da abbinare a `branch`. Se ometti `legislature`, usa la legislatura corrente (risolta dinamicamente). **Il numero non si conserva tra i rami**: lo stesso numero esiste spesso in entrambi come atti DIVERSI (C.1809 e S.1809), e l'atto Camera trasmesso al Senato riceve un numero nuovo (C.2669 → S.1924). Se `branch: S` non trova un `S.<numero>`, il tool risale da sé alla fase `C.<numero>` e restituisce **tutte le fasi dello stesso DDL** nei due rami (legate da `osr:idDdl`), in ordine di iter, spiegando nell'avviso perché il numero mostrato è un altro: è così che si passa da un atto Camera alla sua lettura al Senato e si ricostruisce una navetta a più letture.
   - `branch`: ramo per `number`. `S` (default): repertorio Senato, **stato corrente** del DDL (una riga). `C`: risolve l'atto Camera `ac<leg>_<n>` e ne restituisce la **timeline completa** degli stati (una riga per stato, con date). L'asimmetria riflette la fonte: la Camera pubblica lo storico degli stati, il Senato solo lo stato corrente (la sua timeline vive nel feed RSS).
   - `dateFrom`/`dateTo`: intervallo data presentazione
+  - `countOnly`: solo il numero di DDL che soddisfano i filtri (colonna `count`) — 5.164 in leg. 19, dove l'elenco richiederebbe sei pagine da 1000. Vale solo qui: con `uri`/`branch: C` (timeline di un atto) e con `number` (poche fasi di un DDL, dove uno `0` non significherebbe "atto inesistente") il tool lo rifiuta con un errore.
+  - `uri`/`ddlUri` di un dominio diverso da `dati.camera.it`/`dati.senato.it`: errore. Il routing è per host, e un URI estraneo veniva scartato in silenzio restituendo l'elenco intero del repertorio come se fosse la risposta.
 - **Camera** — timeline completa di tutti gli stati attraversati, in ordine cronologico: con `uri` = atto Camera `attocamera.rdf/...`, oppure con `number` + `branch: C`.
 - **Navetta lato Camera: la lettura finale sta su un atto variante.** Un testo che torna modificato dall'altro ramo riceve un atto **separato** con suffisso (`C.703` → `C.703-B`, poi `-C`, `-D`…). La timeline di `C.703` si ferma a `Approvato, segue Navette` il 28/02/2024, mentre l'approvazione definitiva (Legge 177/2025) è del 13/11/2025 su `C.703-B`. Il tool sonda da sé le letture successive e, quando esistono, lo dichiara nell'avviso con l'URI da rilanciare: **finché quell'avviso c'è, l'ultimo stato mostrato non è lo stato finale.** L'URI con suffisso è accettato anche da `bill-rapporteurs`, `bill-signatories`, `bill-text` e `camera-amendments`. Non confondere i suffissi: `-B`/`-C`/`-D` sono letture successive, `-A` è il **testo della commissione**.
 
@@ -186,6 +188,7 @@ Audizioni delle commissioni della Camera: data, commissione, titolo (con nome/ru
 - `committeeName`: nome/parte commissione (es. "femminicidio").
 - `keyword`: parola nel titolo dell'audizione (es. "Confindustria", "prefetto") — **ricerca testuale**. NB: una corrispondenza NON significa che quel soggetto sia stato audito (può essere l'oggetto dell'indagine o un ente citato); verificare il titolo completo.
 - `dateFrom`/`dateTo`, `limit`, `offset`.
+- `countOnly`: solo il totale (colonna `count`) con gli stessi filtri — 3.420 in leg. 19, quattro pagine da 1000 se lo si conta a mano. Conta le righe dell'elenco, non i dibattiti (un dibattito con due titoli vale due righe in entrambi). In leg. 14 con un filtro di date è rifiutato: lì la data sta nel suffisso dell'URI e il filtro gira dopo la query, quindi il conteggio SPARQL sarebbe sovrastimato.
 - Output: `date, committee, title, bill_codes, bill_uris, bulletin_url, discussion_uri, dibattito_uri`.
 - **Senato non coperto**: `osr:Procedura` `tipo="Audizioni"` esiste ma senza data né commissione (link interventi rotto).
 - **Limiti**: audito = stringa nel titolo (non entità); filtro testuale (non tutti i titoli citano il DDL su cui verte l'audizione); nessun link video/YouTube nel LOD.
@@ -255,7 +258,7 @@ Classifica i gruppi Camera per AIC o DDL (via gruppo del primo firmatario), con 
 - Colonna `count_per_member`: utile per confrontare gruppi di dimensioni diverse.
 - `members` è il numero di iscritti **attuali** al gruppo (iscrizioni senza data di fine), indipendente da `rankBy`. Su un gruppo sciolto prima della fine della legislatura può risultare vuoto (nessuna iscrizione resta "aperta"): non è un errore, il dato non è calcolabile.
 
-Nota: i tool lista `bills`/`aic`/`votes`/`senato-votes`/`amendments` accettano `countOnly` (solo il totale, colonna count).
+Nota: i tool lista `bills`/`aic`/`votes`/`senato-votes`/`amendments`/`camera-amendments`/`committee-sessions`/`speeches`/`sindacato-ispettivo`/`audizioni`/`bill-progress` accettano `countOnly` (solo il totale, colonna count).
 
 ### `rank`
 Ranking parlamentari per attività.

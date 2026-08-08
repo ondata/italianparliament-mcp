@@ -51,6 +51,12 @@ const inputSchema = z.object({
     .string()
     .optional()
     .describe('Data finale inclusiva. "AAAAMMGG" o "AAAA-MM-GG".'),
+  countOnly: z
+    .boolean()
+    .optional()
+    .describe(
+      "Se true, restituisce solo il numero totale di audizioni che soddisfano i filtri (colonna count), senza scaricare le righe. Non disponibile in leg. 14 insieme a un filtro di date (lì la data si ricava dall'URI e il filtro gira dopo la query).",
+    ),
   limit: z.number().int().min(1).max(1000).default(200),
   offset: z.number().int().min(0).default(0),
 });
@@ -119,17 +125,12 @@ function sqlEscape(s: string): string {
 
 // --- leg. 19 (e altre non-storiche): via titolo della discussione -----------
 
-async function queryByDiscussion(
-  legislature: number,
-  opts: {
-    committeeName?: string;
-    keyword?: string;
-    dateFrom?: string;
-    dateTo?: string;
-    limit: number;
-    offset: number;
-  },
-): Promise<AudizioneRow[]> {
+function discussionFilters(opts: {
+  committeeName?: string;
+  keyword?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}): string[] {
   const filters: string[] = [
     `FILTER(REGEX(?title, "${AUDIZIONE_REGEX}", "i"))`,
   ];
@@ -146,6 +147,53 @@ async function queryByDiscussion(
   // range restituisce risultati errati o vuoti silenziosi.
   if (opts.dateFrom) filters.push(`FILTER(STR(?date) >= "${toCompact(toIso(opts.dateFrom))}")`);
   if (opts.dateTo) filters.push(`FILTER(STR(?date) <= "${toCompact(toIso(opts.dateTo))}")`);
+  return filters;
+}
+
+/**
+ * Conteggio delle audizioni: le righe elencate sono i gruppi del GROUP BY, non
+ * i dibattiti — un dibattito con due titoli (commissioni congiunte) produce due
+ * righe. Contare i soli ?dib/?d darebbe un totale più basso dell'elenco
+ * (3.134 contro 3.420 in leg. 19), quindi il DISTINCT ripete le stesse
+ * variabili del GROUP BY.
+ */
+async function countByDiscussion(
+  legislature: number,
+  opts: {
+    committeeName?: string;
+    keyword?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  },
+): Promise<string> {
+  const query = `${OCD_PREFIXES}
+SELECT (COUNT(*) AS ?count)
+WHERE {
+  SELECT DISTINCT ?dib ?d ?date ?committee ?title
+  WHERE {
+    ?dib a ocd:dibattito ;
+         ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_${legislature}> ;
+         dc:title ?committee ;
+         ocd:rif_discussione ?d .
+    ?d dc:title ?title ; dc:date ?date .
+    ${discussionFilters(opts).join("\n    ")}
+  }
+}`;
+  return flattenBindings(await cdQuery(query))[0]?.count ?? "0";
+}
+
+async function queryByDiscussion(
+  legislature: number,
+  opts: {
+    committeeName?: string;
+    keyword?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    limit: number;
+    offset: number;
+  },
+): Promise<AudizioneRow[]> {
+  const filters = discussionFilters(opts);
 
   const query = `${OCD_PREFIXES}
 SELECT ?dib ?d ?date ?committee ?title
@@ -187,12 +235,7 @@ OFFSET ${opts.offset}`;
 
 // --- leg. 14 (storica): via dc:type "Audizioni informali" -------------------
 
-async function queryByType(opts: {
-  committeeName?: string;
-  keyword?: string;
-  limit: number;
-  offset: number;
-}): Promise<AudizioneRow[]> {
+function typeFilters(opts: { committeeName?: string; keyword?: string }): string[] {
   const filters: string[] = [];
   if (opts.committeeName)
     filters.push(
@@ -202,6 +245,39 @@ async function queryByType(opts: {
     filters.push(
       `FILTER(CONTAINS(LCASE(?title), LCASE("${sqlEscape(opts.keyword)}")))`,
     );
+  return filters;
+}
+
+/** Come countByDiscussion: si contano i gruppi del GROUP BY (?dib ?title ?d). */
+async function countByType(opts: {
+  committeeName?: string;
+  keyword?: string;
+}): Promise<string> {
+  const query = `${OCD_PREFIXES}
+SELECT (COUNT(*) AS ?count)
+WHERE {
+  SELECT DISTINCT ?dib ?title ?d
+  WHERE {
+    ?dib a ocd:dibattito ;
+         dc:type ?type ;
+         ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_14> ;
+         dc:title ?title .
+    FILTER(?type IN ("Audizioni informali","AUDIZIONI INFORMALI"))
+    OPTIONAL { ?dib ocd:rif_organo ?organo . OPTIONAL { ?organo <${RDFS_LABEL}> ?organoLabel } }
+    OPTIONAL { ?dib ocd:rif_discussione ?d }
+    ${typeFilters(opts).join("\n    ")}
+  }
+}`;
+  return flattenBindings(await cdQuery(query))[0]?.count ?? "0";
+}
+
+async function queryByType(opts: {
+  committeeName?: string;
+  keyword?: string;
+  limit: number;
+  offset: number;
+}): Promise<AudizioneRow[]> {
+  const filters = typeFilters(opts);
 
   const query = `${OCD_PREFIXES}
 SELECT ?dib ?title ?d
@@ -257,6 +333,7 @@ export const audizioniTool: Tool<typeof inputSchema> = {
     "italianparliament audizioni list --legislature 19 --limit 50",
     "italianparliament audizioni list --legislature 19 --committee-name femminicidio",
     "italianparliament audizioni list --legislature 19 --keyword prefetto --date-from 2026-01-01",
+    "italianparliament audizioni list --legislature 19 --count-only",
     "italianparliament audizioni list --legislature 19 --committee-name periferie --format jsonl",
     "italianparliament audizioni list --legislature 14 --committee-name difesa",
   ],
@@ -291,6 +368,30 @@ export const audizioniTool: Tool<typeof inputSchema> = {
         "Nessuna legislatura della Camera copre l'intervallo di date indicato: verifica le date (il grafo copre le legislature repubblicane fino a quella in corso).",
       );
     const legislature = choice.legislature;
+
+    if (input.countOnly) {
+      // Leg. 14: la data non è nel grafo, si legge dal suffisso dell'URI e il
+      // filtro gira in TS dopo la query — un conteggio lato SPARQL ignorerebbe
+      // le date e restituirebbe un totale più alto del vero. Meglio dirlo che
+      // dare un numero sbagliato.
+      if (legislature === 14 && (input.dateFrom || input.dateTo))
+        throw new Error(
+          "countOnly non è disponibile per la legislatura 14 con un filtro di date: lì la data non è nel dato ma nel suffisso dell'URI della discussione, quindi il filtro si applica dopo la query e il conteggio lato SPARQL sarebbe sovrastimato. Togli le date (conteggio complessivo) oppure elenca le righe e contale.",
+        );
+      const count =
+        legislature === 14
+          ? await countByType({
+              committeeName: input.committeeName,
+              keyword: input.keyword,
+            })
+          : await countByDiscussion(legislature, {
+              committeeName: input.committeeName,
+              keyword: input.keyword,
+              dateFrom: input.dateFrom,
+              dateTo: input.dateTo,
+            });
+      return { rows: [{ count }], columns: ["count"] };
+    }
 
     const rows =
       legislature === 14
