@@ -117,9 +117,17 @@ for L in "${LEGS[@]}"; do
   # Il valore del flag è obbligatorio: `--confidence-vote` nudo viene ignorato
   # in silenzio e restituisce TUTTE le votazioni.
   echo "  fiducie" >&2
+  # Niente `|| true`: se l'endpoint cade, meglio fermarsi che scrivere un CSV
+  # vuoto e ritrovarsi una legislatura senza fiducie in tabella, senza sapere
+  # se sono zero o se la query non è mai arrivata.
   # shellcheck disable=SC2086
-  $CLI votes list --legislature "$L" --confidence-vote true --count-only --format csv \
-    | grep -v '^AVVISO:' > "$OUT/fiducie-leg$L.csv" || true
+  fiducie="$($CLI votes list --legislature "$L" --confidence-vote true --count-only --format csv)"
+  if ! grep -qE '^[0-9]+$' <<<"$(tail -n +2 <<<"$fiducie")"; then
+    echo "ERRORE: conteggio fiducie non numerico per la legislatura $L." >&2
+    printf '%s\n' "$fiducie" >&2
+    exit 1
+  fi
+  printf '%s\n' "$fiducie" > "$OUT/fiducie-leg$L.csv"
 done
 
 echo "== dati grezzi in $OUT ==" >&2
