@@ -55,8 +55,13 @@ Risolve in batch una lista di URI persona (anche misti Camera + Senato) nei risp
 ### `bills`
 Disegni di legge Camera.
 - `legislature`: numero legislatura
-- `type`: tipo atto
+- `natura`: natura dell'atto, l'unico asse che distingue davvero i progetti di legge. Vocabolario chiuso di 4 codici (`proposta_legge_ordinaria`, `disegno_legge_ordinario`, `proposta_legge_costituzionale`, `disegno_legge_costituzionale`), esposti anche nella colonna `natura`; match per sottostringa. **Trappola di genere**: `ordinario` (m.) prende solo i disegni (329 in leg. 19), `ordinaria` (f.) solo le proposte (2.676) — per entrambi serve la radice `ordinari` (3.005). `costituzionale` è invariante e li prende entrambi (102).
+- `type`: **non discrimina**, `dc:type` vale "Progetto di Legge" su tutti i 3.107 atti della leg. 19 (unico altro valore nel grafo: "Relazione", 5.996, nessuno in leg. 19). `type: "costituzionale"` dà zero righe, non perché non esistano leggi costituzionali: usare `natura`.
 - `limit`: max risultati
+
+**I decreti-legge non hanno una natura propria**: la conversione del DL 100/2026 (C.3053) è classificata `disegno_legge_ordinario` come un DDL qualunque. Si contano solo dal titolo, e il modo giusto è `keyword: "Conversione in legge"` + `initiative: "Governo"` → **134 in leg. 19**. `keyword: "decreto-legge"` da solo dà 218, ma **78 sono proposte parlamentari che citano un DL nel titolo**, non conversioni. Unico appiglio strutturale: lo stato d'iter `Decreto-legge decaduto`, che marca però solo i decreti **non** convertiti (32 in tutto il grafo).
+
+**Trappola su `countOnly`**: senza `legislature` il totale è gonfiato (160.454 contro 121.022 atti reali) perché gli atti con più valori sulle proprietà opzionali vengono contati più volte. Con `legislature` il conteggio è esatto. Non usarlo come denominatore non filtrato.
 
 ### `bill`
 Scheda di un atto Camera.
