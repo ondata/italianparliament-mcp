@@ -2,6 +2,10 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/` e `docs/news-agent/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna e report dell'agente news-driven, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-08-08 — release v0.32.5
+
+- **v0.32.5 rilasciata**, patch: nessun tool nuovo (restano 43), ma `votes --bill-code` smette di attribuire a un atto i voti di altri provvedimenti e recupera i voti sugli emendamenti dell'atto — vedi la voce del 7/8 per dettaglio e misure. PR #98, 336 test verdi.
+
 ## 2026-08-07 — fix `votes --bill-code`: attribuiva a un atto i voti di altri provvedimenti
 
 - **Triage del report `docs/news-agent/2026-08-07_20-03.md`**: dei tre punti negativi, nessuno azionabile come scritto. L'"intermittenza" di `--bill-code` (data come priorità alta) **non è riproducibile**: 30 run consecutive su `2420` leg. 19 danno 26 righe ogni volta. In più, letto `src/core/client.ts`, nessun percorso restituisce bindings vuoti su errore — 4xx e 5xx dopo i retry lanciano `SparqlError` — quindi un flap dell'endpoint dovrebbe uscire come errore, non come elenco vuoto (verifica statica, non provocata sull'endpoint). Lo scrutinio segreto è un limite della fonte già in `docs/lod-wiki/camera/voto-segreto-dettaglio.md`; la data notizia ≠ data LOD è uso, già coperta dalle skill.
