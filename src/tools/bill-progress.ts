@@ -59,6 +59,12 @@ const inputSchema = z.object({
     .min(1)
     .optional()
     .describe("Numero legislatura"),
+  countOnly: z
+    .boolean()
+    .optional()
+    .describe(
+      "Se true, restituisce solo il numero di DDL del repertorio Senato che soddisfano i filtri (colonna count), senza scaricare le righe. Vale solo sull'elenco Senato: sul ramo Camera l'output è la timeline di UN atto, dove un totale non significherebbe nulla.",
+    ),
   limit: z.number().int().min(1).max(1000).default(100),
   offset: z.number().int().min(0).default(0),
 });
@@ -91,6 +97,7 @@ export const billProgressTool: Tool<typeof inputSchema> = {
     "italianparliament bill-progress list --number 1809 --branch S --legislature 19",
     "italianparliament bill-progress list --number 2617 --branch C --legislature 18",
     "italianparliament bill-progress list --ddl-uri http://dati.senato.it/ddl/25597",
+    "italianparliament bill-progress list --legislature 19 --count-only",
     "italianparliament bill-progress list --legislature 19 --keyword autonomia --limit 20",
     "italianparliament bill-progress list --legislature 19 --date-from 2026-04-01 --date-to 2026-04-13",
     "italianparliament bill-progress list --uri http://dati.camera.it/ocd/attocamera.rdf/ac19_2822",
@@ -108,6 +115,23 @@ export const billProgressTool: Tool<typeof inputSchema> = {
       : isCamera(input.ddlUri)
         ? input.ddlUri
         : undefined;
+
+    // Il conteggio ha senso solo sull'elenco del repertorio Senato: sul ramo
+    // Camera l'output è la timeline di un singolo atto, dove "quante righe"
+    // vuol dire "quanti stati ha attraversato", non un totale confrontabile.
+    if (input.countOnly && (cameraUri || input.branch === "C"))
+      throw new Error(
+        "countOnly vale solo sull'elenco dei DDL del Senato: sul ramo Camera questo tool restituisce la timeline degli stati di UN atto, quindi un totale non sarebbe un conteggio di atti. Per contare atti della Camera usa `bills --count-only`.",
+      );
+    // Con --number il conteggio varrebbe poche fasi e soprattutto perderebbe
+    // l'aggancio cross-ramo: un numero Camera cercato sul ramo S darebbe "0"
+    // mentre l'elenco trova le fasi dello stesso DDL. Uno zero letto come
+    // "l'atto non c'è" è l'errore che questo tool esiste per evitare.
+    if (input.countOnly && input.number)
+      throw new Error(
+        "countOnly non si usa con --number: lì il risultato sono le poche fasi di un singolo DDL e un totale di 0 non significherebbe 'atto inesistente' (il numero non si conserva tra i rami). Elenca le righe senza --count-only.",
+      );
+
     if (cameraUri) {
       return cameraIterTimeline(cameraUri, columns, {
         keyword: input.keyword,
@@ -176,6 +200,13 @@ export const billProgressTool: Tool<typeof inputSchema> = {
       filters.push(`FILTER(STR(?dataPresentazione) <= "${input.dateTo}")`);
     }
 
+    if (input.countOnly) {
+      return {
+        rows: [{ count: await countSenatoDdl(filters) }],
+        columns: ["count"],
+      };
+    }
+
     const rows = await runSenatoDdlQuery(filters, {
       limit: input.limit,
       offset: input.offset,
@@ -210,6 +241,26 @@ export const billProgressTool: Tool<typeof inputSchema> = {
     return { rows, columns };
   },
 };
+
+/**
+ * Conta i DDL del repertorio Senato che soddisfano i filtri.
+ *
+ * COUNT(DISTINCT ?s) e non una subquery: Virtuoso Senato non regge la subquery
+ * con COUNT. Gli OPTIONAL restano perché i filtri (titolo, data, numero fase)
+ * ne usano le variabili.
+ */
+async function countSenatoDdl(filters: string[]): Promise<string> {
+  const query = `${OSR_PREFIXES}
+SELECT (COUNT(DISTINCT ?s) AS ?count)
+WHERE {
+  ?s a osr:Ddl .
+  OPTIONAL { ?s osr:titolo ?titolo }
+  OPTIONAL { ?s osr:dataPresentazione ?dataPresentazione }
+  OPTIONAL { ?s osr:numeroFase ?numeroFase }
+  ${filters.join("\n  ")}
+}`;
+  return flattenBindings(await snQuery(query))[0]?.count ?? "0";
+}
 
 /**
  * Esegue la query sul repertorio DDL del Senato con i filtri dati.

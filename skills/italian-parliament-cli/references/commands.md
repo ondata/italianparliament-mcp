@@ -17,7 +17,7 @@ Common options available on most commands:
 
 Comandi di scoperta (`guide`, `which`, `--help`) documentati nel SKILL.
 
-- `bills`/`aic`/`votes`/`senato-votes`/`amendments` accettano `--count-only` (solo il totale).
+- `bills`/`aic`/`votes`/`senato-votes`/`amendments`/`camera-amendments`/`committee-sessions`/`speeches`/`sindacato-ispettivo`/`audizioni`/`bill-progress` accettano `--count-only` (solo il totale).
 - Su un valore enum errato (`--vote-type`, `--rank-by`, ...) l'errore elenca i valori validi.
 - **`html_url`**: i tool su persone e atti/DDL espongono una colonna `html_url` con il link alla scheda istituzionale su `camera.it`/`senato.it`, accanto all'URI SPARQL.
 - **`rss_url`**: i tool sui DDL del Senato (`amendments`, `senato-votes`, `bill-progress`) espongono `rss_url`, il feed RSS con l'iter dettagliato (fasi, sedute, voto finale).
@@ -163,7 +163,11 @@ italianparliament bill-progress list --ddl-uri http://dati.senato.it/ddl/25597
 italianparliament bill-progress list --uri http://dati.camera.it/ocd/attocamera.rdf/ac19_2822
 # fase Senato di un atto Camera: il numero cambia, il tool ci arriva da sé
 italianparliament bill-progress list --number 2669 --branch S --legislature 19   # → C.2669 + S.1924
+# quanti DDL ha il repertorio Senato per una legislatura (5.164 in leg. 19)
+italianparliament bill-progress list --legislature 19 --count-only
 ```
+
+> `--count-only` vale **solo** sull'elenco Senato (con `--keyword` e le date), perché è l'unico ramo che restituisce un elenco: sul ramo Camera l'output è la timeline di un singolo atto, e con `--number` sarebbero le poche fasi di un DDL — in entrambi i casi il flag viene rifiutato con un errore, invece di restituire un totale che non conta atti. Per contare atti della Camera si usa `bills --count-only`.
 
 > Nota: lo stesso numero può esistere in entrambi i rami (`C.1809` e `S.1809`), perciò `--branch` disambigua (default `S`). Attenzione all'asimmetria: `--branch S` restituisce **una riga** (stato corrente del DDL al Senato), `--branch C` restituisce **la timeline** (una riga per stato, con date) — riflette ciò che le due fonti pubblicano (la Camera lo storico degli stati, il Senato solo lo stato corrente; la timeline Senato vive nel feed RSS).
 
@@ -285,7 +289,12 @@ italianparliament audizioni list --legislature 19 --keyword prefetto --date-from
 italianparliament audizioni list --legislature 14 --committee-name difesa
 # per date, senza sapere la legislatura: la deduce (qui leg. 18)
 italianparliament audizioni list --date-from 2020-03-01 --date-to 2020-03-31
+# solo il totale, senza scaricare le righe (3.420 in leg. 19)
+italianparliament audizioni list --legislature 19 --count-only
+italianparliament audizioni list --legislature 19 --committee-name femminicidio --count-only
 ```
+
+> `--count-only` conta le righe che l'elenco restituirebbe con gli stessi filtri (un dibattito con due titoli — commissioni congiunte — vale due righe, come nell'elenco). Unica eccezione: in **leg. 14** insieme a un filtro di date viene rifiutato, perché lì la data non è nel grafo ma nel suffisso dell'URI della discussione e il filtro si applica dopo la query — un conteggio lato SPARQL sarebbe sovrastimato.
 
 > **Senato non coperto**: via SPARQL le audizioni Senato (`osr:Procedura` `tipo="Audizioni"`) esistono ma senza data né commissione (link agli interventi rotto). Solo Camera.
 > **Limiti**: l'audito è testo nel titolo, non entità strutturata; il filtro è testuale (per una legge specifica cerca il tema con `--keyword`, non tutti i titoli citano il DDL); nessun link video/YouTube nel LOD.
