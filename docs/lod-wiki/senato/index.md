@@ -4,6 +4,7 @@ Endpoint SPARQL: `https://dati.senato.it/sparql`. Ontologia OSR (namespace `http
 
 # Trappole
 
+* [Named graph: partizione per legislatura](named-graph.md) - il Senato partiziona per legislatura (`composizione/{leg}`), non per tema: un senatore che ha seduto in sei legislature è tipizzato sei volte, quindi `COUNT(*)` sui senatori sovrastima del 79% (6.269 triple per 3.498 persone). I tool non ne risentono (`DISTINCT` + filtro legislatura, verificato). L'enumerazione dei grafi dà 403: partire sempre da un soggetto noto.
 * [Trappole Virtuoso — Senato](trappole.md) - quirk endpoint (403 su curl, no BIND, legislatura integer, matching nomi) e performance. Include **`intervento/null`**, la risorsa `osr:Intervento` senza identità in cui la fonte fa collassare gli interventi privi di id (36.853 sedute e 47.571 oggetti collegati): qualunque join oggetto→intervento→seduta la attraversa e produce **righe false**, non un vuoto (18.945 sedute fantasma su un atto del 2026, incluse sedute del 1996). E l'assenza del collegamento atto→commissione sugli Atti del Governo.
 
 # Query template
