@@ -93,7 +93,7 @@ In alternativa, copia la cartella `skills/<nome>/` e registrala secondo la docum
 
 | Comando | Cosa fa |
 |---------|---------|
-| `bills list` | Disegni di legge Camera, filtrabile per legislatura, tipo, data (`--date-from`/`--date-to`) |
+| `bills list` | Disegni di legge Camera, filtrabile per legislatura, natura (`--natura`: `costituzionale`, `ordinari`, `disegno`, `proposta`), iniziativa, data (`--date-from`/`--date-to`) |
 | `bill show` | Scheda di un atto Camera (titolo, tipo, data, iniziativa, primo firmatario, cofirmatari) |
 | `member-bills list` | DDL presentati come primo firmatario da un deputato o senatore (Camera e Senato) |
 | `aic list` | Atti di indirizzo e controllo (interrogazioni, interpellanze, mozioni), filtrabile per data, tipo (`--type`, es. `immediata` per question time) e parola chiave a confini di parola (`--keyword`) |

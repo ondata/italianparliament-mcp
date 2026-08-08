@@ -113,6 +113,33 @@ describe("Camera tools", () => {
     expect(result.rows[0]).toHaveProperty("type");
   }, 30000);
 
+  it("bills: --natura filters on ocd:rif_natura and exposes the natura column", async () => {
+    const result = await billsTool.execute({
+      legislature: 19,
+      natura: "costituzionale",
+      limit: 5,
+      offset: 0,
+    });
+    expect(result.columns).toContain("natura");
+    expect(result.rows.length).toBeGreaterThan(0);
+    for (const row of result.rows) {
+      expect(row.natura).toMatch(/costituzionale/i);
+    }
+  }, 30000);
+
+  it("bills: --natura non matcha il percorso dell'IRI (niente stock intero spacciato per filtrato)", async () => {
+    // "camera" compare nell'IRI natura (http://dati.camera.it/ocd/natura.rdf/...)
+    // ma non nel codice: senza STRAFTER questo filtro restituiva tutti gli atti.
+    const result = await billsTool.execute({
+      legislature: 19,
+      natura: "camera",
+      limit: 5,
+      offset: 0,
+      countOnly: true,
+    });
+    expect(result.rows[0]?.count).toBe("0");
+  }, 30000);
+
   it("bills: keyword matches decoded HTML entities in Camera titles", async () => {
     const result = await billsTool.execute({
       legislature: 19,

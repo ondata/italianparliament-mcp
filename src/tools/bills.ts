@@ -17,7 +17,15 @@ const inputSchema = z.object({
   type: z
     .string()
     .optional()
-    .describe("Filtro sul tipo di atto (match case-insensitive)"),
+    .describe(
+      "Filtro sul tipo di atto (match case-insensitive su dc:type). ATTENZIONE: dc:type ha un solo valore tra i progetti di legge — 'Progetto di Legge' vale su tutti i 3107 atti della leg. 19 — quindi NON discrimina ordinario/costituzionale né disegno/proposta: per quello usare 'natura'. type: 'costituzionale' dà 0 righe, non perché non esistano leggi costituzionali. L'unico altro valore nel grafo è 'Relazione' (5.996 atti, nessuno in leg. 19)",
+    ),
+  natura: z
+    .string()
+    .optional()
+    .describe(
+      "Filtro sulla natura dell'atto (match case-insensitive sul codice natura: 'costituzionale', 'ordinari', 'disegno', 'proposta'). Codici: disegno_legge_ordinario, proposta_legge_ordinaria, disegno_legge_costituzionale, proposta_legge_costituzionale",
+    ),
   initiative: z
     .string()
     .optional()
@@ -49,6 +57,7 @@ const columns = [
   "label",
   "title",
   "type",
+  "natura",
   "date",
   "description",
   "initiative",
@@ -63,16 +72,36 @@ function sparqlEscape(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
+/**
+ * Filtro sulla natura dell'atto, ancorato al **local name** dell'IRI.
+ *
+ * `?natura` è un IRI (`http://dati.camera.it/ocd/natura.rdf/disegno_legge_ordinario`):
+ * un CONTAINS sullo `STR()` nudo batte anche sul percorso, quindi `--natura camera`
+ * (o `rdf`, `http`, `natura.rdf`, `legge`) restituirebbe l'intero stock di atti —
+ * indistinguibile, per il chiamante, da "nessun filtro". Lo STRAFTER isola il codice:
+ * un valore non pertinente dà zero righe, che l'emptyHint sa spiegare.
+ *
+ * Tutti e 4 i valori del vocabolario condividono il prefisso `natura.rdf/`, quindi
+ * lo STRAFTER non perde nulla; se un giorno comparisse un IRI con altra forma,
+ * STRAFTER restituirebbe "" e quell'atto resterebbe fuori dal filtro (fallimento
+ * visibile come zero righe, non come risultato gonfiato).
+ */
+export function buildNaturaFilter(natura: string): string {
+  return `FILTER(CONTAINS(LCASE(STRAFTER(STR(?natura), "natura.rdf/")), LCASE("${sparqlEscape(natura)}")))`;
+}
+
 export const billsTool: Tool<typeof inputSchema> = {
   name: "bills",
   description:
-    "[CAMERA] Lista disegni di legge (atti) della Camera dei Deputati. Filtrabile per legislatura, tipo, iniziativa (Popolare, Governo, Parlamentare, Regioni) e parola chiave nel titolo. Per i DDL del Senato usare bill-progress. Per ricostruire l'iter completo di un atto: prendi qui l'URI Camera, poi passa a bill-progress (--uri per la timeline Camera, --number+--branch S per agganciare il DDL Senato).",
+    "[CAMERA] Lista disegni di legge (atti) della Camera dei Deputati. Filtrabile per legislatura, tipo, natura (costituzionale/ordinario, disegno/proposta), iniziativa (Popolare, Governo, Parlamentare, Regioni) e parola chiave nel titolo. Per i DDL del Senato usare bill-progress. Per ricostruire l'iter completo di un atto: prendi qui l'URI Camera, poi passa a bill-progress (--uri per la timeline Camera, --number+--branch S per agganciare il DDL Senato).",
   emptyHint:
     "Nessun atto trovato. Il --keyword è un match letterale sul titolo formale: prova il termine normativo o una radice più corta (2-3 varianti) prima di concludere che l'atto non esiste. Non inventare estremi dell'atto.",
   inputSchema,
   examples: [
     "italianparliament bills list --legislature 19 --limit 50",
     'italianparliament bills list --type "disegno di legge"',
+    "italianparliament bills list --legislature 19 --natura costituzionale",
+    "italianparliament bills list --legislature 19 --natura disegno --count-only",
     "italianparliament bills list --legislature 19 --initiative Popolare",
     "italianparliament bills list --legislature 19 --initiative Governo --limit 50",
     "italianparliament bills list --legislature 19 --keyword autonomia --limit 50",
@@ -97,6 +126,8 @@ export const billsTool: Tool<typeof inputSchema> = {
       input.type !== undefined
         ? `FILTER(CONTAINS(LCASE(STR(?type)), LCASE("${sparqlEscape(input.type)}")))`
         : "";
+    const naturaFilter =
+      input.natura !== undefined ? buildNaturaFilter(input.natura) : "";
     const initiativeFilter =
       input.initiative !== undefined
         ? `FILTER(CONTAINS(LCASE(STR(?initiative)), LCASE("${sparqlEscape(input.initiative)}")))`
@@ -111,13 +142,14 @@ export const billsTool: Tool<typeof inputSchema> = {
       ? `FILTER(STR(?date) <= "${input.dateTo.replace(/-/g, "")}")`
       : "";
 
-    const coreSelect = `SELECT DISTINCT ?s ?label ?title ?type ?date ?description
+    const coreSelect = `SELECT DISTINCT ?s ?label ?title ?type ?natura ?date ?description
                 ?initiative ?identifier ?rif_leg ?sponsor_uri ?url
 WHERE {
   ?s a <http://dati.camera.it/ocd/atto> .
   ?s rdfs:label ?label .
   OPTIONAL { ?s dc:title ?title }
   OPTIONAL { ?s dc:type ?type }
+  OPTIONAL { ?s <http://dati.camera.it/ocd/rif_natura> ?natura }
   OPTIONAL { ?s dc:date ?date }
   OPTIONAL { ?s dc:description ?description }
   OPTIONAL { ?s <http://dati.camera.it/ocd/iniziativa> ?initiative }
@@ -128,6 +160,7 @@ WHERE {
   ${legFilter}
   ${keywordFilter}
   ${typeFilter}
+  ${naturaFilter}
   ${initiativeFilter}
   ${dateFromFilter}
   ${dateToFilter}
@@ -144,13 +177,17 @@ WHERE {
     }
     const raw = flattenBindings(results);
     const rows = raw.map((r) => {
-      const { s, rif_leg, ...rest } = r;
+      const { s, rif_leg, natura: naturaIri, ...rest } = r;
       const uri = s ?? "";
       const html_url = actHtmlUrl(uri);
+      // riduci l'IRI natura al local name leggibile
+      // (http://dati.camera.it/ocd/natura.rdf/disegno_legge_ordinario -> disegno_legge_ordinario)
+      const natura = naturaIri ? String(naturaIri).replace(/^.*\//, "") : "";
       return {
         uri,
         legislature_uri: rif_leg ?? "",
         ...rest,
+        natura,
         label: decodeHtml(rest.label ?? ""),
         title: decodeHtml(rest.title ?? ""),
         html_url,

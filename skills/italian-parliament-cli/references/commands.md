@@ -80,9 +80,23 @@ italianparliament people resolve --uris http://dati.senato.it/senatore/32 --form
 ## Attività legislativa — Camera
 
 ### `bills list`
+`--natura` filtra sulla natura dell'atto, l'unico asse che distingue davvero i progetti di legge: vocabolario chiuso di 4 codici — `proposta_legge_ordinaria`, `disegno_legge_ordinario`, `proposta_legge_costituzionale`, `disegno_legge_costituzionale` — esposti anche nella colonna `natura`. Il match è per sottostringa case-insensitive sul codice.
+
+**Trappola di genere**: `ordinario` (m.) prende solo i *disegni* (329 in leg. 19), `ordinaria` (f.) solo le *proposte* (2.676). Per entrambi serve la radice `ordinari` (3.005). Stesso schema per `costituzionale`, che invece è invariante e li prende entrambi (102).
+
+`--type` **non** serve a questo: `dc:type` vale "Progetto di Legge" su tutti e 3.107 gli atti della leg. 19, quindi `--type costituzionale` dà zero righe — non perché non esistano leggi costituzionali. (L'unico altro valore nel grafo è "Relazione", 5.996 atti, nessuno in leg. 19.)
+
+**I decreti-legge non hanno una natura propria**: la conversione del DL 100/2026 (C.3053) è classificata `disegno_legge_ordinario` come un DDL qualunque. Si contano solo dal titolo, e il modo giusto è `--keyword "Conversione in legge" --initiative Governo` → **134 in leg. 19**. Attenzione a `--keyword decreto-legge` da solo: dà 218, ma **78 sono proposte parlamentari che si limitano a citare un DL nel titolo** ("Modifiche all'articolo 24 del decreto-legge…"), non conversioni. L'unico appiglio strutturale è lo stato d'iter `Decreto-legge decaduto`, che però marca solo i decreti **non** convertiti (32 in tutto il grafo).
+
 ```bash
 italianparliament bills list --legislature 19 --format csv
+italianparliament bills list --legislature 19 --natura costituzionale
+italianparliament bills list --legislature 19 --natura ordinari --count-only
+# le conversioni di decreto-legge (NON --keyword decreto-legge da solo: gonfia di falsi positivi)
+italianparliament bills list --legislature 19 --keyword "Conversione in legge" --initiative Governo
 ```
+
+**Trappola su `--count-only`**: senza `--legislature` il totale è gonfiato (160.454 contro 121.022 atti reali, +32%) perché gli atti con più valori sulle proprietà opzionali — cofirmatari, URL — vengono contati più volte. Con `--legislature` il conteggio torna esatto (3.107 in leg. 19, verificato contro `COUNT(DISTINCT ?s)`). Non usare il totale non filtrato come denominatore.
 
 ### `bill show`
 Solo atti **Camera** (`dati.camera.it`): un URI Senato produce un errore instradante verso `bill-progress --ddl-uri` / `bill-signatories --bill-uri` / `bill-text --uri`.

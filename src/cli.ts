@@ -332,7 +332,11 @@ const billsList = defineCommand({
     legislature: { type: "string", description: "Legislature number" },
     type: {
       type: "string",
-      description: 'Filter by bill type (case-insensitive substring match)',
+      description: 'Filter by bill type (dc:type is always "Progetto di Legge": use --natura instead)',
+    },
+    natura: {
+      type: "string",
+      description: "Filter by act nature (case-insensitive): costituzionale, ordinari, disegno, proposta",
     },
     initiative: {
       type: "string",
@@ -354,6 +358,7 @@ const billsList = defineCommand({
       countOnly: args["count-only"] === true,
       legislature: parseIntFlag(args.legislature as string, "legislature"),
       type: (args.type as string) || undefined,
+      natura: (args.natura as string) || undefined,
       initiative: (args.initiative as string) || undefined,
       keyword: (args.keyword as string) || undefined,
       dateFrom: (args["date-from"] as string) || undefined,
