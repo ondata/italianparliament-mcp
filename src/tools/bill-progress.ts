@@ -7,6 +7,7 @@ import { htmlEntityKeywordVariants } from "../core/html-entity-variants.js";
 import { actHtmlUrl, ddlRssUrl, parseCameraActUri } from "../core/html-url.js";
 import { currentLegislature } from "../core/current-legislature.js";
 import { sparqlStringLiteral } from "../core/sparql-literal.js";
+import { chamberFromUri } from "../core/chamber-uri.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -107,14 +108,15 @@ export const billProgressTool: Tool<typeof inputSchema> = {
     const cameraEmptyHint =
       "Nessuno stato iter Camera trovato per l'atto richiesto. Verifica il pairing legislature+number (o l'URI) e, se hai usato dei filtri (keyword, intervallo di date) o la paginazione (limit/offset), prova ad allargarli. Non dedurre assenza di iter dal vuoto: senza evidenza non inventare stati, date o conclusioni.";
 
-    // Routing per host: un URI Camera attiva il ramo "timeline iter".
-    const isCamera = (u?: string): u is string =>
-      !!u && u.includes("dati.camera.it");
-    const cameraUri = isCamera(input.uri)
-      ? input.uri
-      : isCamera(input.ddlUri)
-        ? input.ddlUri
-        : undefined;
+    // Routing per host: un URI Camera attiva il ramo "timeline iter". L'host si
+    // legge dall'URL (cfr. core/chamber-uri.ts), non per sottostringa: così un
+    // `dati.camera.it.example.org` non finisce sull'endpoint della Camera.
+    const cameraUri =
+      chamberFromUri(input.uri) === "camera"
+        ? input.uri
+        : chamberFromUri(input.ddlUri) === "camera"
+          ? input.ddlUri
+          : undefined;
 
     // Un URI che non è né di dati.camera.it né di dati.senato.it non instrada
     // nulla: prima veniva scartato in silenzio e il tool restituiva l'elenco
@@ -122,7 +124,7 @@ export const billProgressTool: Tool<typeof inputSchema> = {
     // (con countOnly, l'intero corpus: 58.588). Meglio dire che l'URI non è
     // riconosciuto che rispondere a una domanda diversa da quella posta.
     const unknownHost = [input.uri, input.ddlUri].find(
-      (u) => u && !u.includes("dati.camera.it") && !u.includes("dati.senato.it"),
+      (u) => u && !chamberFromUri(u),
     );
     if (unknownHost)
       throw new Error(
@@ -177,9 +179,7 @@ export const billProgressTool: Tool<typeof inputSchema> = {
     // Se un URI Senato è passato via --uri, trattalo come ddlUri.
     const senatoDdlUri =
       input.ddlUri ??
-      (input.uri && input.uri.includes("dati.senato.it")
-        ? input.uri
-        : undefined);
+      (chamberFromUri(input.uri) === "senato" ? input.uri : undefined);
 
     const filters: string[] = [];
     if (senatoDdlUri) {

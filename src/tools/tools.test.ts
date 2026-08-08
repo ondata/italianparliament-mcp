@@ -901,6 +901,16 @@ describe("Senato tools", () => {
         offset: 0,
       }),
     ).rejects.toThrow(/URI non riconosciuto/i);
+    // Host che *contiene* il dominio senza esserlo: prima passava il controllo
+    // per sottostringa e finiva sull'endpoint della Camera, dove tornava vuoto
+    // — un "non trovato" al posto di "URI non riconosciuto".
+    await expect(
+      billProgressTool.execute({
+        uri: "https://dati.camera.it.example.org/ocd/attocamera.rdf/ac19_302",
+        limit: 3,
+        offset: 0,
+      }),
+    ).rejects.toThrow(/URI non riconosciuto/i);
   }, 30000);
 
   it("bill-progress: returns DDL for legislature 19", async () => {
