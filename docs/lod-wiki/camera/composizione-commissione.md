@@ -31,7 +31,9 @@ I componenti "semplici" sono legati **dal deputato verso un blank node**, che a 
 | `ocd:endDate` | stringa `AAAAMMGG` | presente **solo** se cessato → usare `!BOUND(?endDate)` per i soli attivi |
 | `rdfs:label` | stringa | nome commissione + data (label del nodo, **non** dell'organo) |
 
-> ⚠️ **Non esiste `ocd:haMembro`** (organo → deputato). Il predicato è `ocd:membro` in direzione **deputato → blank node**. Interrogare l'organo aspettandosi un `haMembro` non restituisce nulla.
+> ⚠️ **`ocd:haMembro` esiste ma è un vicolo cieco** (correzione dell'8 agosto 2026: questa pagina diceva che non esistesse, ed è falso). Il predicato c'è, con 47.415 triple, e va da `ocd:organo` a un **blank node** — non a un deputato. Dentro quel nodo c'è solo una `rdfs:label` con nome e periodo, per esempio `"ROBERTO GIACHETTI (23.03.2018-24.03.2018)"`: **nessun URI alla persona**, quindi nessun join possibile e il nome va parsato da una stringa.
+>
+> La conclusione operativa non cambia — si usa `ocd:membro` in direzione **deputato → blank node**, che è la via che dà gli URI — ma la ragione sì: non è che `haMembro` non esista, è che non porta da nessuna parte. Chi lo trovasse esplorando l'organo penserebbe altrimenti che il wiki sbagli.
 
 ## Path B — cariche apicali (`ocd:ufficioParlamentare`)
 
