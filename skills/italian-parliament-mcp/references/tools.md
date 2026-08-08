@@ -61,7 +61,7 @@ Disegni di legge Camera.
 
 **I decreti-legge non hanno una natura propria**: la conversione del DL 100/2026 (C.3053) è classificata `disegno_legge_ordinario` come un DDL qualunque. Si contano solo dal titolo, e il modo giusto è `keyword: "Conversione in legge"` + `initiative: "Governo"` → **134 in leg. 19**. `keyword: "decreto-legge"` da solo dà 218, ma **78 sono proposte parlamentari che citano un DL nel titolo**, non conversioni. Unico appiglio strutturale: lo stato d'iter `Decreto-legge decaduto`, che marca però solo i decreti **non** convertiti (32 in tutto il grafo).
 
-**Trappola su `countOnly`**: senza `legislature` il totale è gonfiato (160.454 contro 121.022 atti reali) perché gli atti con più valori sulle proprietà opzionali vengono contati più volte. Con `legislature` il conteggio è esatto. Non usarlo come denominatore non filtrato.
+`countOnly` conta gli **atti**, non le righe, e l'elenco restituisce una riga per atto: sul grafo intero sono 121.021. (Fino alla 0.32.5 il totale non filtrato per legislatura era gonfio del 32% e l'elenco duplicava gli atti con più di un primo firmatario; i conteggi filtrati per legislatura erano corretti. Corretto in issue #99.)
 
 ### `bill`
 Scheda di un atto Camera.

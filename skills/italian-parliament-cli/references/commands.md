@@ -96,7 +96,7 @@ italianparliament bills list --legislature 19 --natura ordinari --count-only
 italianparliament bills list --legislature 19 --keyword "Conversione in legge" --initiative Governo
 ```
 
-**Trappola su `--count-only`**: senza `--legislature` il totale è gonfiato (160.454 contro 121.022 atti reali, +32%) perché gli atti con più valori sulle proprietà opzionali — cofirmatari, URL — vengono contati più volte. Con `--legislature` il conteggio torna esatto (3.107 in leg. 19, verificato contro `COUNT(DISTINCT ?s)`). Non usare il totale non filtrato come denominatore.
+`--count-only` conta gli **atti**, non le righe, e l'elenco restituisce una riga per atto: sul grafo intero sono 121.021. (Fino alla 0.32.5 il totale non filtrato per legislatura era gonfio del 32% e l'elenco duplicava gli atti con più di un primo firmatario — 1.000 righe contenevano 557 atti; i conteggi filtrati per legislatura erano invece corretti. Corretto in issue #99.)
 
 ### `bill show`
 Solo atti **Camera** (`dati.camera.it`): un URI Senato produce un errore instradante verso `bill-progress --ddl-uri` / `bill-signatories --bill-uri` / `bill-text --uri`.

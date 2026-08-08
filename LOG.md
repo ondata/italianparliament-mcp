@@ -2,6 +2,18 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/` e `docs/news-agent/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna e report dell'agente news-driven, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-08-08 — issue #99: `bills` duplicava gli atti, e il conteggio era solo il sintomo
+
+- **La radice non era il `--count-only` ma la forma della query.** `ocd:primo_firmatario` è l'**unica** proprietà multi-valore fra quelle selezionate (verificate una per una: label, title, type, natura, date, description, iniziativa, identifier, rif_leg, isReferencedBy sono tutte singole per atto). Senza aggregazione un atto con 11 firmatari produceva **11 righe** identiche tranne `sponsor_uri`: su 1.000 righe senza filtro c'erano solo **557 atti distinti**, il budget di `--limit` si consumava sui duplicati e `--offset` saltava atti. Il conteggio gonfio del 32% era la conseguenza, non la causa.
+
+- **Perché non si vedeva**: gli atti con più di un primo firmatario non-blank sono **15.514 sul grafo ma ZERO in legislatura 19** — stanno tutti nelle legislature storiche (Regno 22-30 in testa). Chi guarda la legislatura corrente, cioè praticamente sempre, otteneva numeri esatti. La query aveva già un `FILTER(!isBlank(...))` che ripuliva i 277 casi multi-valore della leg. 19, tutti blank node.
+
+- **Fix**: `GROUP BY` sull'elenco con `(MIN(?_sponsor) AS ?sponsor_uri)` — l'alias va su una variabile interna perché proiettare `MIN(?sponsor_uri) AS ?sponsor_uri` sarebbe illegale in SPARQL — e `COUNT(DISTINCT ?s)` sul conteggio, che non ha bisogno del GROUP BY ed è anche più economico della vecchia subquery. Verificato: grafo intero 160.454 → **121.021**, leg. 19 invariata a 3.107, 500 righe = 500 atti distinti, `--offset 100` non ripete più nulla, e tutti i numeri dei KPI (102, 134, 338…) sono rimasti identici.
+
+- **Gli altri tool con `countOnly` sono puliti**: `aic`, `votes`, `amendments`, `sindacato-ispettivo`, `speeches` usano già `COUNT(DISTINCT)` e nessuno dei loro elenchi duplica (verificato su 1.000 righe ciascuno). Il `COUNT(*)` di `committee-sessions` è una sonda booleana su triple, non un conteggio utente.
+
+- +5 test deterministici in CI (`bills.query.test.ts`, rinominato da `bills.natura.test.ts` perché ora copre anche la forma della query) e 1 test live di regressione senza filtro di legislatura, l'unico modo di toccare i casi storici. 248 test verdi in CI.
+
 ## 2026-08-08 — caccia agli altri «risultati plausibili e sbagliati» (stessa classe del bug `--natura`)
 
 Il bug corretto su `--natura` — filtro per sottostringa applicato a un IRI, che al posto di zero righe restituisce l'intero stock — non era un caso isolato. Rastrellati tutti i `CONTAINS` dei tool e i punti dove un errore può passare per risultato:

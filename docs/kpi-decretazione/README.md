@@ -89,7 +89,7 @@ Cercare "decreto-legge" invece di "conversione in legge" sarebbe un errore da 60
 
 **Iniziativa** = `ocd:iniziativa`, valore letterale. Oltre a Governo, Parlamentare, Regioni, Popolare e CNEL esistono valori "Mista (Governo, Parlamentare)". Qui i gruppi sono tenuti distinti; attenzione perché il flag `--initiative` della CLI fa match per sottostringa, quindi `--initiative Governo` restituisce 338 (335 puri + 3 Miste) contro i 335 di questa tabella.
 
-**Denominatori** = `COUNT(DISTINCT ?s)`, mai `--count-only` del tool `bills`: senza filtro di legislatura quest'ultimo gonfia del 32% (160.454 contro 121.022 atti reali), perché un atto con più cofirmatari o più URL viene contato più volte.
+**Denominatori** = `COUNT(DISTINCT ?s)`, calcolato via il tool `sparql`. All'epoca dell'estrazione il `--count-only` di `bills` non era utilizzabile come denominatore: senza filtro di legislatura gonfiava del 32% (160.454 contro 121.021 atti reali), perché un atto con più primi firmatari veniva contato più volte. Il difetto è stato poi corretto (issue #99) e oggi i due metodi coincidono; i numeri di questa pagina restano quelli misurati con `COUNT(DISTINCT ?s)`, che non ne è mai stato toccato.
 
 ## Limiti da dichiarare se questi numeri finiscono in un pezzo
 

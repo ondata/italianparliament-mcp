@@ -127,6 +127,19 @@ describe("Camera tools", () => {
     }
   }, 30000);
 
+  it("bills: una riga per atto, anche dove il primo firmatario è multi-valore", async () => {
+    // Senza GROUP BY un atto con 11 primi firmatari produceva 11 righe: sul
+    // grafo intero 1000 righe contenevano 557 atti distinti, il --limit si
+    // consumava sui duplicati e --offset saltava atti. 15.514 atti ne hanno
+    // più d'uno, tutti in legislature storiche — nella 19 sono zero, ed è per
+    // questo che il difetto non si vedeva. Niente filtro di legislatura: è
+    // l'unico modo di toccare quei casi.
+    const result = await billsTool.execute({ limit: 300, offset: 0 });
+    const uris = result.rows.map((r) => r.uri);
+    expect(uris.length).toBe(300);
+    expect(new Set(uris).size).toBe(300);
+  }, 60000);
+
   it("bills: --natura non matcha il percorso dell'IRI (niente stock intero spacciato per filtrato)", async () => {
     // "camera" compare nell'IRI natura (http://dati.camera.it/ocd/natura.rdf/...)
     // ma non nel codice: senza STRAFTER questo filtro restituiva tutti gli atti.
