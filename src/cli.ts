@@ -976,7 +976,8 @@ const billProgressList = defineCommand({
     legislature: { type: "string", description: "Legislature number" },
     "count-only": {
       type: "boolean",
-      description: "Return only the total count of Senato DDL (column count); not available on the Camera branch",
+      description:
+        "Return only the total count of Senato DDL (column count). Senato list mode only: rejected with --uri/--branch C and with --number",
     },
     limit: { type: "string", default: "100", description: "Max rows to return" },
     offset: { type: "string", default: "0", description: "Offset for pagination" },
@@ -1444,7 +1445,11 @@ const audizioniList = defineCommand({
     keyword: { type: "string", description: 'Keyword in the hearing title, e.g. "prefetto", "Enel", "equo compenso".' },
     "date-from": { type: "string", description: "Start date inclusive. AAAAMMGG or AAAA-MM-GG." },
     "date-to": { type: "string", description: "End date inclusive. AAAAMMGG or AAAA-MM-GG." },
-    "count-only": { type: "boolean", description: "Return only the total count (column count)" },
+    "count-only": {
+      type: "boolean",
+      description:
+        "Return only the total count (column count); rejected in leg. 14 together with a date filter (there the date is filtered after the query)",
+    },
     limit: { type: "string", default: "200", description: "Max rows to return" },
     offset: { type: "string", default: "0", description: "Offset for pagination" },
     format: { type: "string", default: "csv", description: "csv | jsonl" },

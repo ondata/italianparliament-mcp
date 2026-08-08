@@ -887,6 +887,22 @@ describe("Senato tools", () => {
     ).rejects.toThrow(/--number/i);
   }, 30000);
 
+  it("bill-progress: un URI di host sconosciuto è un errore, non l'elenco intero", async () => {
+    // Prima l'URI veniva scartato in silenzio: l'elenco tornava con DDL a caso
+    // e countOnly con l'intero corpus (58.588), come se fosse la risposta.
+    await expect(
+      billProgressTool.execute({ uri: "https://example.com/ddl/123", limit: 3, offset: 0 }),
+    ).rejects.toThrow(/URI non riconosciuto/i);
+    await expect(
+      billProgressTool.execute({
+        uri: "https://example.com/ddl/123",
+        countOnly: true,
+        limit: 3,
+        offset: 0,
+      }),
+    ).rejects.toThrow(/URI non riconosciuto/i);
+  }, 30000);
+
   it("bill-progress: returns DDL for legislature 19", async () => {
     const result = await billProgressTool.execute({ legislature: 19, limit: 3, offset: 0 });
     expect(result.rows.length).toBe(3);

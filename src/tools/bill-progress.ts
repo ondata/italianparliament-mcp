@@ -63,7 +63,7 @@ const inputSchema = z.object({
     .boolean()
     .optional()
     .describe(
-      "Se true, restituisce solo il numero di DDL del repertorio Senato che soddisfano i filtri (colonna count), senza scaricare le righe. Vale solo sull'elenco Senato: sul ramo Camera l'output è la timeline di UN atto, dove un totale non significherebbe nulla.",
+      "Se true, restituisce solo il numero di DDL del repertorio Senato che soddisfano i filtri (colonna count), senza scaricare le righe. Vale SOLO in modalità elenco Senato, cioè con legislature/keyword/dateFrom/dateTo: viene rifiutato con uri o branch=C (l'output è la timeline di UN atto, un totale conterebbe stati, non atti) e con number (lì sono le poche fasi di un DDL, e uno 0 non significherebbe 'atto inesistente' perché il numero non si conserva tra i rami).",
     ),
   limit: z.number().int().min(1).max(1000).default(100),
   offset: z.number().int().min(0).default(0),
@@ -115,6 +115,19 @@ export const billProgressTool: Tool<typeof inputSchema> = {
       : isCamera(input.ddlUri)
         ? input.ddlUri
         : undefined;
+
+    // Un URI che non è né di dati.camera.it né di dati.senato.it non instrada
+    // nulla: prima veniva scartato in silenzio e il tool restituiva l'elenco
+    // intero del repertorio Senato come se fosse la risposta alla richiesta
+    // (con countOnly, l'intero corpus: 58.588). Meglio dire che l'URI non è
+    // riconosciuto che rispondere a una domanda diversa da quella posta.
+    const unknownHost = [input.uri, input.ddlUri].find(
+      (u) => u && !u.includes("dati.camera.it") && !u.includes("dati.senato.it"),
+    );
+    if (unknownHost)
+      throw new Error(
+        `URI non riconosciuto: ${unknownHost}. Questo tool instrada per host — atti Camera (http://dati.camera.it/ocd/attocamera.rdf/ac<leg>_<n>) o DDL Senato (http://dati.senato.it/ddl/<id>). Se hai solo il numero dell'atto usa --number con --branch S o C.`,
+      );
 
     // Il conteggio ha senso solo sull'elenco del repertorio Senato: sul ramo
     // Camera l'output è la timeline di un singolo atto, dove "quante righe"
