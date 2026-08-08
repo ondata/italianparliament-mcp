@@ -11,7 +11,7 @@ duckdb -c ".read scripts/kpi-decretazione/aggrega.sql"
 
 ## In sintesi
 
-Il Governo presenta circa un decimo dei progetti di legge e ne porta a casa più di due terzi. Non è una notizia nuova, ma qui è misurata su tre legislature con la stessa definizione, e mostra una tendenza: la quota governativa delle leggi approvate è passata dal 63% al 69%, la quota di leggi che nascono da un decreto-legge dal 18% al 31%, e la mediana dei tempi di approvazione di una legge governativa è scesa da 90 a 55 giorni mentre quella di una legge parlamentare è rimasta ferma sopra i 280.
+Il Governo presenta circa un decimo dei progetti di legge e ne porta a casa più di due terzi. Non è una notizia nuova, ma qui è misurata su tre legislature con la stessa definizione, e mostra una tendenza: la quota governativa delle leggi approvate è passata dal 62,7% al 68,3%, la quota di leggi che nascono da un decreto-legge dal 18% al 31%, e la mediana dei tempi di approvazione di una legge governativa è scesa da 90 a 55 giorni mentre quella di una legge parlamentare è rimasta ferma sopra i 280.
 
 ## KPI 1 — Tasso di successo per iniziativa
 
@@ -38,13 +38,17 @@ Un disegno di legge governativo ha fra le **diciotto e le ventitré volte** la p
 
 ## KPI 2 — Chi ha scritto le leggi approvate
 
-| Legislatura | Governo | Parlamentare |
-|---|---:|---:|
-| 17 | 284 (63,4%) | 164 (36,6%) |
-| 18 | 249 (69,4%) | 110 (30,6%) |
-| 19 | 261 (69,4%) | 115 (30,6%) |
+Quote sul totale delle leggi della legislatura (453, 364, 382), non sui soli due gruppi maggiori.
 
-Il contrasto è tutto qui: il Governo presenta il **7,7%** (leg. 17), **8,8%** (leg. 18) e **10,8%** (leg. 19) degli atti, e firma rispettivamente il 63,4%, 69,4% e 69,4% delle leggi. Lo scarto fra le due quote è la misura dello squilibrio.
+| Legislatura | Governo | Parlamentare | Altri |
+|---|---:|---:|---:|
+| 17 | 284 (62,7%) | 164 (36,2%) | 5 (1,1%) |
+| 18 | 249 (68,4%) | 110 (30,2%) | 5 (1,4%) |
+| 19 | 261 (68,3%) | 115 (30,1%) | 6 (1,6%) |
+
+Gli "altri" sono le briciole che rendono il quadro: Regioni, CNEL, iniziativa popolare e le iniziative Miste stanno insieme sotto il 2%, e nella legislatura 19 valgono **una legge ciascuno**.
+
+Il contrasto è tutto qui: il Governo presenta il **7,7%** (leg. 17), **8,8%** (leg. 18) e **10,8%** (leg. 19) degli atti, e firma rispettivamente il 62,7%, 68,4% e 68,3% delle leggi. Lo scarto fra le due quote è la misura dello squilibrio.
 
 ## KPI 3 — Quanto ci mette una legge ad arrivare in fondo
 
@@ -91,7 +95,7 @@ Cercare "decreto-legge" invece di "conversione in legge" sarebbe un errore da 60
 
 **La legislatura 19 è aperta.** I suoi tassi di successo saliranno ancora, man mano che gli atti pendenti chiudono. E le mediane dei tempi sono **censurate a destra**: le leggi più lente non sono ancora arrivate in fondo, quindi non entrano nel conteggio. L'effetto va in una direzione precisa — la mediana parlamentare della legislatura 19 è se mai **sottostimata**, quindi il divario reale fra le due corsie è più largo di quello in tabella, non più stretto.
 
-**Solo atti Camera.** Il denominatore dei "presentati" conta ciò che è stato presentato alla Camera. Un disegno di legge nato al Senato e mai trasmesso non compare, quindi il tasso di successo dell'iniziativa parlamentare è calcolato su una base parziale. Le leggi approvate, dovendo passare da entrambi i rami, hanno invece sempre un atto Camera.
+**Solo atti Camera.** Il denominatore dei "presentati" conta ciò che è stato presentato alla Camera. Un disegno di legge nato al Senato e mai trasmesso non compare, quindi il tasso di successo dell'iniziativa parlamentare è calcolato su una base parziale. Al numeratore il problema in linea di principio non si pone — una legge deve passare da entrambi i rami, quindi ha un atto Camera — e il dato è coerente con questa lettura (nella leg. 19 gli stati "Approvato definitivamente **dal Senato**" convivono nel grafo Camera con quelli approvati per ultimi alla Camera), ma è ragionamento costituzionale, non una misura: non è stato verificato contro l'elenco delle leggi promulgate.
 
 **Il conteggio dei DL è un text-match e non è stato validato contro una fonte autorevole.** Prima di pubblicarlo, confrontare i 134 della legislatura 19 con Normattiva o con la Gazzetta Ufficiale.
 

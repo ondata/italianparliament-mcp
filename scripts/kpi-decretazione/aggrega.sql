@@ -59,12 +59,15 @@ WHERE p.presentati >= 10          -- sotto la decina il tasso è rumore, non seg
 ORDER BY p.legislatura, p.presentati DESC;
 
 -- KPI 2 — Composizione: chi ha scritto le leggi approvate ---------------------
+-- NIENTE filtro sulle righe: la quota deve avere per denominatore TUTTE le
+-- leggi della legislatura, lo stesso totale del KPI 4. Scartare i gruppi
+-- piccoli prima della window function gonfierebbe la quota governativa di un
+-- punto (69,4% invece di 68,3% in leg. 19) e le due tabelle non tornerebbero.
 SELECT legislatura,
        coalesce(iniziativa, '(non indicata)') AS iniziativa,
        leggi,
        round(100.0 * leggi / sum(leggi) OVER (PARTITION BY legislatura), 1) AS "quota_%"
 FROM leggi
-WHERE leggi >= 5
 ORDER BY legislatura, leggi DESC;
 
 -- KPI 3 — Durata dell'iter, in giorni ----------------------------------------
