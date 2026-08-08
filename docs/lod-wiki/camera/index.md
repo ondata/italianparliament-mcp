@@ -2,6 +2,10 @@
 
 Endpoint SPARQL: `https://dati.camera.it/sparql`. Ontologia OCD (namespace `http://dati.camera.it/ocd/`).
 
+# Struttura del repository
+
+* [Named graph: perché ogni tripla sembra duplicata](named-graph.md) - l'endpoint serve ~20 named graph e la stessa tripla sta sia in `ocd/` sia nei tematici, quindi l'unione la conta una volta per grafo (269.919 triple `rdf:type` per 121.023 atti). **Trappola**: i tematici sono fette PARZIALI, non sottoinsiemi — l'atto `ac19_3053` ha 56 triple in `ocd/`, 2 in `ocd/iter/` e 0 in `ocd/atti/`, quindi "ottimizzare" con `FROM <…/ocd/atti/>` fa perdere dati in silenzio. Interrogare sempre l'unione e deduplicare con `DISTINCT`. La struttura non è documentata: catalogo DCAT senza il grafo nelle distribution, Service Description vuota, VoID a zero triple.
+
 # Entità
 
 * [Sedute e attività delle commissioni](sedute-commissione.md) - `ocd:seduta` per organo e per data; proprietà reali (`dc:date` stringa `AAAAMMGG`, `ocd:rif_organo`, `ocd:rif_leg`) e filtro legislatura obbligatorio.

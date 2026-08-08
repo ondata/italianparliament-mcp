@@ -2,6 +2,17 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/` e `docs/news-agent/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna e report dell'agente news-driven, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-08-08 — revisione della nota ai gestori LOD Camera: quattro punti su dieci non erano più veri
+
+Rilettura di `docs/note-gestori-lod/camera-assistenza-dati.md` (bozza mai inviata, verificata a inizio luglio) **riverificando ogni affermazione sull'endpoint**, non solo rileggendola. Il grafo è cambiato, e spedirla com'era avrebbe significato segnalare alla Camera cose già risolte — o mai vere.
+
+- **Rimossi tre punti interi.** (a) «`dc:title` delle votazioni vuoto»: falso oggi, **tutte** e 134.372 le votazioni hanno un titolo valorizzato e sensato ("Votazione Emendamento DDL n.1864"). (b) «Stato d'iter non aggiornato dopo il voto finale»: il caso citato — PDL 2696 ferma a "In discussione" — si è risolto, la catena arriva ora fino a "Approvato definitivamente dal Senato. Legge" (17/7): era un ritardo temporaneo, non un difetto. (c) «Prefisso `rdfs:` non accettato»: falso, funziona sia nudo sia con `PREFIX` dichiarato — errore già registrato in memoria e sopravvissuto nella bozza.
+- **Rimosso un bullet e riscritto un altro nel punto sui gruppi.** «Sulla risorsa gruppo non c'è una proprietà sigla» era falso: `dcterms:alternative` esiste (`gr4211` = `IV-CR`). E «la denominazione storica sembra sovrascritta» era una lettura sbagliata: la storia **è** modellata bene, in blank node `ocd:denominazione` con `dc:title`, `dc:date` e sigla. Il problema vero è più preciso e vale la pena dirlo così: la sigla storica lì è `A-IV-RE` mentre i 91.665 voti portano `AIV-RE` — il join fallisce per un trattino.
+- **Corretti due punti.** La natura degli atti: era scritta `ocd:natura` (è `ocd:rif_natura`) e «tre valori» (sono **quattro**, mancava `disegno_legge_costituzionale`, appena 16 atti). Il `rif_attoCamera`: l'esempio del DDL 2920 diceva «4 su 62», oggi sono **0 su 64**, quindi sostituito con la misura aggregata — 9.149 votazioni su 19.428 in leg. 19, il **47%**.
+- **Confermati** e lasciati: emendamenti assenti dal grafo, label dei gruppi troncate, `rdf:type` duplicato, `dcterms:modified` fermo al 2024-02-08, luogo di nascita leggibile solo dentro l'URI, URI di gruppo orfani (`gr4212`/`gr4234`: zero triple), componenti del Misto senza URI (`M-ALT` 5, `M-MIN` 4, `M-+EUR` 3, numeri identici a luglio).
+- **Aggiunto il punto nuovo**: i decreti-legge non sono distinguibili nel vocabolario della natura. Con la tabella dei quattro valori, il dettaglio che `rif_natura` copre al 100% le sole legislature 16-19 (17.588 atti = somma esatta), il caso `ac19_3053`, l'unico appiglio strutturale (`Decreto-legge decaduto`, 32 casi) e la misura dell'insidia: 134 con *"Conversione in legge"* contro 218 con *"decreto-legge"*, il 60% in più per via delle 78 proposte che si limitano a citare un decreto.
+- Aggiornata anche la memoria su `dc:title`, che diceva l'opposto di quel che il grafo dice oggi.
+
 ## 2026-08-08 — release v0.33.0
 
 - **v0.33.0 rilasciata**, minor: nessun tool nuovo (restano **43**), ma una capacità nuova e tre correzioni che cambiavano risultati senza dirlo.
