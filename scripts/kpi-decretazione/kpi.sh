@@ -23,21 +23,30 @@ LEGS=("$@")
 mkdir -p "$OUT"
 
 OCD="http://dati.camera.it/ocd"
+RDFS="http://www.w3.org/2000/01/rdf-schema#"
 DC="http://purl.org/dc/elements/1.1"
 
-# Il tool sparql tronca a 25 righe se non gli si dice altro, e l'avviso di
-# troncamento finisce su stdout insieme ai dati. Qui si alza il limite al
-# massimo consentito (1000) e si ABORTISCE se l'avviso compare lo stesso:
-# un CSV troncato in silenzio darebbe KPI sbagliati che sembrano giusti.
+# Il tool sparql tronca a 25 righe se non gli si dice altro. Qui si alza il
+# limite al massimo consentito (1000) e si ABORTISCE se l'avviso di troncamento
+# compare lo stesso: un CSV troncato in silenzio darebbe KPI sbagliati che
+# sembrano giusti.
+#
+# L'avviso esce su **stderr**, non su stdout: va quindi catturato a parte.
+# Cercarlo dentro lo stdout non troverebbe mai nulla e la guardia sarebbe
+# codice morto — il troncamento passerebbe liscio, che è esattamente ciò da cui
+# questa funzione dovrebbe proteggere.
 run_sparql() {
-  local out
+  local out err
+  err="$(mktemp)"
   # shellcheck disable=SC2086
-  out="$($CLI sparql --endpoint camera --query "$1" --limit 1000 --format csv)"
-  if grep -q '^AVVISO:' <<<"$out"; then
+  out="$($CLI sparql --endpoint camera --query "$1" --limit 1000 --format csv 2>"$err")"
+  if grep -q '^AVVISO:' "$err"; then
     echo "ERRORE: query troncata al limite di 1000 righe, il CSV sarebbe incompleto." >&2
     echo "        Serve paginare con LIMIT/OFFSET espliciti nella query." >&2
+    rm -f "$err"
     exit 1
   fi
+  rm -f "$err"
   printf '%s\n' "$out"
 }
 
@@ -93,12 +102,12 @@ for L in "${LEGS[@]}"; do
   # "decreto-legge" gonfierebbe il conto di ~60% (in leg. 19: 218 contro 134).
   echo "  conversioni DL" >&2
   run_sparql "SELECT (COUNT(DISTINCT ?s) AS ?dl_presentati) WHERE {
-    ?s a <$OCD/atto> ; <$OCD/rif_leg> $LU ; rdfs:label ?l .
+    ?s a <$OCD/atto> ; <$OCD/rif_leg> $LU ; <${RDFS}label> ?l .
     FILTER(CONTAINS(LCASE(STR(?l)), \"conversione in legge\"))
   }" > "$OUT/dl-presentati-leg$L.csv"
 
   run_sparql "SELECT (COUNT(DISTINCT ?s) AS ?dl_convertiti) WHERE {
-    ?s a <$OCD/atto> ; <$OCD/rif_leg> $LU ; rdfs:label ?l ;
+    ?s a <$OCD/atto> ; <$OCD/rif_leg> $LU ; <${RDFS}label> ?l ;
        <$OCD/rif_statoIter> ?si .
     ?si <$DC/title> ?t .
     FILTER(CONTAINS(LCASE(STR(?l)), \"conversione in legge\"))
