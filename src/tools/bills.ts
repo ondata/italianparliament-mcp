@@ -133,6 +133,7 @@ export function buildCountQuery(whereBody: string): string {
 
 export const billsTool: Tool<typeof inputSchema> = {
   name: "bills",
+  title: "Disegni e proposte di legge (Camera)",
   description:
     "[CAMERA] Lista disegni di legge (atti) della Camera dei Deputati. Filtrabile per legislatura, tipo, natura (costituzionale/ordinario, disegno/proposta), iniziativa (Popolare, Governo, Parlamentare, Regioni) e parola chiave nel titolo. Per i DDL del Senato usare bill-progress. Per ricostruire l'iter completo di un atto: prendi qui l'URI Camera, poi passa a bill-progress (--uri per la timeline Camera, --number+--branch S per agganciare il DDL Senato).",
   emptyHint:

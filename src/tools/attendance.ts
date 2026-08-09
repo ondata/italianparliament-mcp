@@ -35,6 +35,7 @@ const columns = [
 
 export const attendanceTool: Tool<typeof inputSchema> = {
   name: "attendance",
+  title: "Partecipazione al voto di un deputato",
   description:
     "[CAMERA] Conteggio aggregato dei voti espressi da un deputato in tutte le votazioni della sua legislatura (favorevole/contrario/astensione/non ha votato/ha votato in scrutinio segreto). L'URI del deputato è già specifico di una legislatura (es. .../deputato.rdf/d306921_17), quindi il conteggio è già delimitato senza bisogno di un filtro separato. Input per URI o per id+legislature.",
   inputSchema,

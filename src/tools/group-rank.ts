@@ -46,6 +46,7 @@ function acronym(label: string): string {
 
 export const groupRankTool: Tool<typeof inputSchema> = {
   name: "group-rank",
+  title: "Classifica dei gruppi per attività (Camera)",
   description:
     "[CAMERA] Classifica i gruppi parlamentari per attività (AIC o DDL come primo firmatario), con conteggio assoluto, numero di membri attuali del gruppo (iscrizioni senza data di fine, indipendente dal tipo di atto scelto) e media per membro (count_per_member). Utile per confrontare gruppi di dimensioni diverse: l'opposizione tipicamente presenta più atti, e il rapporto per membro evidenzia i gruppi più attivi a parità di dimensione.",
   inputSchema,

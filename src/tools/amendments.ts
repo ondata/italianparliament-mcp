@@ -178,6 +178,7 @@ export function aknEmptyHint(entriesLength: number, offset: number): string {
 
 export const amendmentsTool: Tool<typeof inputSchema> = {
   name: "amendments",
+  title: "Emendamenti (Senato)",
   description:
     "[SENATO] Emendamenti presentati al Senato con numero, tipo, DDL collegato e link al testo ufficiale. " +
     "Filtrabile per legislatura e per DDL (utile per contare/leggere gli emendamenti a un provvedimento). " +

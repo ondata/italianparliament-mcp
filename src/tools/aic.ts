@@ -74,6 +74,7 @@ const columns = [
 
 export const aicTool: Tool<typeof inputSchema> = {
   name: "aic",
+  title: "Atti di indirizzo e controllo (Camera+Senato)",
   description:
     "[CAMERA+SENATO] Atti di indirizzo e controllo: interrogazioni (orali, scritte, in commissione), interpellanze, mozioni. Include il testo/oggetto dell'atto nel campo description. Filtrabile per legislatura, deputato (primo firmatario o cofirmatario). Il filtro per data (--date-from/--date-to) combacia sia sulla data di presentazione sia su quella di modifica: per i question time (interrogazioni a risposta immediata) la modifica è la data di TRATTAZIONE IN AULA, quindi filtra per quel giorno per trovarli. IMPORTANTE: il dataset della Camera pubblica ANCHE il sindacato ispettivo del SENATO (~160.000 atti in leg. 17-19, URI con suffisso _S, primo firmatario su senatore.rdf), quindi questo è il modo per cercare per ARGOMENTO le interrogazioni dei senatori: --keyword cerca nel testo (dc:description) e trova anche gli atti Senato. Il campo chamber dice il ramo di ogni riga, --chamber lo filtra. Per gli atti Senato html_url resta vuoto (nessuna scheda verificata su aic.camera.it): il riferimento navigabile è la colonna url, che restituisce il PDF ufficiale dell'atto.",
   inputSchema,

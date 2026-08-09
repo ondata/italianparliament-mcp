@@ -40,6 +40,7 @@ const columns = [
 
 export const groupMembersTool: Tool<typeof inputSchema> = {
   name: "group-members",
+  title: "Membri di un gruppo parlamentare (Camera)",
   description:
     "[CAMERA] Membri di un gruppo parlamentare della Camera: chi ne fa parte, data inizio/fine. Filtrabile per gruppo, deputato e legislatura. Con deputato URI restituisce la storia dei cambi di gruppo.",
   inputSchema,

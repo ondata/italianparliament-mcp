@@ -84,6 +84,7 @@ function chamberOf(uri: string): string {
 
 export const peopleTool: Tool<typeof inputSchema> = {
   name: "people",
+  title: "Risoluzione di URI in nomi",
   description:
     "Risolve in batch una lista di URI di persona nei rispettivi nomi, anche misti Camera + Senato. Utile per dare i nominativi agli URI 'nudi' restituiti dai tool relazionali, evitando una chiamata deputy/senator per ciascuno. Output: uri, first_name, last_name, label, chamber, html_url.",
   inputSchema,

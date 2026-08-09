@@ -66,6 +66,7 @@ const fmtCameraDate = (d?: string): string =>
 
 export const billCommitteesTool: Tool<typeof inputSchema> = {
   name: "bill-committees",
+  title: "Commissioni assegnatarie di un DDL",
   description:
     "[CAMERA/SENATO] Commissioni a cui un DDL/atto è assegnato: nome commissione, sede/ruolo (Referente, Consultiva, Redigente, Deliberante), tipo, data di assegnazione e URI dell'organo. Il ramo è rilevato automaticamente dall'URI. Riproduce la sezione 'Commissioni a cui l'atto è stato assegnato' delle schede parlamentari.",
   inputSchema,

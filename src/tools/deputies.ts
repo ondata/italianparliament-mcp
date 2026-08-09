@@ -122,6 +122,7 @@ export function buildBirthPlaceFilter(birthPlace: string): string {
 
 export const deputiesTool: Tool<typeof inputSchema> = {
   name: "deputies",
+  title: "Deputati (Camera)",
   description:
     "[CAMERA] Lista deputati della Camera dei Deputati. Filtrabile per legislatura e circoscrizione/regione. Restituisce nome, cognome, genere, foto, profilo, mandato, elezione.",
   inputSchema,

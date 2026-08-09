@@ -107,6 +107,7 @@ const V = "http://dati.camera.it/ocd";
 
 export const votesTool: Tool<typeof inputSchema> = {
   name: "votes",
+  title: "Votazioni d'Aula (Camera)",
   description:
     "[CAMERA] Lista votazioni della Camera dei Deputati con contatori (favorevoli, contrari, astenuti), esito, tipo, seduta, atto collegato. Filtrabile per parola chiave (cerca in label, title e description: es. 'bilancio' trova le votazioni sul DDL Bilancio). Nota: alcune votazioni hanno description povera (es. solo 'DDL.n. 2920-A' senza il tema del decreto): in quel caso filtra per intervallo di date (attorno alla data di trasmissione/approvazione dall'iter) e leggi il dettaglio con vote-detail, invece di dedurre il conteggio.",
   emptyHint:

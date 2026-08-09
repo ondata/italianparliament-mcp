@@ -163,7 +163,22 @@ export function registerAll(server: McpServer): void {
   for (const tool of allTools) {
     server.registerTool(
       tool.name,
-      { description: describe(tool), inputSchema: tool.inputSchema.shape },
+      {
+        title: tool.title,
+        description: describe(tool),
+        inputSchema: tool.inputSchema.shape,
+        // Ogni tool qui è una lettura: interroga gli endpoint SPARQL o le
+        // pagine pubbliche di Camera e Senato e non scrive nulla da nessuna
+        // parte, `sparql` incluso (accetta solo SELECT). Quindi readOnlyHint
+        // ovunque e nessun destructiveHint, che ha senso solo per i tool che
+        // scrivono. `openWorldHint` perché le fonti sono servizi esterni: i
+        // risultati cambiano nel tempo e possono non rispondere.
+        annotations: {
+          title: tool.title,
+          readOnlyHint: true,
+          openWorldHint: true,
+        },
+      },
       makeHandler(tool),
     );
   }

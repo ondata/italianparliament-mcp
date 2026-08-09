@@ -57,6 +57,7 @@ function injectLimit(query: string, limit: number): string {
 
 export const sparqlTool: Tool<typeof inputSchema> = {
   name: "sparql",
+  title: "Query SPARQL libera",
   description:
     "[CAMERA+SENATO] Esegui una query SPARQL SELECT libera sugli endpoint del Parlamento italiano. " +
     "Utile per esplorare dati non coperti dagli altri tool, verificare proprieta RDF, " +

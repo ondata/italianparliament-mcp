@@ -33,6 +33,7 @@ const columns = [
 
 export const senatorTool: Tool<typeof inputSchema> = {
   name: "senator",
+  title: "Scheda di un senatore",
   description:
     "[SENATO] Scheda di un singolo senatore: nome, cognome, genere, data/luogo nascita, foto.",
   inputSchema,

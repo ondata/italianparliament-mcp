@@ -34,6 +34,7 @@ const columns = [
 
 export const memberBillsTool: Tool<typeof inputSchema> = {
   name: "member-bills",
+  title: "DDL presentati da un parlamentare",
   description:
     "[CAMERA+SENATO] DDL/proposte di legge presentati come primo firmatario da un deputato o senatore. Rilevamento automatico della camera dall'URI.",
   inputSchema,

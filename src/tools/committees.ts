@@ -208,6 +208,7 @@ LIMIT ${limit}`;
 
 export const committeesTool: Tool<typeof inputSchema> = {
   name: "committees",
+  title: "Commissioni parlamentari",
   description:
     "[CAMERA+SENATO] Commissioni parlamentari (permanenti, speciali, d'inchiesta monocamerali e bicamerali, giunte, comitati). " +
     "Camera: filtrata per legislatura (default 19; le commissioni sono istanze per-legislatura), con dc:type come categoria. " +

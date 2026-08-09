@@ -216,6 +216,7 @@ OFFSET ${input.offset}`;
 
 export const committeeMembersTool: Tool<typeof inputSchema> = {
   name: "committee-members",
+  title: "Composizione delle commissioni",
   description:
     "[CAMERA+SENATO] Composizione delle commissioni parlamentari: chi ne fa parte, con ruolo " +
     "(Presidente, Vicepresidente, Segretario, Capogruppo, Titolare/Sostituto) e date. " +

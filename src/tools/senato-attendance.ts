@@ -46,6 +46,7 @@ const columns = [
 
 export const senatoAttendanceTool: Tool<typeof inputSchema> = {
   name: "senato-attendance",
+  title: "Partecipazione al voto di un senatore",
   description:
     "[SENATO] Conteggio aggregato dei voti espressi da un senatore in tutte le votazioni d'Assemblea di una legislatura (favorevole/contrario/astenuto/presente non votante/in congedo o missione). Richiede l'URI del senatore; la legislatura è facoltativa (se omessa si deduce da quelle in cui il senatore ha voti registrati: per chi non siede più in Senato si ottiene il suo ultimo mandato invece di un vuoto). Per un senatore attivo per l'intera legislatura, totale è prossimo (non sempre identico: piccolo residuo di voti non tracciati in nessuna categoria) al numero di votazioni della legislatura (senato-votes --count-only); per un senatore a vita o subentrato a mandato, totale è naturalmente inferiore.",
   inputSchema,

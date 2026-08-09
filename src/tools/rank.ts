@@ -129,6 +129,7 @@ OFFSET ${offset}`;
 
 export const rankTool: Tool<typeof inputSchema> = {
   name: "rank",
+  title: "Classifica dei parlamentari per attività",
   description:
     "[CAMERA+SENATO] Classifica parlamentari per attivita. " +
     "Camera: AIC (primo firmatario o co-firma), disegni di legge (primo firmatario o co-firma), interventi in aula. " +
