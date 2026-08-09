@@ -1513,6 +1513,21 @@ describe("Senato tools", () => {
     expect(page1.rows.filter((r) => uris0.has(r.uri))).toEqual([]);
   }, 90000);
 
+  it("senato-votes: offset profondo restituisce la pagina giusta (no troncamento del guard)", async () => {
+    // Regressione (review PR #104, Greptile): con un page-guard fisso basso un
+    // offset valido oltre la capacità di scan del loop tornava una pagina
+    // vuota/corta in silenzio, senza che la fonte fosse esaurita. Ora il loop
+    // termina solo per target raggiunto o esaurimento: offset 4500 (su 8.102
+    // voti in leg. 19) deve restituire 50 voti distinti.
+    const result = await senatoVotesTool.execute({
+      legislature: 19,
+      limit: 50,
+      offset: 4500,
+    });
+    expect(result.rows).toHaveLength(50);
+    expect(new Set(result.rows.map((r) => r.uri)).size).toBe(50);
+  }, 90000);
+
   it("camera-amendments: scrapes counts per sede (sentinel: AC 2696 ref=37/ass=25)", async () => {
     const result = await cameraAmendmentsTool.execute({
       billUri: "http://dati.camera.it/ocd/attocamera.rdf/ac19_2696",

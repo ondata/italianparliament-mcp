@@ -15,8 +15,11 @@ import {
 } from "../core/legislature-choice.js";
 import type { Tool } from "./types.js";
 import type { Row } from "../core/types.js";
-/** Massimo numero di pagine grezze lette dall'over-fetch per onorare --limit sui voti distinti (vedi execute). */
-const SENATO_VOTES_MAX_PAGES = 8;
+/** Freno di emergenza per il loop di over-fetch: la fonte è finita, quindi la
+ * paginazione OFFSET/LIMIT si esaurisce sempre e questo cap non è mai il
+ * terminatore in pratica (a cap=1000 copre ~50k righe grezze, oltre ogni
+ * legislatura). Serve solo contro un endpoint malizioso. Vedi execute. */
+const SENATO_VOTES_MAX_PAGES = 50;
 
 /**
  * Cosa il grafo Senato contiene DAVVERO per l'intervallo di date interrogato,
@@ -666,19 +669,23 @@ ${body}`;
       // una posizione grezza nota senza scansionare; l'affettatura
       // [offset, offset+limit) avviene sotto. Caso comune (DDL singolo, 1
       // riga/voto): una sola richiesta; sui range ricchi di testi unificati
-      // servono 2-3 pagine (throttle Senato a 2s/richiesta). Per offset molto
-      // profondi preferire --count-only + finestre di date strette (vedi README).
+      // servono 2-3 pagine (throttle Senato a 2s/richiesta). Il loop termina SOLO
+      // per target raggiunto o esaurimento della fonte: mai per il page-guard
+      // (freno di emergenza), quindi anche un offset profondo restituisce la
+      // pagina giusta — al costo di scansionare da 0. Per il bulk restano
+      // consigliati --count-only + finestre di date strette (vedi README).
       const target = input.offset + input.limit;
       let rawOffset = 0;
       let cap = Math.min(1000, Math.max(input.limit, 100));
-      for (let page = 0; page < SENATO_VOTES_MAX_PAGES; page++) {
+      for (let guard = 0; guard < SENATO_VOTES_MAX_PAGES; guard++) {
         const query = buildQuery(`LIMIT ${cap}\nOFFSET ${rawOffset}`);
         assertQueryFits(query, input.keyword);
         const raw = flattenBindings(await snQuery(query));
-        if (raw.length === 0) break;
+        if (raw.length === 0) break; // oltre la fine del result set
         absorb(raw);
         rawOffset += raw.length;
-        if (byUri.size >= target || raw.length < cap) break;
+        if (byUri.size >= target) break; // pagina richiesta raggiunta
+        if (raw.length < cap) break; // fonte esaurita: non ci sono altri voti
         cap = Math.min(1000, cap * 2);
       }
     }
@@ -791,12 +798,16 @@ SELECT ?ddl ?f WHERE {
           added = true;
         }
       }
-      // Le righe supplementari rompono l'ORDER BY del server: riordina.
+      // Le righe supplementari rompono l'ORDER BY del server: riordina. Il
+      // comparatore replica DESC(?date) DESC(?numero) DESC(?v) della query
+      // (tiebreaker URI incluso), così l'ordine resta deterministico anche
+      // mescolando righe della pagina core e righe supplementari fiducie.
       if (added)
         values.sort(
           (a, b) =>
             (b.date || "").localeCompare(a.date || "") ||
-            Number(b.number || 0) - Number(a.number || 0),
+            Number(b.number || 0) - Number(a.number || 0) ||
+            (b.uri || "").localeCompare(a.uri || ""),
         );
     }
     // Backfill di bill_number dal DDL risolto: sui label generici ("Votazione
