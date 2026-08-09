@@ -2,6 +2,12 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/` e `docs/news-agent/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna e report dell'agente news-driven, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-08-09 — release v0.34.1
+
+- **v0.34.1 rilasciata**, patch: fix di correttezza su `senato-votes`. Nessun tool nuovo (restano **43**), nessuna nuova capacità utente.
+- **Fix**: `senato-votes list --limit N` restituiva meno voti del richiesto (100→80, 200→104) quando l'intervallo conteneva votazioni su testi unificati (più `?ddl` via `osr:relativoA` → più righe per lo stesso voto, `LIMIT` tagliava le righe non i voti distinti). Over-fetch in unità di voti distinti; `--offset` ora paginato in voti distinti (pagine disgiunte, prima si sovrapponevano con overlap 20/100). Dettagli, root cause e verifica live nella voce sotto e nella PR #104 (review Greptile + Copilot recepite).
+- 367/367 test verdi (suite completa, live inclusi), tsc + build + build:worker puliti.
+
 ## 2026-08-09 — fix `senato-votes`: --limit non onorava i voti distinti (testi unificati)
 
 - **Bug di correttezza silenzioso**: `senato-votes list --limit 100` restituiva 80 voti, `--limit 200` restituiva 104, senza alcun avviso su stderr. Una pipeline M2M che contava le righe sottostimava in silenzio ed era impossibile esportare una pagina intera. Emerso dal report di valutazione M2M della CLI come il difetto #1 da correggere.
