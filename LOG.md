@@ -2,6 +2,13 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/` e `docs/news-agent/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna e report dell'agente news-driven, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-08-09 — release v0.34.0
+
+- **v0.34.0 rilasciata**, minor: nessun tool nuovo (restano **43**), ma `--count-only`/`countOnly` su due comandi ad alto volume e un fix di instradamento su `bill-progress`.
+- **Nuovo**: conteggio senza scaricare le righe su `audizioni` (3.420 in leg. 19, quattro pagine da 1000 per contarle a mano) e su `bill-progress` ramo Senato (5.164 DDL, sei pagine). `bills --count-only` non copriva il secondo caso perché `bills` è solo Camera.
+- **Rifiuti espliciti dove un totale non sarebbe un conteggio di atti**: `bill-progress` con `--uri`/`--branch C` (timeline di un singolo atto) e con `--number`; `audizioni` in leg. 14 insieme a un filtro di date (lì la data si filtra dopo la query, il totale SPARQL sarebbe sovrastimato).
+- **Corretto un instradamento che restituiva vuoti fuorvianti**: `bill-progress` riconosceva il ramo con `uri.includes("dati.camera.it")`, quindi accettava anche `dati.camera.it.example.org` o un dominio con l'URI nella query string. Ora il ramo si legge dall'`hostname` (`core/chamber-uri.ts`, con test) e un URI estraneo è un errore instradante invece dell'elenco intero del repertorio. Adozione dell'helper negli altri dieci punti tracciata in #103.
+
 ## 2026-08-08 — verifica di un report M2M sulla CLI: uno su sei era un difetto vero
 
 Riverificati comando alla mano i sei "punti critici" di un report esterno sull'uso M2M della CLI (`tmp/report-cli-m2m.md`, non versionato). Solo uno ha retto.
