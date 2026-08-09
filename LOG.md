@@ -2,6 +2,16 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/` e `docs/news-agent/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna e report dell'agente news-driven, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-08-09 — fix `senato-votes`: --limit non onorava i voti distinti (testi unificati)
+
+- **Bug di correttezza silenzioso**: `senato-votes list --limit 100` restituiva 80 voti, `--limit 200` restituiva 104, senza alcun avviso su stderr. Una pipeline M2M che contava le righe sottostimava in silenzio ed era impossibile esportare una pagina intera. Emerso dal report di valutazione M2M della CLI come il difetto #1 da correggere.
+- **Radice nel codice**: la query è `SELECT DISTINCT ?v … ?ddl ?oggetto … LIMIT n`, ma `DISTINCT` è sulla tupla intera, non su `?v`. Una votazione su testi unificati ha più `?ddl` via `osr:relativoA` → più righe per lo stesso voto; `LIMIT n` taglia le righe grezze lato SPARQL, poi il dedup lato TS (`byUri`) le collassa a meno di `n`.
+- **Fix — over-fetch in unità di voti distinti**: paginazione delle righe grezze in loop (`OFFSET` avanza di ciò che è stato letto, mai overlap/gap), accumulo dei voti distinti in `byUri` finché coprono `(offset + limit)`, poi affettatura `[offset, offset+limit)`. `ORDER BY` guadagna `DESC(?v)` come tiebreaker per rendere la paginazione deterministica. Caso comune (DDL singolo, 1 riga/voto): una sola richiesta, nessun costo extra; sui range ricchi di testi unificati 2-3 pagine (throttle Senato a 2s/richiesta già gestito).
+- **Bug secondario corretto nello stesso cambio**: `--offset` era contato in righe grezze, ma l'over-fetch di pagina 1 consumava un numero variabile di righe → la pagina 2 ci ricadeva dentro (overlap osservato 20/100). Ora l'offset è in voti distinti: pagine consecutive sono disgiunte.
+- **Comportamento preservato**: il supplemento fiducie di `--keyword` può ancora far superare il limit di qualche unità sulla prima pagina (meglio includere la fiducia cercata che rispettare il conteggio, come prima); il path `--ddl-uri` è invariato (set piccolo, niente LIMIT server, post-filtro e slice in TS).
+- **Verifica live (leg. 19)**: `--limit 100` → 100 righe / 100 URI distinti (prima 80); `--limit 200` → 200/200 (prima 104); `--offset 100 --limit 100` → 100 distinti con **0 overlap** contro la prima pagina; totale `--count-only` 8.102 invariato. +2 test live in `tools.test.ts` (limit onorato + pagine disgiunte); i 7 test `senato-votes` esistenti (keyword, ddl-uri, fiducie, ddl_title, backfill numero) tutti verdi. tsc pulito.
+- **Confini**: su offset molto profondi lo scan-from-0 costa alcune richieste in più — coerente con la guida esistente del README (preferire `--count-only` + finestre di date strette per il bulk).
+
 ## 2026-08-09 — release v0.34.0
 
 - **v0.34.0 rilasciata**, minor: nessun tool nuovo (restano **43**), ma `--count-only`/`countOnly` su due comandi ad alto volume e un fix di instradamento su `bill-progress`.
