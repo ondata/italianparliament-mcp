@@ -2,6 +2,12 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/` e `docs/news-agent/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna e report dell'agente news-driven, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-08-09 — release v0.34.2
+
+- **v0.34.2 rilasciata**, patch: `title` e annotations di sola lettura su tutti i tool, più il fix di validazione che ne consegue. Nessun tool nuovo (restano **43**), nessuna nuova capacità utente.
+- **Fix**: `validateSelectQuery` cercava `SELECT` in un punto qualsiasi della query, quindi `INSERT DATA { … } ; SELECT …` passava. Con `readOnlyHint: true` ora pubblicato su `sparql`, quella promessa dev'essere garantita dal codice e non dal fatto che gli endpoint pubblici rifiutino le scritture per conto loro. La query deve iniziare con `SELECT` dopo il prologo e non contenere keyword di update; il controllo gira sullo scheletro (via commenti, letterali e IRI) per non scambiare per scrittura un `FILTER(CONTAINS(?t, "delete"))` o un IRI che contiene `add`. Segnalato in review su #105.
+- 372/372 test verdi (suite completa, live inclusi), tsc + build + build:worker puliti.
+
 ## 2026-08-09 — `title` e annotations di sola lettura su tutti i tool (PR #105)
 
 - Verso la candidatura alla Directory di Anthropic: i tool che non dichiarano `title` e `readOnlyHint`/`destructiveHint` sono una delle cause di rigetto più citate, e qui erano **0 su 43** (verificato anche sul Worker live). Ora `title` è obbligatorio nel tipo `Tool` — un tool nuovo non può nascere senza — e il loop di `registerAll` passa `title` più `annotations: { title, readOnlyHint: true, openWorldHint: true }`. Nessun `destructiveHint`: nessun tool scrive, `sparql` incluso, che accetta solo SELECT.

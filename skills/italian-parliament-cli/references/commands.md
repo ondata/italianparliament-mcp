@@ -410,7 +410,7 @@ italianparliament rank list --rank-by aic-primo-firmatario --legislature 19 --li
 `--rank-by` values: `aic-primo-firmatario` | `aic-cofirmatario` | `bills-primo-firmatario` | `bills-cofirmatario` | `speeches` | `sindacato-ispettivo` | `ddl-senato`
 
 ### `sparql query`
-Query SPARQL libera. Funziona anche senza il sotto-comando `query` (es. `sparql --endpoint ...`).
+Query SPARQL libera. Funziona anche senza il sotto-comando `query` (es. `sparql --endpoint ...`). **Solo SELECT**: la query deve iniziare con `SELECT` dopo l'eventuale prologo `BASE`/`PREFIX` e non può contenere keyword di scrittura (`INSERT`, `DELETE`, `LOAD`, `CLEAR`, `DROP`, `CREATE`, `COPY`, `MOVE`).
 ```bash
 italianparliament sparql query --endpoint camera --query "SELECT ?s WHERE { ?s a <...> } LIMIT 10"
 italianparliament sparql --endpoint senato --query "SELECT ?s WHERE { ?s ?p ?o } LIMIT 10"

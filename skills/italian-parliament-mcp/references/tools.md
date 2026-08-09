@@ -268,5 +268,5 @@ Ranking parlamentari per attività.
 
 ### `sparql`
 Query SPARQL libera sugli endpoint Camera o Senato.
-- `query` (required): query SPARQL
+- `query` (required): query SPARQL. **Solo SELECT**: deve iniziare con `SELECT` dopo l'eventuale prologo `BASE`/`PREFIX` e non può contenere keyword di scrittura (`INSERT`, `DELETE`, `LOAD`, `CLEAR`, `DROP`, `CREATE`, `COPY`, `MOVE`). `CONSTRUCT`, `ASK` e `DESCRIBE` sono rifiutate.
 - `endpoint` (required): `camera` | `senato`
