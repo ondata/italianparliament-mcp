@@ -66,3 +66,7 @@ Cautele: throttle prudenziale sull'endpoint di listing (non documentato, può ca
 
 - Raggiungibilità di GitHub (raw + endpoint JSON) dal Worker Cloudflare: testabile solo post-deploy, stessa classe di problema di #28.
 - Ipotesi "WAF Senato blocca anche il Worker": data per vera per analogia (IP datacenter), non ancora testata direttamente.
+
+## Aggiornamento 2026-08-09
+
+La premessa "IP datacenter ⇒ bloccato" alla base delle righe qui sopra **è caduta per la Camera**: la #28 è chiusa e `camera-amendments` risponde correttamente dal Worker live (AC 2696 → referente 37, assemblea 25, sia in `countOnly` sia in lista). Quindi `documenti.camera.it` non blocca più il range Cloudflare, e "stessa classe di problema di #28" non è più un pronostico negativo. Le due voci sul WAF **Senato** restano non verificate: là il blocco è di AWS, non della Camera, e nessuna sonda l'ha ancora toccato dal Worker.
