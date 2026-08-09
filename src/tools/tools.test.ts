@@ -1476,6 +1476,58 @@ describe("Senato tools", () => {
     expect(fiducia?.ddl_uri).toBe("http://dati.senato.it/ddl/59201");
   }, 45000);
 
+  it("senato-votes: --limit restituisce esattamente N voti distinti (no undercount da testi unificati)", async () => {
+    // Regressione: SELECT DISTINCT è sulla tupla (?v … ?ddl ?oggetto), e una
+    // votazione su testi unificati ha più ?ddl via osr:relativoA → più righe
+    // per lo stesso ?v. Prima del fix LIMIT n tagliava le righe grezze e il
+    // dedup portava a meno di n voti (--limit 100 restituiva 80, --limit 200
+    // restituiva 104, senza alcun avviso). Ora l'over-fetch accumula voti
+    // distinti fino a coprire il limit richiesto.
+    const result = await senatoVotesTool.execute({
+      legislature: 19,
+      limit: 200,
+      offset: 0,
+    });
+    expect(result.rows).toHaveLength(200);
+    expect(new Set(result.rows.map((r) => r.uri)).size).toBe(200);
+  }, 60000);
+
+  it("senato-votes: --offset pagina in unità di voti distinti (pagine disgiunte)", async () => {
+    // Regressione: l'offset era contato in righe grezze, ma l'over-fetch di
+    // pagina 1 consumava un numero variabile di righe (rapporto righe/voto non
+    // costante) → la pagina 2 ricadeva dentro la 1 (overlap osservato 20/100).
+    // Ora offset è in voti distinti: pagine consecutive non condividono voti.
+    const page0 = await senatoVotesTool.execute({
+      legislature: 19,
+      limit: 100,
+      offset: 0,
+    });
+    const page1 = await senatoVotesTool.execute({
+      legislature: 19,
+      limit: 100,
+      offset: 100,
+    });
+    expect(page0.rows).toHaveLength(100);
+    expect(page1.rows).toHaveLength(100);
+    const uris0 = new Set(page0.rows.map((r) => r.uri));
+    expect(page1.rows.filter((r) => uris0.has(r.uri))).toEqual([]);
+  }, 90000);
+
+  it("senato-votes: offset profondo restituisce la pagina giusta (no troncamento del guard)", async () => {
+    // Regressione (review PR #104, Greptile): con un page-guard fisso basso un
+    // offset valido oltre la capacità di scan del loop tornava una pagina
+    // vuota/corta in silenzio, senza che la fonte fosse esaurita. Ora il loop
+    // termina solo per target raggiunto o esaurimento: offset 4500 (su 8.102
+    // voti in leg. 19) deve restituire 50 voti distinti.
+    const result = await senatoVotesTool.execute({
+      legislature: 19,
+      limit: 50,
+      offset: 4500,
+    });
+    expect(result.rows).toHaveLength(50);
+    expect(new Set(result.rows.map((r) => r.uri)).size).toBe(50);
+  }, 90000);
+
   it("camera-amendments: scrapes counts per sede (sentinel: AC 2696 ref=37/ass=25)", async () => {
     const result = await cameraAmendmentsTool.execute({
       billUri: "http://dati.camera.it/ocd/attocamera.rdf/ac19_2696",

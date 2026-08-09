@@ -14,6 +14,12 @@ import {
   resolveLegislature,
 } from "../core/legislature-choice.js";
 import type { Tool } from "./types.js";
+import type { Row } from "../core/types.js";
+/** Freno di emergenza per il loop di over-fetch: la fonte è finita, quindi la
+ * paginazione OFFSET/LIMIT si esaurisce sempre e questo cap non è mai il
+ * terminatore in pratica (a cap=1000 copre ~50k righe grezze, oltre ogni
+ * legislatura). Serve solo contro un endpoint malizioso. Vedi execute. */
+const SENATO_VOTES_MAX_PAGES = 50;
 
 /**
  * Cosa il grafo Senato contiene DAVVERO per l'intervallo di date interrogato,
@@ -571,7 +577,6 @@ SELECT DISTINCT ?date ?label WHERE {
     // data (ddlDateFilter) + post-filtro sull'esito risolto. Con --ddl-uri il
     // set è piccolo: niente LIMIT/OFFSET server, paginiamo in TS dopo il
     // post-filtro (altrimenti il LIMIT taglierebbe prima del filtro).
-    const paginate = input.ddlUri ? "" : `LIMIT ${input.limit}\nOFFSET ${input.offset}`;
     // Query scritta compatta di proposito: indentazione e a capo finiscono
     // nella request-URI, che oltre SENATO_MAX_REQUEST_URI byte viene respinta
     // con 403 (di qui assertQueryFits, sotto). La keyword entra tre volte — label, titolo e
@@ -591,18 +596,20 @@ ${ddlDateFilter}
 ${dateFromFilter}
 ${dateToFilter}
 }`;
-
-    const body = `${coreSelect}\nORDER BY DESC(?date) DESC(?numero)\n${paginate}`;
     // Header prefissi minimo invece di OSR_PREFIXES (che ne dichiara quattro,
     // ~180 byte): qui servono osr: e rdfs:, e xsd: solo quando un filtro data
-    // tipizza il letterale.
-    const query = `PREFIX osr: <http://dati.senato.it/osr/>
+    // tipizza il letterale. `paginate` è "" per --ddl-uri (set piccolo, niente
+    // LIMIT server: il post-filtro sotto paginerebbe male), altrimenti la
+    // stringa LIMIT/OFFSET prodotta dal loop di over-fetch.
+    const buildQuery = (paginate: string) => {
+      // DESC(?v) come tiebreaker finale: rende l'ORDER BY totale e quindi la
+      // paginazione OFFSET/LIMIT deterministica (nessuna deriva tra pagine).
+      const body = `${coreSelect}\nORDER BY DESC(?date) DESC(?numero) DESC(?v)\n${paginate}`;
+      return `PREFIX osr: <http://dati.senato.it/osr/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>${body.includes("xsd:") ? '\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>' : ""}
 ${body}`;
-    assertQueryFits(query, input.keyword);
+    };
 
-    const results = await snQuery(query);
-    const raw = flattenBindings(results);
     // Post-filtro --ddl-uri: teniamo i voti FORTEMENTE collegati al DDL — link
     // diretto osr:relativoA (raccolto qui) o risoluzione via numero nel label
     // (Fallback 1, sotto) — più le sole FIDUCIE. Il Fallback 2 (propagazione
@@ -611,37 +618,76 @@ ${body}`;
     const strong = new Set<string>();
     // Un voto su DDL unificati è collegato a più ddl via osr:relativoA:
     // il join moltiplica le righe. Collassiamo per URI votazione e
-    // concateniamo i DDL distinti.
+    // concateniamo i DDL distinti. `absorb` deduplica le righe grezze in byUri.
     const byUri = new Map<string, Record<string, string>>();
-    for (const r of raw) {
-      const uri = r.v ?? "";
-      const ddl = r.ddl ?? "";
-      if (input.ddlUri && ddl === input.ddlUri) strong.add(uri);
-      const existing = byUri.get(uri);
-      if (existing) {
-        if (ddl && !existing.ddl_uri.split(" | ").includes(ddl)) {
-          existing.ddl_uri = existing.ddl_uri ? `${existing.ddl_uri} | ${ddl}` : ddl;
+    const absorb = (rows: Row[]) => {
+      for (const r of rows) {
+        const uri = r.v ?? "";
+        const ddl = r.ddl ?? "";
+        if (input.ddlUri && ddl === input.ddlUri) strong.add(uri);
+        const existing = byUri.get(uri);
+        if (existing) {
+          if (ddl && !existing.ddl_uri.split(" | ").includes(ddl)) {
+            existing.ddl_uri = existing.ddl_uri ? `${existing.ddl_uri} | ${ddl}` : ddl;
+          }
+          continue;
         }
-        continue;
+        byUri.set(uri, {
+          uri,
+          date: r.date ?? "",
+          number: r.numero ?? "",
+          type: r.tipo ?? "",
+          label: r.label ?? "",
+          outcome: r.esito ?? "",
+          in_favour: r.favorevoli ?? "",
+          against: r.contrari ?? "",
+          abstentions: r.astenuti ?? "",
+          present: r.presenti ?? "",
+          voters: r.votanti ?? "",
+          majority: r.maggioranza ?? "",
+          bill_number: extractBillNumber(r.label),
+          ddl_uri: ddl,
+          ddl_title: "",
+          object_uri: r.oggetto ?? "",
+        });
       }
-      byUri.set(uri, {
-        uri,
-        date: r.date ?? "",
-        number: r.numero ?? "",
-        type: r.tipo ?? "",
-        label: r.label ?? "",
-        outcome: r.esito ?? "",
-        in_favour: r.favorevoli ?? "",
-        against: r.contrari ?? "",
-        abstentions: r.astenuti ?? "",
-        present: r.presenti ?? "",
-        voters: r.votanti ?? "",
-        majority: r.maggioranza ?? "",
-        bill_number: extractBillNumber(r.label),
-        ddl_uri: ddl,
-        ddl_title: "",
-        object_uri: r.oggetto ?? "",
-      });
+    };
+
+    if (input.ddlUri) {
+      const query = buildQuery("");
+      assertQueryFits(query, input.keyword);
+      absorb(flattenBindings(await snQuery(query)));
+    } else {
+      // PAGINAZIONE CORRETTA SUI VOTI DISTINCT. SELECT DISTINCT qui è sulla
+      // tupla intera (?v … ?ddl ?oggetto): una votazione su testi unificati ha
+      // più ?ddl (via osr:relativoA) e produce più righe per lo stesso ?v, così
+      // LIMIT n taglia le righe, non i voti distinti → in uscita meno di n
+      // (es. --limit 100 restituiva 80). Over-fetch: paginiamo le righe grezze
+      // da rawOffset 0 e accumuliamo voti distinti in byUri finché raggiungono
+      // (offset + limit). L'offset è in unità di voti DISTINCT (una riga per
+      // votazione): il rapporto righe/voto varia, quindi non si può saltare a
+      // una posizione grezza nota senza scansionare; l'affettatura
+      // [offset, offset+limit) avviene sotto. Caso comune (DDL singolo, 1
+      // riga/voto): una sola richiesta; sui range ricchi di testi unificati
+      // servono 2-3 pagine (throttle Senato a 2s/richiesta). Il loop termina SOLO
+      // per target raggiunto o esaurimento della fonte: mai per il page-guard
+      // (freno di emergenza), quindi anche un offset profondo restituisce la
+      // pagina giusta — al costo di scansionare da 0. Per il bulk restano
+      // consigliati --count-only + finestre di date strette (vedi README).
+      const target = input.offset + input.limit;
+      let rawOffset = 0;
+      let cap = Math.min(1000, Math.max(input.limit, 100));
+      for (let guard = 0; guard < SENATO_VOTES_MAX_PAGES; guard++) {
+        const query = buildQuery(`LIMIT ${cap}\nOFFSET ${rawOffset}`);
+        assertQueryFits(query, input.keyword);
+        const raw = flattenBindings(await snQuery(query));
+        if (raw.length === 0) break; // oltre la fine del result set
+        absorb(raw);
+        rawOffset += raw.length;
+        if (byUri.size >= target) break; // pagina richiesta raggiunta
+        if (raw.length < cap) break; // fonte esaurita: non ci sono altri voti
+        cap = Math.min(1000, cap * 2);
+      }
     }
     // Fallback 1: alcuni voti (tipicamente le fiducie) non hanno osr:oggetto e
     // quindi nessun ddl_uri via grafo, ma citano il DDL nel label. Risolviamo il
@@ -708,40 +754,19 @@ SELECT ?ddl ?f WHERE {
         }
       }
     }
-    // Merge del supplemento fiducie (solo prima pagina: con offset > 0 le
-    // stesse righe si ripresenterebbero a ogni pagina). Le righe arrivano già
-    // risolte (ddl_uri + bill_number verificati); il totale può superare di
-    // qualche unità il limit richiesto: preferiamo l'eccesso alla perdita
-    // della fiducia cercata.
-    let supplementApplied = false;
-    if (wantsFiduciaSupplement && input.offset === 0) {
-      for (const row of await fiduciaThemeSupplement()) {
-        if (!byUri.has(row.uri)) {
-          byUri.set(row.uri, row);
-          supplementApplied = true;
-        }
-      }
-    }
     const splitMulti = (value: string): string[] =>
       value
         .split(" | ")
         .map((u) => u.trim())
         .filter(Boolean);
 
-    let values = [...byUri.values()];
-    // Le righe supplementari rompono l'ORDER BY del server: riordina.
-    if (supplementApplied)
-      values.sort(
-        (a, b) =>
-          (b.date || "").localeCompare(a.date || "") ||
-          Number(b.number || 0) - Number(a.number || 0),
-      );
+    let values: Record<string, string>[];
     if (input.ddlUri) {
       const target = input.ddlUri;
       // Post-filtro: solo i voti FORTEMENTE collegati al DDL (link diretto o
       // Fallback 1) più le sole FIDUCIE; scartiamo i voti agganciati per sola
       // propagazione-data (Fallback 2) che fiducie non sono (es. risoluzioni).
-      values = values.filter(
+      values = [...byUri.values()].filter(
         (v) =>
           v.ddl_uri
             .split(" | ")
@@ -753,6 +778,37 @@ SELECT ?ddl ?f WHERE {
       if (input.countOnly)
         return { rows: [{ count: String(values.length) }], columns: ["count"] };
       values = values.slice(input.offset, input.offset + input.limit);
+    } else {
+      // Pagina in unità di voti DISTINCT: byUri contiene (offset+limit) voti
+      // distinti raccolti dal loop di over-fetch; ne affettiamo la pagina
+      // richiesta. Il supplemento fiducie (sotto, solo offset 0) può far
+      // superare il limit: è l'eccesso voluto, non lo tagliamo.
+      values = [...byUri.values()].slice(input.offset, input.offset + input.limit);
+    }
+    // Supplemento fiducie per --keyword (solo prima pagina): le fiducie non
+    // matchano la keyword nel label (prive di osr:oggetto) ma nel titolo del DDL
+    // citato per numero sì. Le appendiamo oltre il limit: meglio includere la
+    // fiducia cercata che rispettare il conteggio (comportamento preesistente).
+    if (wantsFiduciaSupplement && input.offset === 0) {
+      const seen = new Set(values.map((v) => v.uri));
+      let added = false;
+      for (const row of await fiduciaThemeSupplement()) {
+        if (!seen.has(row.uri)) {
+          values.push(row);
+          added = true;
+        }
+      }
+      // Le righe supplementari rompono l'ORDER BY del server: riordina. Il
+      // comparatore replica DESC(?date) DESC(?numero) DESC(?v) della query
+      // (tiebreaker URI incluso), così l'ordine resta deterministico anche
+      // mescolando righe della pagina core e righe supplementari fiducie.
+      if (added)
+        values.sort(
+          (a, b) =>
+            (b.date || "").localeCompare(a.date || "") ||
+            Number(b.number || 0) - Number(a.number || 0) ||
+            (b.uri || "").localeCompare(a.uri || ""),
+        );
     }
     // Backfill di bill_number dal DDL risolto: sui label generici ("Votazione
     // finale") o coi refusi il numero non è estraibile dal testo, ma quando
