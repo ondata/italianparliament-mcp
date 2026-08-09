@@ -152,6 +152,7 @@ LIMIT ${limit}`;
 
 export const searchTool: Tool<typeof inputSchema> = {
   name: "search",
+  title: "Ricerca di parlamentari per nome",
   description:
     "[CAMERA+SENATO] Cerca parlamentari per nome/cognome in Camera, Senato o entrambi. Utile come primo passo per trovare l'URI di un parlamentare. Ranking dei risultati: match esatto sul cognome/token finale e preferenza per la legislatura corrente (19) portano in cima il parlamentare più pertinente (es. 'boschi' → Maria Elena Boschi leg.19 prima degli omonimi storici e delle sottostringhe come 'Tiraboschi').",
   inputSchema,

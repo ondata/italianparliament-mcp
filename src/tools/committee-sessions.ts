@@ -385,6 +385,7 @@ WHERE {
 
 export const committeeSessionsTool: Tool<typeof inputSchema> = {
   name: "committee-sessions",
+  title: "Sedute delle commissioni",
   description:
     "[CAMERA+SENATO] Attività delle commissioni. Due modalità: (1) iter di un DDL (--ddl-uri: sedute in cui il provvedimento è stato trattato, solo Senato); " +
     "(2) seguire una commissione (--committee-uri o --committee-name + --chamber: tutte le sedute di una commissione, filtrabili per data). " +

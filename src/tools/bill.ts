@@ -28,6 +28,7 @@ const columns = [
 
 export const billTool: Tool<typeof inputSchema> = {
   name: "bill",
+  title: "Scheda di un atto (Camera)",
   description:
     "[CAMERA] Scheda di un singolo atto della Camera: titolo, tipo, data, iniziativa, firmatario, stato. Solo URI dati.camera.it: per i DDL del Senato usa bill-progress (iter), bill-signatories (firmatari) e bill-text (testi).",
   inputSchema,

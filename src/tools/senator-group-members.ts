@@ -40,6 +40,7 @@ const columns = [
 
 export const senatorGroupMembersTool: Tool<typeof inputSchema> = {
   name: "senator-group-members",
+  title: "Membri di un gruppo parlamentare (Senato)",
   description:
     "[SENATO] Membri di un gruppo parlamentare del Senato attivi in una data (default: oggi). Restituisce senatore, gruppo, date ingresso/uscita. Filtrabile per gruppo URI e legislatura.",
   inputSchema,

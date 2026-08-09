@@ -39,6 +39,7 @@ function legNum(legUri: string): string {
 
 export const personCareerTool: Tool<typeof inputSchema> = {
   name: "person-career",
+  title: "Carriera di una persona (Camera)",
   description:
     "[CAMERA] Carriera unificata di una persona attraverso le legislature e il governo, a partire dall'entità persona della Camera (che unifica i mandati da deputato in tutte le legislature e gli incarichi di governo). Risolve 'doppio incarico parlamento+governo' e 'carriera multi-legislatura'. NB: il collegamento Camera↔Senato non è esposto nei dati (namespace separati, nessun ID condiviso); va fatto per nome + data di nascita.",
   inputSchema,

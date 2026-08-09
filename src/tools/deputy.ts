@@ -42,6 +42,7 @@ const columns = [
 
 export const deputyTool: Tool<typeof inputSchema> = {
   name: "deputy",
+  title: "Scheda di un deputato",
   description:
     "[CAMERA] Scheda di un singolo deputato: nome, cognome, genere, foto, profilo Camera. Input per URI o per id+legislature.",
   inputSchema,

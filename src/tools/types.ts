@@ -29,6 +29,12 @@ export type ToolResult = {
 
 export type Tool<S extends ZodTypeAny = ZodTypeAny> = {
   name: string;
+  /**
+   * Nome leggibile mostrato dai client MCP al posto dell'identificatore
+   * tecnico. Obbligatorio: la Directory di Anthropic rifiuta i server i cui
+   * tool non lo dichiarano, insieme alle annotations di sola lettura.
+   */
+  title: string;
   description: string;
   inputSchema: S;
   examples: string[];

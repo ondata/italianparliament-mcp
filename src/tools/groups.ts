@@ -19,6 +19,7 @@ const columns = ["uri", "label", "title", "acronym", "legislature_uri", "html_ur
 
 export const groupsTool: Tool<typeof inputSchema> = {
   name: "groups",
+  title: "Gruppi parlamentari (Camera)",
   description:
     "[CAMERA] Gruppi parlamentari della Camera dei Deputati con acronimo (es. FDI, PD-IDP, M5S). Filtrabile per legislatura.",
   inputSchema,

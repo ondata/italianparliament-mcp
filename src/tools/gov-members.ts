@@ -41,6 +41,7 @@ const columns = [
 
 export const govMembersTool: Tool<typeof inputSchema> = {
   name: "gov-members",
+  title: "Membri del governo",
   description:
     "[CAMERA] Membri del governo italiano: presidente del consiglio, ministri, sottosegretari, viceministri. Con nome, ruolo, date inizio/fine, motivo cessazione. Filtrabile per governo, legislatura o nome persona.",
   inputSchema,

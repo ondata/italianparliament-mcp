@@ -41,11 +41,44 @@ function stripComments(query: string): string {
   return result;
 }
 
-function validateSelectQuery(query: string): void {
-  const stripped = stripComments(query);
-  if (!/\bSELECT\b/i.test(stripped)) {
+/**
+ * Sostituisce con uno spazio letterali stringa e IRI: le keyword vanno cercate
+ * sullo scheletro della query, altrimenti un `FILTER(CONTAINS(?titolo,
+ * "delete"))` o un IRI che contiene `add` verrebbero scambiati per operazioni
+ * di scrittura.
+ */
+function stripLiteralsAndIris(query: string): string {
+  return query
+    .replace(/"""[\s\S]*?"""|'''[\s\S]*?'''/g, " ")
+    .replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g, " ")
+    .replace(/<[^>]*>/g, " ");
+}
+
+const WRITE_KEYWORDS = /\b(INSERT|DELETE|LOAD|CLEAR|DROP|CREATE|COPY|MOVE)\b/i;
+
+/**
+ * Esportata per i test: verificare le forme che devono essere rifiutate senza
+ * interrogare gli endpoint è l'unico modo di coprirle in un test veloce.
+ */
+export function validateSelectQuery(query: string): void {
+  const skeleton = stripLiteralsAndIris(stripComments(query));
+  // La query deve *iniziare* con SELECT (dopo l'eventuale prologo). Cercare
+  // `SELECT` in un punto qualsiasi non basta: `INSERT DATA { … } ; SELECT …`
+  // lo contiene. Il server pubblica questo tool con `readOnlyHint: true`, e
+  // quella dichiarazione va garantita qui, non lasciata alla speranza che
+  // l'endpoint rifiuti le scritture per conto suo.
+  if (!/^\s*(?:(?:BASE\s+|PREFIX\s+\S*\s*)\s*)*SELECT\b/i.test(skeleton)) {
     throw new Error(
       "Solo query SELECT supportate (non CONSTRUCT, ASK, DESCRIBE o operazioni di scrittura).",
+    );
+  }
+  // Una SELECT ben formata non contiene keyword di update: se ce ne sono, o è
+  // una sequenza di operazioni concatenate con `;` o è comunque qualcosa che
+  // non vogliamo inoltrare.
+  const write = skeleton.match(WRITE_KEYWORDS);
+  if (write) {
+    throw new Error(
+      `Solo query SELECT supportate: trovata la keyword di scrittura ${write[1].toUpperCase()}.`,
     );
   }
 }
@@ -57,6 +90,7 @@ function injectLimit(query: string, limit: number): string {
 
 export const sparqlTool: Tool<typeof inputSchema> = {
   name: "sparql",
+  title: "Query SPARQL libera",
   description:
     "[CAMERA+SENATO] Esegui una query SPARQL SELECT libera sugli endpoint del Parlamento italiano. " +
     "Utile per esplorare dati non coperti dagli altri tool, verificare proprieta RDF, " +

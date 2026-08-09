@@ -115,6 +115,7 @@ WHERE {
 
 export const voteDetailTool: Tool<typeof inputSchema> = {
   name: "vote-detail",
+  title: "Voti individuali in una votazione (Camera)",
   description:
     "[CAMERA] Voto individuale di ogni deputato in una singola votazione: come ha votato (Favorevole, Contrario, Astensione, Non ha votato) con gruppo parlamentare. Richiede l'URI della votazione (ottenibile da votes list).",
   inputSchema,

@@ -25,6 +25,7 @@ const columns = ["uri", "title", "acronym", "members", "html_url"];
 
 export const senatoGroupsTool: Tool<typeof inputSchema> = {
   name: "senato-groups",
+  title: "Gruppi parlamentari (Senato)",
   description:
     "[SENATO] Gruppi parlamentari del Senato con sigla e numero di componenti distinti. Filtrabile per legislatura. Mostra solo i gruppi con almeno un'adesione attiva (senza data fine).",
   inputSchema,

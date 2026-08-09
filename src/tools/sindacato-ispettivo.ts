@@ -63,6 +63,7 @@ const columns = [
 
 export const sindacatoIspettivoTool: Tool<typeof inputSchema> = {
   name: "sindacato-ispettivo",
+  title: "Atti di sindacato ispettivo (Senato)",
   description:
     "[SENATO] Atti di sindacato ispettivo del Senato: interrogazioni (orali e scritte), " +
     "interpellanze, mozioni, risoluzioni. Equivalente Senato degli AIC Camera. " +

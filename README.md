@@ -22,7 +22,7 @@ Usabile in tre modi:
 - **Da Claude** — come MCP server integrato in Claude Desktop o Claude Code
 - **Da remoto** — come MCP server HTTP su Cloudflare Worker (`https://italianparliament-mcp.andy-pr.workers.dev`)
 
-> ✅ **Uso consigliato: CLI o MCP installato sulla macchina** (non il Worker remoto). Alcune fonti dati sono raggiungibili solo dalla rete locale: `documenti.camera.it`/`www.camera.it` (tool `camera-amendments`) blocca con una risposta anti-bot il traffico dal range IP datacenter di Cloudflare Workers — verificato in produzione, non un sospetto (issue [#28](https://github.com/ondata/italianparliament-mcp/issues/28)); `bill-text fetch` (testo dei DDL Senato) richiede un browser reale per superare l'AWS WAF di `senato.it` ed è per questo **solo locale**, non nel bundle del Worker. Il Worker resta comodo per provare lo strumento senza installare nulla, ma solo l'uso locale garantisce la copertura completa dei tool.
+> ✅ **La copertura completa dei tool si ha solo in locale**, per un tool soltanto: `bill-text fetch` (testo dei DDL Senato) richiede un browser reale per superare l'AWS WAF di `senato.it`, quindi è CLI-only e non è nel bundle del Worker, che per quei testi emette solo i link. Tutto il resto funziona anche da remoto, `camera-amendments` incluso: il blocco anti-bot di `documenti.camera.it` sul range IP datacenter di Cloudflare Workers (issue [#28](https://github.com/ondata/italianparliament-mcp/issues/28)) non è più attivo — verificato sul Worker live il 09.08.2026. Il Worker resta il modo più semplice per provare lo strumento senza installare nulla.
 
 ## Installazione
 

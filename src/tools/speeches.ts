@@ -67,6 +67,7 @@ const senatoColumns = [
 
 export const speechesTool: Tool<typeof inputSchema> = {
   name: "speeches",
+  title: "Interventi in aula",
   description:
     "[CAMERA+SENATO] Interventi in aula con link al documento ufficiale e data (campo `date`, formato YYYY-MM-DD). Camera: stenografico/bollettino, Senato: seduta e argomento. Filtrabile per legislatura, parlamentare e intervallo di date (dateFrom/dateTo, CLI --date-from/--date-to, sulla data della seduta). Supporta conteggio rapido con countOnly (il filtro data vale anche per il conteggio). Per la Camera il filtro data richiede il parametro legislature (CLI: --legislature) come àncora dell'indice: senza, la query è molto più lenta.",
   inputSchema,

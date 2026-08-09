@@ -2,6 +2,12 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/` e `docs/news-agent/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna e report dell'agente news-driven, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-08-09 — `title` e annotations di sola lettura su tutti i tool (PR #105)
+
+- Verso la candidatura alla Directory di Anthropic: i tool che non dichiarano `title` e `readOnlyHint`/`destructiveHint` sono una delle cause di rigetto più citate, e qui erano **0 su 43** (verificato anche sul Worker live). Ora `title` è obbligatorio nel tipo `Tool` — un tool nuovo non può nascere senza — e il loop di `registerAll` passa `title` più `annotations: { title, readOnlyHint: true, openWorldHint: true }`. Nessun `destructiveHint`: nessun tool scrive, `sparql` incluso, che accetta solo SELECT.
+- **Il blocco anti-bot di `documenti.camera.it` sul range IP Cloudflare non c'è più** (#28 chiusa il 10/7): `camera-amendments` risponde dal Worker live su AC 2696 con referente 37 e assemblea 25, sia in `countOnly` sia in lista. README e `docs/analisi-fonti-non-lod.md` correggevano il vero solo per la Camera: l'ipotesi analoga sul WAF **Senato** resta non verificata. L'unico tool davvero CLI-only resta `bill-text fetch`.
+- **Come si entra nella Directory**: `ckan-mcp-server` ci è entrato con il *MCPB Desktop Extensions Submission Form* (ricevuta del 7/3/2026), non con il portale dei remote connector — quindi **nessuna organizzazione Team/Enterprise necessaria**. Non esiste alcun repo pubblico Anthropic con i metadati delle schede approvate: la Directory è indipendente dal MCP Registry e da `modelcontextprotocol/servers`. Piano di adeguamento in `tasks/todo.md`.
+
 ## 2026-08-09 — release v0.34.1
 
 - **v0.34.1 rilasciata**, patch: fix di correttezza su `senato-votes`. Nessun tool nuovo (restano **43**), nessuna nuova capacità utente.

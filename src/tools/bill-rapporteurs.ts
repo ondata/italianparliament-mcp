@@ -123,6 +123,7 @@ export function dropBareDuplicates(rows: RapporteurRow[]): RapporteurRow[] {
 
 export const billRapporteursTool: Tool<typeof inputSchema> = {
   name: "bill-rapporteurs",
+  title: "Relatori di un DDL",
   description:
     "[CAMERA/SENATO] Relatori di un DDL: nome, tipo (Relatore / f.f.), commissione/organo assegnato e data. Il ramo (Camera o Senato) è rilevato automaticamente dall'URI del DDL. CAMERA: `committee`, `date` e `rapporteur_type` provengono dai lavori d'Aula, area del LOD pubblicata con settimane di ritardo — sugli atti in corso possono essere vuote mentre il nome del relatore è corretto e aggiornato. Colonne vuote NON significano relatore incerto.",
   inputSchema,

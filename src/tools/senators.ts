@@ -85,6 +85,7 @@ const COL_MAP: Record<string, string> = {
 
 export const senatorsTool: Tool<typeof inputSchema> = {
   name: "senators",
+  title: "Senatori (Senato)",
   description:
     "[SENATO] Lista senatori del Senato della Repubblica. Filtrabile per legislatura o solo in carica. Restituisce nome, cognome, genere, data/luogo nascita, foto.",
   inputSchema,

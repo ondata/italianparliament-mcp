@@ -30,6 +30,7 @@ const columns = ["uri", "label", "date", "number", "legislature_uri", "html_url"
 
 export const sessionsTool: Tool<typeof inputSchema> = {
   name: "sessions",
+  title: "Sedute d'Aula (Camera)",
   description:
     "[CAMERA] Sedute della Camera dei Deputati con numero progressivo e data, ordinate dalla piu recente. Filtrabile per legislatura e data.",
   inputSchema,

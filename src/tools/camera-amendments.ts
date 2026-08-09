@@ -129,6 +129,7 @@ function schedaListUrls(html: string): string[] {
 
 export const cameraAmendmentsTool: Tool<typeof inputSchema> = {
   name: "camera-amendments",
+  title: "Emendamenti (Camera)",
   description:
     "[CAMERA] Emendamenti (proposte emendative) a un atto della Camera, per sede (referente/Assemblea): numero, articolo, primo firmatario, emendamenti identici e link al testo. Con --count-only restituisce il conteggio per sede. FONTE: app HTML documenti.camera.it (gli emendamenti Camera non sono nel LOD); per il Senato usare invece 'amendments'. Copre anche gli atti di legislature passate (es. leg.18): la scheda atto storica spesso non incorpora più il link diretto agli emendamenti, in quel caso il tool usa in automatico l'indice per-atto apps/emendamenti/ostr.",
   inputSchema,

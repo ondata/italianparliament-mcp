@@ -324,6 +324,7 @@ OFFSET ${opts.offset}`;
 
 export const audizioniTool: Tool<typeof inputSchema> = {
   name: "audizioni",
+  title: "Audizioni delle commissioni (Camera)",
   description:
     "[CAMERA] Audizioni delle commissioni della Camera. Leg. 19 (dato vivo): via titolo della discussione — restituisce data, commissione, titolo (con nome/ruolo dell'audito), atti collegati e link al bollettino. " +
     "Leg. 14 (storica): via dc:type \"Audizioni informali\". " +
