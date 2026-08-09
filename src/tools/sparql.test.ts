@@ -1,7 +1,45 @@
 import { describe, it, expect } from "vitest";
-import { sparqlTool } from "./sparql.js";
+import { sparqlTool, validateSelectQuery } from "./sparql.js";
 
 describe("sparql tool", () => {
+  describe("validateSelectQuery", () => {
+    it("rifiuta un update che nasconde una SELECT più avanti", () => {
+      expect(() =>
+        validateSelectQuery(
+          "INSERT DATA { <http://x/a> <http://x/b> 1 } ; SELECT ?s WHERE { ?s ?p ?o }",
+        ),
+      ).toThrow("Solo query SELECT supportate");
+    });
+
+    it("rifiuta un update concatenato dopo una SELECT", () => {
+      expect(() =>
+        validateSelectQuery("SELECT ?s WHERE { ?s ?p ?o } ; DROP GRAPH <http://x/g>"),
+      ).toThrow("keyword di scrittura DROP");
+    });
+
+    it("ignora una keyword di scrittura che sta dentro un commento", () => {
+      expect(() =>
+        validateSelectQuery("# DELETE WHERE { ?s ?p ?o }\nSELECT ?s WHERE { ?s ?p ?o }"),
+      ).not.toThrow();
+    });
+
+    it("non scambia per scrittura un letterale che contiene una keyword", () => {
+      expect(() =>
+        validateSelectQuery(
+          'SELECT ?t WHERE { ?s ?p ?t . FILTER(CONTAINS(?t, "delete")) }',
+        ),
+      ).not.toThrow();
+    });
+
+    it("non scambia per scrittura un IRI che contiene una keyword", () => {
+      expect(() =>
+        validateSelectQuery(
+          "PREFIX x: <http://dati.camera.it/ocd/add-drop/> SELECT ?s WHERE { ?s a x:cosa }",
+        ),
+      ).not.toThrow();
+    });
+  });
+
   describe("validation", () => {
     it("rejects non-SELECT queries", async () => {
       await expect(
