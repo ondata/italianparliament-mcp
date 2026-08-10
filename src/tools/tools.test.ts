@@ -1632,6 +1632,28 @@ describe("Senato tools", () => {
       Number(r.in_congedo_missione);
     expect(String(total)).toBe(r.totale);
     expect(Number(r.totale)).toBeGreaterThan(0);
+    // Formula di Openpolis: le tre quote coprono esattamente il denominatore.
+    expect(Number(r.presenze) + Number(r.in_congedo_missione)).toBe(Number(r.totale));
+    expect(Number(r.totale) + Number(r.assenze)).toBe(Number(r.votazioni_periodo));
+    const somma =
+      Number(r.presenze_pct) + Number(r.missioni_pct) + Number(r.assenze_pct);
+    expect(somma).toBeGreaterThan(99.9);
+    expect(somma).toBeLessThan(100.1);
+  }, 30000);
+
+  // Il denominatore è limitato al periodo di mandato: senza quel vincolo una
+  // subentrata a legislatura iniziata (Gaudiano, in carica dall'8/1/2025)
+  // risulterebbe assente per i due anni in cui non sedeva in Senato — assente
+  // all'80% invece che presente al 96%.
+  it("senato-attendance: il denominatore copre solo il mandato di chi subentra", async () => {
+    const r = (
+      await senatoAttendanceTool.execute({
+        senatorUri: "http://dati.senato.it/senatore/32640",
+        legislature: 19,
+      })
+    ).rows[0];
+    expect(Number(r.votazioni_periodo)).toBeGreaterThan(Number(r.totale));
+    expect(Number(r.presenze_pct)).toBeGreaterThan(50);
   }, 30000);
 });
 
