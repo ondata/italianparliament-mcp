@@ -52,6 +52,24 @@ Gli scarti (0,1-1,2 punti) hanno due cause: Openpolis **scarta alcune votazioni*
 
 Le percentuali sono quindi **confrontabili entro circa un punto**, non identiche: vanno presentate come ricalcolate sul dato ufficiale, non come le cifre di Openpolis.
 
+## `osr:presenti` NON è la presenza di cui parla Openpolis
+
+La votazione porta dei contatori già pronti (`osr:presenti`, `osr:votanti`, `osr:favorevoli`, `osr:contrari`, `osr:astenuti`, `osr:congedoMissione`), e la scorciatoia viene naturale: se c'è `osr:presenti`, perché sommare cinque proprietà? Perché quel contatore misura un'altra cosa. Aggregato su tutte le 8.102 votazioni della legislatura 19:
+
+| grandezza | totale |
+|---|---:|
+| `osr:presenti` | 1.203.182 |
+| `osr:votanti` | 1.192.670 |
+| `osr:favorevoli` + `osr:contrari` + `osr:astenuti` | 1.184.960 |
+| coppie `osr:presenteNonVotante` | 61.529 |
+| presenze secondo Openpolis (espressi + pnv) | **1.246.489** |
+
+`osr:presenti` eccede i votanti di appena 10.512 su tutta la legislatura, mentre i presenti non votanti registrati sono **61.529**: il contatore ne include quindi solo una piccola parte, e resta 43.307 sotto la presenza in senso Openpolis. Sulla singola votazione la differenza si vede a occhio nudo: la `19-447-2` ha `presenti` 161 e `votanti` 160, ma i senatori con `osr:presenteNonVotante` sono **5**.
+
+**Regola: le presenze si contano dalle cinque proprietà per-senatore, non da `osr:presenti`.** Il contatore serve a leggere il singolo voto (quorum, esito), non a costruire statistiche di presenza.
+
+I contatori non sono però inaffidabili in generale: `osr:congedoMissione` sommato su tutta la legislatura fa **281.283**, esattamente il numero di relazioni `osr:inCongedoMissione` registrate. È proprio la coincidenza perfetta sulle missioni a rendere più insidioso lo scarto sui presenti — chi verificasse la coerenza dei contatori su quello sbagliato ne concluderebbe che può fidarsi anche degli altri.
+
 ## Punto aperto
 
 Resta da capire quale sottoinsieme esatto di votazioni usi Openpolis come denominatore: la scomposizione della legislatura 19 è elettronica 7.860, verifica del numero legale 91, controprova 79, nominale con appello 59, segreta 13 (totale 8.102), e nessuna combinazione ovvia riproduce il ~7.890-7.897 che Openparlamento mostra per un senatore a mandato pieno.
