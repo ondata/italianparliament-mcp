@@ -2,6 +2,12 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/`, `docs/news-agent/` e `tmp/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna, report dell'agente news-driven e materiale di analisi temporaneo, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-08-10 — release v0.35.0
+
+- **v0.35.0 rilasciata**, minor: sei colonne nuove su `senato-attendance` (presenze, assenze e le tre percentuali con la formula di Openpolis, più il denominatore) e la correzione dei conteggi Camera. Nessun tool nuovo: restano **43**.
+- **Chi ha citato un numero di `attendance` o `rank` prima di oggi deve rifarlo.** Non è un "miglioramento dei conteggi": i valori pubblicati fino alla 0.34.2 erano moltiplicati per 2 (`attendance`) e per 4 (`rank`), quindi una cifra riportata in un articolo o in un post è sbagliata di quel fattore. Le graduatorie di `rank` invece reggevano, perché il fattore era uniforme.
+- Il server MCP live e la CLI su npm sono rimasti alla 0.34.2 fino a questo rilascio: fino a qui rispondevano ancora 39.068 voti per Battilocchio invece di 19.425.
+
 ## 2026-08-10 — fix `attendance` e `rank` (Camera): i conteggi erano moltiplicati dai named graph
 
 - **`attendance` restituiva il doppio dei voti reali**: Battilocchio leg. 19 dava 39.068 anziché 19.425, e non perché una votazione abbia più appelli — nel dato Camera un voto è una votazione (verificato: voti distinti = votazioni distinte, 19.425 su `d307456_19` e 9.872 su `d306921_17`, zero voti privi di `ocd:rif_votazione`). Il raddoppio veniva dalla query: `?v a ocd:voto` trova due soluzioni per ogni voto perché la tripla `rdf:type` è asserita sia nel grafo generale `ocd/` sia nel tematico `ocd/votazioni/`, e la vista di default le somma. Con `FROM <http://dati.camera.it/ocd/>` la stessa query dà 1. È lo stesso fenomeno già scritto ai gestori il 8/8 in `docs/note-gestori-lod/camera-01-igiene-caricamento.md` (269.919 triple `rdf:type` per 121.023 atti).
