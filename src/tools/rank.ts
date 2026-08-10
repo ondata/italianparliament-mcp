@@ -84,8 +84,14 @@ function buildCameraQuery(rankBy: RankBy, legislature: number | undefined, order
       throw new Error(`Camera rank does not support ${rankBy}`);
   }
 
+  // COUNT(DISTINCT ?item), non COUNT(?item): sull'endpoint Camera le triple
+  // `rdf:type` sono asserite sia nel grafo generale `ocd/` sia nei tematici, e
+  // la vista di default (unione) somma le soluzioni. Qui i pattern duplicati
+  // erano due — quello sull'item e quello su `?person a ocd:deputato` — e i
+  // conteggi uscivano quadruplicati (Brambilla, bills leg. 19: 216 invece di
+  // 54). Vedi docs/note-gestori-lod/camera-01-igiene-caricamento.md.
   return `${OCD_PREFIXES}
-SELECT ?person ?label (COUNT(?item) AS ?n)
+SELECT ?person ?label (COUNT(DISTINCT ?item) AS ?n)
 WHERE {
   ${pattern}
   ${legFilter}

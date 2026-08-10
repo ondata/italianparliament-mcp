@@ -37,7 +37,7 @@ export const attendanceTool: Tool<typeof inputSchema> = {
   name: "attendance",
   title: "Partecipazione al voto di un deputato",
   description:
-    "[CAMERA] Conteggio aggregato dei voti espressi da un deputato in tutte le votazioni della sua legislatura (favorevole/contrario/astensione/non ha votato/ha votato in scrutinio segreto). L'URI del deputato è già specifico di una legislatura (es. .../deputato.rdf/d306921_17), quindi il conteggio è già delimitato senza bisogno di un filtro separato. Input per URI o per id+legislature.",
+    "[CAMERA] Conteggio aggregato dei voti espressi da un deputato in tutte le votazioni della sua legislatura (favorevole/contrario/astensione/non ha votato/ha votato in scrutinio segreto). Nel dato Camera ogni voto corrisponde a una votazione distinta, quindi totale è il numero di votazioni in cui il deputato risulta registrato: conteggi assoluti e percentuali (es. non_ha_votato/totale) sono nella stessa unità usata da Openpolis e dai tabulati di presenza pubblicati dai giornali. Il loro denominatore può essere di poco inferiore perché scarta alcune votazioni (segrete, per alzata di mano). L'URI del deputato è già specifico di una legislatura (es. .../deputato.rdf/d306921_17), quindi il conteggio è già delimitato senza bisogno di un filtro separato. Input per URI o per id+legislature.",
   inputSchema,
   examples: [
     "italianparliament attendance show --uri http://dati.camera.it/ocd/deputato.rdf/d302103_19",
@@ -52,8 +52,15 @@ export const attendanceTool: Tool<typeof inputSchema> = {
       input.uri ??
       `http://dati.camera.it/ocd/deputato.rdf/d${input.id}_${input.legislature}`;
 
+    // COUNT(DISTINCT ?v), non COUNT(?v): la tripla `?v a ocd:voto` è asserita
+    // sia nel grafo generale `ocd/` sia nel tematico `ocd/votazioni/`, e la
+    // vista di default (unione) le somma, raddoppiando ogni conteggio. Il nodo
+    // voto è uno solo, con un solo dc:type — non sono appelli ripetuti.
+    // Fenomeno già segnalato in docs/note-gestori-lod/camera-01-igiene-caricamento.md.
+    // Il vincolo `a ocd:voto` va tenuto: ocd:rif_deputato lega anche risorse di
+    // altro tipo (Relatore, Titolare), che entrerebbero nel conteggio.
     const query = `${OCD_PREFIXES}
-SELECT ?type (COUNT(?v) AS ?n) WHERE {
+SELECT ?type (COUNT(DISTINCT ?v) AS ?n) WHERE {
   ?v a ocd:voto ; ocd:rif_deputato <${uri}> ; dc:type ?type .
 } GROUP BY ?type`;
 
