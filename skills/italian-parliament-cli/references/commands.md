@@ -249,7 +249,7 @@ italianparliament senato-vote-detail show --vote-uri http://dati.senato.it/votaz
 ```
 
 ### `senato-attendance show`
-Conteggio aggregato dei voti di un senatore su tutte le votazioni d'Assemblea di una legislatura (favorevole/contrario/astenuto/presente non votante/in congedo o missione). L'URI senatore non contiene la legislatura, ma `--legislature` è **facoltativo**: se omesso viene dedotto dalle legislature in cui quel senatore ha voti registrati, quindi funziona anche per chi non è più in carica.
+Presenze e assenze di un senatore nelle votazioni d'Assemblea di una legislatura: conteggi per categoria (favorevole/contrario/astenuto/presente non votante/in congedo o missione) e, con la formula di Openpolis, `presenze`, `assenze` e le percentuali `presenze_pct`/`missioni_pct`/`assenze_pct`. Il denominatore (`votazioni_periodo`) è il numero di votazioni cadute dentro il mandato di quel senatore, quindi chi subentra o cessa a metà legislatura non risulta assente per il periodo in cui non era in carica. L'assenza semplice non è nel dato Senato: è ricavata come differenza, e le percentuali coincidono con quelle di Openpolis entro circa un punto. L'URI senatore non contiene la legislatura, ma `--legislature` è **facoltativo**: se omesso viene dedotto dalle legislature in cui quel senatore ha voti registrati, quindi funziona anche per chi non è più in carica.
 ```bash
 italianparliament senato-attendance show --senator-uri http://dati.senato.it/senatore/32 --legislature 19
 italianparliament senato-attendance show --senator-uri http://dati.senato.it/senatore/32609   # leg. 18, dedotta

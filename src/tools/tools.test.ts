@@ -13,6 +13,7 @@ import { speechesTool } from "./speeches.js";
 import { aicTool } from "./aic.js";
 import { committeeSessionsTool } from "./committee-sessions.js";
 import { voteDetailTool } from "./vote-detail.js";
+import { rankTool } from "./rank.js";
 import { groupMembersTool } from "./group-members.js";
 import { deputyTool } from "./deputy.js";
 import { senatorTool } from "./senator.js";
@@ -745,6 +746,29 @@ describe("Camera tools", () => {
       Number(r.altro);
     expect(String(total)).toBe(r.totale);
     expect(Number(r.non_ha_votato)).toBeGreaterThan(Number(r.favorevole));
+  }, 30000);
+
+  // Non-regressione: `?v a ocd:voto` è asserita sia in `ocd/` sia in
+  // `ocd/votazioni/`, e la vista di default somma le due soluzioni. Senza
+  // COUNT(DISTINCT ?v) ogni conteggio raddoppia (qui: 19.744 invece di 9.872).
+  // Legislatura chiusa, quindi il valore è fermo; un voto = una votazione.
+  it("attendance: conta i voti distinti, non le soluzioni duplicate dai named graph", async () => {
+    const result = await attendanceTool.execute({ id: 306921, legislature: 17 });
+    expect(result.rows[0].totale).toBe("9872");
+  }, 30000);
+
+  // Stessa insidia di `attendance`, ma qui i pattern duplicati sono due
+  // (`?item a ocd:atto` e `?person a ocd:deputato`) e senza DISTINCT il conteggio
+  // usciva quadruplicato: 384 invece di 96. Legislatura chiusa, valore fermo.
+  it("rank: conta gli atti distinti, non le soluzioni duplicate dai named graph", async () => {
+    const result = await rankTool.execute({
+      rankBy: "bills-primo-firmatario",
+      legislature: 17,
+      order: "desc",
+      limit: 1,
+      offset: 0,
+    });
+    expect(result.rows[0].count).toBe("96");
   }, 30000);
 });
 
@@ -1608,6 +1632,28 @@ describe("Senato tools", () => {
       Number(r.in_congedo_missione);
     expect(String(total)).toBe(r.totale);
     expect(Number(r.totale)).toBeGreaterThan(0);
+    // Formula di Openpolis: le tre quote coprono esattamente il denominatore.
+    expect(Number(r.presenze) + Number(r.in_congedo_missione)).toBe(Number(r.totale));
+    expect(Number(r.totale) + Number(r.assenze)).toBe(Number(r.votazioni_periodo));
+    const somma =
+      Number(r.presenze_pct) + Number(r.missioni_pct) + Number(r.assenze_pct);
+    expect(somma).toBeGreaterThan(99.9);
+    expect(somma).toBeLessThan(100.1);
+  }, 30000);
+
+  // Il denominatore è limitato al periodo di mandato: senza quel vincolo una
+  // subentrata a legislatura iniziata (Gaudiano, in carica dall'8/1/2025)
+  // risulterebbe assente per i due anni in cui non sedeva in Senato — assente
+  // all'80% invece che presente al 96%.
+  it("senato-attendance: il denominatore copre solo il mandato di chi subentra", async () => {
+    const r = (
+      await senatoAttendanceTool.execute({
+        senatorUri: "http://dati.senato.it/senatore/32640",
+        legislature: 19,
+      })
+    ).rows[0];
+    expect(Number(r.votazioni_periodo)).toBeGreaterThan(Number(r.totale));
+    expect(Number(r.presenze_pct)).toBeGreaterThan(50);
   }, 30000);
 });
 

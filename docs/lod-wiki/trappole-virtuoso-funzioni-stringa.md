@@ -73,6 +73,22 @@ Il difetto si manifesta con le **cifre** attorno alla barra, cioè esattamente s
 
 **Regola**: per cercare una sequenza che contiene una barra usare `CONTAINS`, che è letterale, e tenere la barra **fuori** da ogni `REGEX`. Se il pattern deve per forza attraversare la barra, spezzarlo in più `CONTAINS` in `||`.
 
+# 5. Senato — `IF()` dentro un aggregato risponde **403**, non un errore SPARQL
+
+Sull'endpoint Senato una `SUM(IF(...))` non torna con un errore di sintassi ma con un **HTTP 403**, cioè lo stesso codice del blocco per frequenza. Verificato il 10 agosto 2026, due query consecutive a un secondo di distanza:
+
+```sparql
+SELECT (SUM(IF(?p > 0, 1, 0)) AS ?n)                 # → 403
+WHERE { ?v a osr:Votazione ; osr:legislatura 19 ; osr:presenti ?p }
+
+SELECT (SUM(?p) AS ?n)                                # → 200, 1.203.182
+WHERE { ?v a osr:Votazione ; osr:legislatura 19 ; osr:presenti ?p }
+```
+
+**Perché conta**: il 403 del Senato è già associato a due cause diverse — il blocco per volume di richieste (che non decade aspettando) e le query oltre ~2047 byte. Questa è una terza causa, e porta fuori strada in modo particolare: chi la incontra conclude di essere stato bannato e smette di interrogare, o va a cercarsi un altro IP, mentre l'endpoint sta rispondendo regolarmente a tutto il resto.
+
+**Come distinguerle in un colpo**: dopo un 403, rilanciare subito una query minima e nota. Se risponde 200, non è un ban: è la query precedente. A quel punto, se conteneva `IF()` (o un costrutto simile) in un aggregato, riscriverla senza — i conteggi condizionali si ottengono con più query separate, o portando i valori fuori e facendo l'aritmetica a valle.
+
 # Caso reale
 
 Il filtro data di `aic list` (`src/tools/aic.ts`) deve matchare sia la presentazione (`SUBSTR(dc:date,1,8)`) sia la modifica/trattazione d'Aula dei question time (2° gruppo del composto `AAAAMMGG-AAAAMMGG`). La prima stesura usava `STRLEN(...) >= 17 && SUBSTR(...,10,8)` (→ abortiva, trappola #1) e confronti `>=`/`<=` non avvolti in `STR()` (→ 0 righe, trappola #2). La forma corretta estrae la modifica con `REPLACE` e avvolge entrambe le date in `STR()`. Vedi [Date degli atti aic](camera/aic-date.md).

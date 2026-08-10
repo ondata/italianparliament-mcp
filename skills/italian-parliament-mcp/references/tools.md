@@ -171,11 +171,14 @@ Voto del singolo senatore in una votazione, con il gruppo di appartenenza alla d
 - `voteType`: filtro (Favorevole/Contrario/Astenuto/Presente non votante/In congedo/missione)
 
 ### `senato-attendance`
-Conteggio aggregato dei voti di un senatore su tutte le votazioni d'Assemblea di una legislatura (misura di attivismo/assenteismo).
+Presenze e assenze di un senatore nelle votazioni d'Assemblea di una legislatura.
 - `senatorUri` (required): URI del senatore
 - `legislature`: facoltativo (da **v0.31.0**). L'URI del senatore non contiene la legislatura, ma se il parametro è omesso viene dedotta dalle legislature in cui quel senatore ha voti registrati: per chi non siede più in Senato si ottiene il suo mandato invece di un vuoto che si legge come "non ha votato".
-- Colonne: `favorevole`, `contrario`, `astenuto`, `presente_non_votante`, `in_congedo_missione`, `totale`
-- Per un senatore attivo tutta la legislatura, `totale` è prossimo (non sempre identico) al numero di votazioni della legislatura (`senato-votes` con `countOnly`); per un senatore a vita o subentrato, `totale` è naturalmente inferiore.
+- Colonne: `favorevole`, `contrario`, `astenuto`, `presente_non_votante`, `in_congedo_missione`, `totale`, `presenze`, `assenze`, `votazioni_periodo`, `presenze_pct`, `missioni_pct`, `assenze_pct`
+- Formula di Openpolis: `presenze` = voti espressi + presente non votante; le missioni sono categoria a sé e non contano come assenza; l'assenza semplice **non è nel dato Senato** ed è ricavata come `votazioni_periodo − totale`.
+- `votazioni_periodo` è il denominatore: le votazioni della legislatura cadute dentro il mandato di quel senatore. Per questo chi subentra o cessa a metà legislatura non risulta assente per il periodo in cui non era in carica (Gaudiano, in carica dall'8/1/2025: denominatore 1.731 invece di 8.102, presenze 96% invece del 20% che darebbe il totale di legislatura).
+- Le percentuali sono confrontabili con Openpolis e con i tabulati dei giornali **entro circa un punto** (scarti misurati 0,1-1,2 pp: Openpolis scarta alcune votazioni dal denominatore e fotografa i dati in un altro momento). Non presentarle come identiche.
+- Percentuali vuote = il periodo di mandato non spiega tutti i voti registrati, o il mandato non è nel grafo: usare i soli conteggi.
 
 ### `committee-sessions`
 Attività delle commissioni. Due modalità: (1) iter di un DDL (`ddlUri`, Senato): sedute in cui il provvedimento è stato trattato; (2) segui una commissione (`committeeUri` o `committeeName` + `chamber`): tutte le sedute, filtrabili per data.
