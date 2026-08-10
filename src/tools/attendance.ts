@@ -56,7 +56,7 @@ export const attendanceTool: Tool<typeof inputSchema> = {
     // sia nel grafo generale `ocd/` sia nel tematico `ocd/votazioni/`, e la
     // vista di default (unione) le somma, raddoppiando ogni conteggio. Il nodo
     // voto è uno solo, con un solo dc:type — non sono appelli ripetuti.
-    // Fenomeno già segnalato in docs/note-gestori-lod/camera-01-igiene-caricamento.md.
+    // Fenomeno documentato in docs/lod-wiki/camera/named-graph.md.
     // Il vincolo `a ocd:voto` va tenuto: ocd:rif_deputato lega anche risorse di
     // altro tipo (Relatore, Titolare), che entrerebbero nel conteggio.
     const query = `${OCD_PREFIXES}

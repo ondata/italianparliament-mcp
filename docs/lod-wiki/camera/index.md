@@ -4,7 +4,7 @@ Endpoint SPARQL: `https://dati.camera.it/sparql`. Ontologia OCD (namespace `http
 
 # Struttura del repository
 
-* [Named graph: perché ogni tripla sembra duplicata](named-graph.md) - l'endpoint serve ~20 named graph e la stessa tripla sta sia in `ocd/` sia nei tematici, quindi l'unione la conta una volta per grafo (269.919 triple `rdf:type` per 121.023 atti). **Trappola**: i tematici sono fette PARZIALI, non sottoinsiemi — l'atto `ac19_3053` ha 56 triple in `ocd/`, 2 in `ocd/iter/` e 0 in `ocd/atti/`, quindi "ottimizzare" con `FROM <…/ocd/atti/>` fa perdere dati in silenzio. Interrogare sempre l'unione e deduplicare con `DISTINCT`. La struttura non è documentata: catalogo DCAT senza il grafo nelle distribution, Service Description vuota, VoID a zero triple.
+* [Named graph: perché ogni tripla sembra duplicata](named-graph.md) - l'endpoint serve ~20 named graph e la stessa tripla sta sia in `ocd/` sia nei tematici, quindi l'unione la conta una volta per grafo (269.919 triple `rdf:type` per 121.023 atti). **Trappola**: i tematici sono fette PARZIALI, non sottoinsiemi — l'atto `ac19_3053` ha 56 triple in `ocd/`, 2 in `ocd/iter/` e 0 in `ocd/atti/`, quindi "ottimizzare" con `FROM <…/ocd/atti/>` fa perdere dati in silenzio. Interrogare sempre l'unione e deduplicare con `DISTINCT`. **Il fattore si compone**: ogni `a <tipo>` in più nel pattern moltiplica ancora, e due tool del progetto ci sono cascati fino al 10/8/2026 (`attendance` ×2, `rank` ×4: Brambilla risultava prima firmataria di 216 proposte di legge invece di 54). La struttura non è documentata: catalogo DCAT senza il grafo nelle distribution, Service Description vuota, VoID a zero triple.
 
 # Entità
 

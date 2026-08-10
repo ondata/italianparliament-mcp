@@ -47,7 +47,34 @@ GROUP BY ?g
 
 Quindi `FROM <http://dati.camera.it/ocd/atti/>` su un atto recente non restituisce **nulla**, e `FROM <http://dati.camera.it/ocd/iter/>` ne restituisce 2 proprietà su 56. Il grafo generale `ocd/` è l'unico completo.
 
-**Regola operativa: interrogare sempre l'unione (nessun `FROM`) e deduplicare con `DISTINCT` / `COUNT(DISTINCT ?s)`.** È quello che fanno i tool del progetto, ed è il motivo per cui funzionano. Non "ottimizzare" puntando al grafo tematico: si perdono dati senza accorgersene, ed è esattamente il tipo di errore che questo wiki esiste per prevenire.
+**Regola operativa: interrogare sempre l'unione (nessun `FROM`) e deduplicare con `DISTINCT` / `COUNT(DISTINCT ?s)`.** Non "ottimizzare" puntando al grafo tematico: si perdono dati senza accorgersene, ed è esattamente il tipo di errore che questo wiki esiste per prevenire.
+
+## Quanto è facile sbagliare: due tool del progetto lo facevano (10 agosto 2026)
+
+Questa pagina diceva che i tool del progetto deduplicano sempre "ed è il motivo per cui funzionano". Non era vero per due di essi, e la cosa è emersa solo facendo il fact-checking di un articolo di giornale.
+
+| tool | conteggio pubblicato | valore vero | fattore |
+|---|---:|---:|---:|
+| `attendance` (Battilocchio, leg. 19) | 39.068 voti | **19.425** | ×2 |
+| `rank` bills (Brambilla, leg. 19) | 216 atti | **54** | ×4 |
+| `rank` speeches (Grimaldi, leg. 19) | 6.452 interventi | **1.613** | ×4 |
+
+Due cose da portarsi dietro.
+
+**Il fattore si compone.** `attendance` aveva un solo pattern duplicato (`?v a ocd:voto`) e sbagliava di ×2; `rank` ne aveva due — `?item a ocd:atto` **e** `?person a ocd:deputato` — e sbagliava di ×4. Ogni `a <tipo>` in più nel pattern moltiplica ancora.
+
+**Il conteggio gonfiato non somiglia a un errore, somiglia a un dato.** Nessuno se n'era accorto per mesi, e nella descrizione di `attendance` era perfino finita una spiegazione plausibile di quel ×2 ("una votazione ha più chiamate, cioè più appelli") — la razionalizzazione di un artefatto. La controprova che scioglie il dubbio è la stessa query con e senza grafo esplicito:
+
+```sparql
+SELECT (COUNT(*) AS ?n) WHERE {
+  ?v a ocd:voto ; ocd:rif_deputato <…d307456_19> ; ocd:rif_votazione <…vs19_043_011> }
+```
+
+→ **2** sull'unione, **1** con `FROM <http://dati.camera.it/ocd/>`. Il nodo voto è uno solo e ha un solo `dc:type`: nel dato Camera un voto è una votazione, e infatti voti distinti e votazioni distinte coincidono (19.425 per `d307456_19`, 9.872 per `d306921_17`).
+
+**Non togliere il vincolo `a <tipo>` per aggirare il problema.** Senza `a ocd:voto`, `ocd:rif_deputato` porta dentro anche `Relatore`, `Titolare` e `maggioranza`, che voti non sono. La soluzione è `DISTINCT`, non un pattern più largo.
+
+Il fattore va misurato, non stimato: per gli atti collegati a un primo firmatario in leg. 17 e 19 è risultato uniformemente ×4, deputato per deputato (558 in leg. 17, ~400 per ciascuna delle cinque varianti di `rank` in leg. 19, nessuna eccezione), quindi le graduatorie reggevano ed erano falsi solo i valori. Su `attendance` invece **non** è uniforme: in leg. 19 si contano 39.068 soluzioni contro le 38.850 attese da un ×2 pulito, perché su un centinaio di nodi risulta duplicato anche `dc:type`. Un fattore uniforme lascia intatti i rapporti, uno non uniforme sporca anche le percentuali.
 
 (La forma con `FROM` compare anche nella pagina "OCD - Rappresentazione semantica e documentazione", dove due query di esempio girano `FROM <http://dati.camera.it/ocd/bpr/>`. Vale per quel dominio bibliografico; non generalizzarla.)
 
