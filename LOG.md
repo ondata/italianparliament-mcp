@@ -2,6 +2,13 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/`, `docs/news-agent/` e `tmp/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna, report dell'agente news-driven e materiale di analisi temporaneo, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-08-19 — release v0.36.0
+
+- **v0.36.0 rilasciata**, minor: sette colonne nuove su `attendance` (`in_missione`, `presidente_di_turno`, `assenze`, `presenze` e le tre percentuali) e il fix del primo firmatario al Senato. Nessun tool nuovo: restano **43**.
+- **Chi ha citato un `non_ha_votato` della Camera come numero di assenze deve rifarlo.** Non è un affinamento: per un ministro o un vicepresidente d'Assemblea quel numero è quasi tutto missioni e turni di presidenza. Mulè risultava con 18.844 voti non espressi su 19.426 — un assenteismo apparente del 97% — e le assenze reali sono **546, il 2,81%**. Meloni: 18.998 missioni contro 411 assenze.
+- **Chi ha citato il proponente di un atto di sindacato ispettivo a più firme deve rifarlo.** Fino alla 0.35.0 `sponsor_uri` e `presentatore` potevano essere due persone diverse, e nessuna delle due il primo firmatario.
+- Il server MCP live e la CLI su npm sono rimasti alla 0.35.0 fino a questo rilascio.
+
 ## 2026-08-19 — tre fix dal triage: primo firmatario Senato, missioni Camera, question time
 
 - **`sindacato-ispettivo` attribuiva l'atto alla persona sbagliata.** Le colonne `sponsor_uri` e `presentatore` uscivano da due `MIN` indipendenti — il nome per ordine alfabetico, l'URI per ordine lessicale — quindi accoppiavano il nome di un firmatario all'URI di un altro. Sull'interrogazione 3-01513, firmata da De Falco, Buccarella, Di Marzio e Nugnes, usciva "Paola Nugnes" con l'URI di Buccarella, e il primo firmatario (De Falco) non compariva affatto. **Chi ha citato un proponente preso da qui su un atto a più firme deve rifarlo.**
