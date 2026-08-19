@@ -4,6 +4,21 @@ import { OSR_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
 import type { Tool } from "./types.js";
 
+// Primo firmatario: l'ordine di firma sta nel suffisso del nodo iniziativa
+// (INIZ-SINDISP-<atto>-1, -2, -3 …), non nell'ordine alfabetico. Vincolando qui
+// il solo nodo "-1" ogni atto porta UNA sola iniziativa, quindi presentatore e
+// URI del senatore vengono per forza dalla stessa persona.
+// Prima di questo vincolo il tool aggregava con due MIN indipendenti
+// (MIN(?presentatore) alfabetico sui nomi, MIN(?senatore) lessicale sugli URI):
+// sull'interrogazione 3-01513, firmata da De Falco, Buccarella, Di Marzio e
+// Nugnes, restituiva il nome di Nugnes accoppiato all'URI di Buccarella, e il
+// primo firmatario (De Falco) non compariva.
+// Verificato sul dato vivo (leg. 19): dei 6.632 atti, i 6.422 che hanno almeno
+// un firmatario hanno TUTTI il nodo "-1"; i 210 restanti non hanno alcuna
+// iniziativa nel grafo, quindi l'OPTIONAL li tiene comunque nel risultato.
+// Niente BIND né subquery: il Virtuoso del Senato non li accetta.
+const FIRST_SIGNER_FILTER = `FILTER(STRENDS(STR(?iniz), "-1"))`;
+
 const inputSchema = z.object({
   legislature: z
     .number()
@@ -72,7 +87,11 @@ export const sindacatoIspettivoTool: Tool<typeof inputSchema> = {
     "espone l'oggetto dell'atto, mentre il dataset AIC della Camera pubblica anche " +
     "gli atti del Senato (URI con suffisso _S) CON il testo integrale, quindi la " +
     "ricerca tematica sugli atti dei senatori si fa lì. Questo tool resta il modo " +
-    "giusto per elencare gli atti di un senatore o per tipo e data.",
+    "giusto per elencare gli atti di un senatore o per tipo e data. " +
+    "Le colonne sponsor_uri e presentatore sono sempre il PRIMO FIRMATARIO dell'atto: " +
+    "con --senator-uri le righe sono gli atti che quel senatore ha firmato anche solo " +
+    "come cofirmatario, quindi il primo firmatario indicato può essere un'altra persona. " +
+    "Gli altri cofirmatari non sono esposti in questa tabella.",
   emptyHint:
     "Nessun atto trovato. Attenzione: il label contiene solo tipo e numero dell'atto (es. 'Interrogazione 3-02021'), NON l'oggetto/tema — quindi --keyword su un argomento (es. 'ius scholae') dà spesso vuoto anche se l'atto esiste. Per una ricerca TEMATICA usa `aic --chamber senato --keyword <tema>`: il dataset AIC della Camera contiene anche gli atti del Senato con il testo integrale. Qui invece filtra per senatore e/o data.",
   inputSchema,
@@ -171,9 +190,13 @@ WHERE {
   OPTIONAL { ?s osr:legislatura ?legislatura }
   OPTIONAL { ?s osr:esito ?esito }
   OPTIONAL { ?s osr:URLTesto ?url }
-  ?s osr:iniziativa ?iniz .
-  ?iniz osr:senatore ?senatore_uri ; osr:presentatore ?presentatore .
-  FILTER(?senatore_uri = <${input.senatorUri}>)
+  ?s osr:iniziativa ?firma .
+  ?firma osr:senatore <${input.senatorUri}> .
+  OPTIONAL {
+    ?s osr:iniziativa ?iniz .
+    ${FIRST_SIGNER_FILTER}
+    ?iniz osr:senatore ?senatore_uri ; osr:presentatore ?presentatore .
+  }
   ${senFilters.join("\n  ")}
 }
 ORDER BY DESC(?data)
@@ -200,7 +223,11 @@ WHERE {
   OPTIONAL { ?s osr:legislatura ?legislatura_ }
   OPTIONAL { ?s osr:esito ?esito_ }
   OPTIONAL { ?s osr:URLTesto ?url_ }
-  OPTIONAL { ?s osr:iniziativa ?iniz . ?iniz osr:presentatore ?p . ?iniz osr:senatore ?sen . }
+  OPTIONAL {
+    ?s osr:iniziativa ?iniz .
+    ${FIRST_SIGNER_FILTER}
+    ?iniz osr:presentatore ?p ; osr:senatore ?sen .
+  }
   ${filters.join("\n  ")}
 }
 GROUP BY ?s

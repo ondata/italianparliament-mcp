@@ -143,11 +143,12 @@ italianparliament speeches list --chamber senato --legislature 19 --date-from 20
 `--date-from`/`--date-to` filtrano per la **data della seduta**. Camera: la data non è sull'intervento (`ods:modified` è il timestamp del record) ma sulla `ocd:discussione` che lo raggruppa — il tool la ricava. Per la Camera il filtro data richiede `--legislature` (àncora l'indice; senza è molto più lento).
 
 ### `attendance show`
-Conteggio aggregato dei voti di un deputato su tutte le votazioni della sua legislatura (favorevole/contrario/astensione/non ha votato/ha votato in scrutinio segreto) — misura di attivismo/assenteismo.
+Presenze e assenze di un deputato nelle votazioni d'Assemblea della sua legislatura, con le percentuali di presenza, missione e assenza. Il denominatore è già delimitato al mandato: chi subentra a legislatura iniziata non risulta assente per il periodo in cui non sedeva.
 ```bash
 italianparliament attendance show --id 302103 --legislature 19
 italianparliament attendance show --uri http://dati.camera.it/ocd/deputato.rdf/d306921_17
 ```
+**`non_ha_votato` non è il numero di assenze.** È la somma di tre situazioni che il dato Camera tiene distinte e che il tool espone come colonne a sé: `in_missione` (assente per incarico, non conta come assenza), `presidente_di_turno` (in Aula, presiede e quindi non vota) e `assenze` (l'assenza vera, la colonna da citare per l'assenteismo). Mulè, vicepresidente della Camera in leg. 19, ha `non_ha_votato` 18.844 — che letto da solo sembra un assenteismo del 97% — ma sono 12.869 missioni, 5.429 turni di presidenza e **546 assenze reali, il 2,81%**. Le percentuali sono confrontabili con Openpolis e con i tabulati dei giornali entro circa un punto, non identiche.
 
 ---
 
@@ -222,6 +223,7 @@ Atti di sindacato ispettivo Senato.
 italianparliament sindacato-ispettivo list --legislature 19
 italianparliament sindacato-ispettivo list --legislature 19 --senator-uri <uri>
 ```
+`sponsor_uri` e `presentatore` sono sempre il **primo firmatario** dell'atto. Con `--senator-uri` le righe sono gli atti che quel senatore ha firmato anche solo come cofirmatario, quindi il primo firmatario indicato può essere un'altra persona. Gli altri cofirmatari non sono esposti in questa tabella.
 
 ### `documents list`
 ```bash
