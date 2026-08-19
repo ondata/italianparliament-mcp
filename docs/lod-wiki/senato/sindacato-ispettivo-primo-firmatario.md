@@ -61,4 +61,11 @@ Va tenuto in `OPTIONAL` se si vogliono anche gli atti senza firmatari nel grafo.
 
 `osr:numero` è un letterale tipizzato: `?s osr:numero "1-00050"` non matcha, serve `FILTER(STR(?num) = "1-00050")`.
 
-Lo stesso numero può appartenere a **due atti distinti** nella stessa legislatura, con URI e date diverse (la mozione 1-00050 esiste come `sindacatoispettivo/138071` del 24/5/2023 e `138147` del 15/6/2023). Il numero non è una chiave.
+**`osr:numero` non è una chiave.** In leg. 19, 76 numeri corrispondono a due risorse distinte (mai più di due) su 6.422 atti, e le coppie sono di due specie che il grafo non distingue:
+
+- **41 coppie con date diverse** — l'atto e la sua **riformulazione**. Sono due documenti reali: la mozione 1-00050 esiste come `138071` (24/5/2023, `osr:esito` "Riformulata") e `138147` (15/6/2023), e il sito intitola la seconda **"1-00050 (testo 2) — (riformulazione del n. 1-00050)"**. Il suffisso di versione **non è nel grafo**: entrambe espongono `osr:numero` = `1-00050`, e nessuna proprietà lega la riformulazione all'originale. Non vanno deduplicate: sono testi diversi.
+- **35 coppie con la stessa data** — la risorsa con identificativo più basso punta a una pagina che il sito **non pubblica** ("Pagina non disponibile"). Verificato su 8 coppie senza casi contrari (3-00562, 3-01011, 3-01352, 3-01460, 3-01681, 3-01836, 3-02018, 3-02286). Il fenomeno non compare in leg. 18.
+
+**Le due risorse di una coppia non si distinguono per nessuna proprietà**: stesso tipo, stesso numero, stessa data, e `osr:esito` è assente su entrambe in 22 casi su 35. L'unica differenza sistematica è l'ordine dell'identificativo — che non è un criterio semantico, quindi non va codificato in un filtro.
+
+Quando il conteggio deve essere per **atto** e non per record, il dataset AIC della Camera espone **una sola** riga per numero (`aic --chamber senato`): per 3-01011 dà solo `aic3_01011_19_S`, e per la 1-00050 un solo record aggiornato invece dei due testi. È la via per un totale non gonfiato, al prezzo di perdere la distinzione fra le versioni. Segnalato ai gestori.
