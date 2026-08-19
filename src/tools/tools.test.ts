@@ -30,6 +30,7 @@ import { cameraAmendmentsTool } from "./camera-amendments.js";
 import { documentsTool } from "./documents.js";
 import { attendanceTool } from "./attendance.js";
 import { senatoAttendanceTool } from "./senato-attendance.js";
+import { sindacatoIspettivoTool } from "./sindacato-ispettivo.js";
 
 // Integration tests — hit real SPARQL endpoints.
 // Run with: npx vitest run src/tools/tools.test.ts
@@ -757,6 +758,37 @@ describe("Camera tools", () => {
     expect(result.rows[0].totale).toBe("9872");
   }, 30000);
 
+  // Non-regressione: `non_ha_votato` somma tre situazioni che il dato Camera
+  // tiene distinte via dc:description, e confonderle produce il numero
+  // fuorviante che il tool pubblicava prima (Meloni "assente" 19.409 volte, di
+  // cui 18.998 missioni). Le tre sottocolonne devono sempre ricomporre il
+  // totale della categoria, altrimenti una descrizione nuova sta sparendo.
+  it("attendance: in_missione + presidente_di_turno + assenze ricompone non_ha_votato", async () => {
+    const result = await attendanceTool.execute({ id: 302103, legislature: 19 });
+    const r = result.rows[0];
+    const somma =
+      Number(r.in_missione) + Number(r.presidente_di_turno) + Number(r.assenze);
+    // Se questa asserzione salta, la Camera ha introdotto una dc:description
+    // nuova: finisce in `altro` invece che fra le assenze, ed è da mappare —
+    // non è un deputato diventato assente.
+    expect(String(somma)).toBe(r.non_ha_votato);
+    // La carica di governo si vede: le missioni superano di molto le assenze.
+    expect(Number(r.in_missione)).toBeGreaterThan(Number(r.assenze));
+  }, 30000);
+
+  // Legislatura chiusa, quindi i valori sono fermi: Baradello non ha né
+  // missioni né turni di presidenza, quindi tutto il non_ha_votato è assenza
+  // vera. Verifica anche che le percentuali usino `totale` come denominatore.
+  it("attendance: percentuali su legislatura chiusa (valori fermi)", async () => {
+    const result = await attendanceTool.execute({ id: 306921, legislature: 17 });
+    const r = result.rows[0];
+    expect(r.totale).toBe("9872");
+    expect(r.assenze).toBe(r.non_ha_votato);
+    expect(r.in_missione).toBe("0");
+    expect(Number(r.presenze) + Number(r.non_ha_votato)).toBe(Number(r.totale));
+    expect(r.assenze_pct).toBe("32.25");
+  }, 30000);
+
   // Stessa insidia di `attendance`, ma qui i pattern duplicati sono due
   // (`?item a ocd:atto` e `?person a ocd:deputato`) e senza DISTINCT il conteggio
   // usciva quadruplicato: 384 invece di 96. Legislatura chiusa, valore fermo.
@@ -773,6 +805,42 @@ describe("Camera tools", () => {
 });
 
 describe("Senato tools", () => {
+  // Non-regressione: il primo firmatario è il nodo iniziativa con suffisso
+  // "-1", non il minimo alfabetico. Prima del fix due MIN indipendenti
+  // accoppiavano il NOME di un firmatario all'URI di un altro: su questo atto,
+  // firmato da De Falco, Buccarella, Di Marzio e Nugnes, usciva "Paola Nugnes"
+  // con l'URI di Buccarella, e De Falco non compariva. Legislatura chiusa.
+  it("sindacato-ispettivo: primo firmatario coerente fra nome e URI", async () => {
+    const result = await sindacatoIspettivoTool.execute({
+      legislature: 18,
+      dateFrom: "2020-04-22",
+      dateTo: "2020-04-22",
+      limit: 100,
+      offset: 0,
+    });
+    const atto = result.rows.find((r) => r.identifier === "3-01513");
+    expect(atto).toBeDefined();
+    expect(atto?.presentatore).toBe("Gregorio De Falco");
+    expect(atto?.sponsor_uri).toBe("http://dati.senato.it/senatore/32615");
+  }, 30000);
+
+  // Filtrando per una COFIRMATARIA, le colonne restano il primo firmatario
+  // dell'atto: è la stessa semantica dell'altro ramo della query, non il
+  // senatore passato in input.
+  it("sindacato-ispettivo: con --senator-uri le colonne restano il primo firmatario", async () => {
+    const result = await sindacatoIspettivoTool.execute({
+      senatorUri: "http://dati.senato.it/senatore/29147",
+      legislature: 18,
+      dateFrom: "2020-04-22",
+      dateTo: "2020-04-22",
+      limit: 100,
+      offset: 0,
+    });
+    const atto = result.rows.find((r) => r.identifier === "3-01513");
+    expect(atto?.presentatore).toBe("Gregorio De Falco");
+    expect(atto?.sponsor_uri).toBe("http://dati.senato.it/senatore/32615");
+  }, 30000);
+
   it("senators: returns rows for legislature 19", async () => {
     const result = await senatorsTool.execute({ legislature: 19, limit: 3, offset: 0 });
     expect(result.rows.length).toBe(3);

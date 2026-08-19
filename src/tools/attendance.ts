@@ -28,16 +28,23 @@ const columns = [
   "contrario",
   "astensione",
   "non_ha_votato",
+  "in_missione",
+  "presidente_di_turno",
+  "assenze",
   "ha_votato",
   "altro",
   "totale",
+  "presenze",
+  "presenze_pct",
+  "missioni_pct",
+  "assenze_pct",
 ];
 
 export const attendanceTool: Tool<typeof inputSchema> = {
   name: "attendance",
   title: "Partecipazione al voto di un deputato",
   description:
-    "[CAMERA] Conteggio aggregato dei voti espressi da un deputato in tutte le votazioni della sua legislatura (favorevole/contrario/astensione/non ha votato/ha votato in scrutinio segreto). Nel dato Camera ogni voto corrisponde a una votazione distinta, quindi totale è il numero di votazioni in cui il deputato risulta registrato: conteggi assoluti e percentuali (es. non_ha_votato/totale) sono nella stessa unità usata da Openpolis e dai tabulati di presenza pubblicati dai giornali. Il loro denominatore può essere di poco inferiore perché scarta alcune votazioni (segrete, per alzata di mano). L'URI del deputato è già specifico di una legislatura (es. .../deputato.rdf/d306921_17), quindi il conteggio è già delimitato senza bisogno di un filtro separato. Input per URI o per id+legislature.",
+    "[CAMERA] Presenze e assenze di un deputato nelle votazioni d'Assemblea della sua legislatura. Conteggi per esito (favorevole/contrario/astensione/ha votato in scrutinio segreto) e, dentro il non ha votato, le tre situazioni che il dato Camera tiene distinte: in_missione, presidente_di_turno e assenze (l'assenza vera). Le tre ricompongono non_ha_votato; se non lo fanno, la differenza è in altro ed è una descrizione nuova alla fonte, non un'assenza. ATTENZIONE: non_ha_votato NON è il numero di assenze, è la loro somma — la colonna da citare per l'assenteismo è assenze. Un ministro o un presidente di Camera risulta con decine di migliaia di non_ha_votato che sono quasi tutte missioni. presenze somma voti espressi, scrutini segreti e turni di presidenza; le missioni restano categoria a sé e non sono assenze, come fa Openpolis. Il denominatore delle percentuali (presenze_pct/missioni_pct/assenze_pct) è totale, cioè le votazioni in cui il deputato risulta registrato: alla Camera è già delimitato al mandato, quindi chi subentra a legislatura iniziata non risulta assente per il periodo in cui non sedeva. Le percentuali sono confrontabili con quelle di Openpolis e dei tabulati giornalistici entro circa un punto, perché Openpolis scarta alcune votazioni (segrete, per alzata di mano) e fotografa i dati in un altro momento: non presentarle come cifre identiche. Contare presidente_di_turno fra le presenze è una scelta nostra, non una verifica contro Openpolis: chi presiede è in Aula, e l'impatto è di circa un voto per votazione; la colonna resta separata per chi volesse calcolare diversamente. L'URI del deputato è già specifico di una legislatura (es. .../deputato.rdf/d306921_17). Input per URI o per id+legislature.",
   inputSchema,
   examples: [
     "italianparliament attendance show --uri http://dati.camera.it/ocd/deputato.rdf/d302103_19",
@@ -59,10 +66,18 @@ export const attendanceTool: Tool<typeof inputSchema> = {
     // Fenomeno documentato in docs/lod-wiki/camera/named-graph.md.
     // Il vincolo `a ocd:voto` va tenuto: ocd:rif_deputato lega anche risorse di
     // altro tipo (Relatore, Titolare), che entrerebbero nel conteggio.
+    // dc:description scompone il "Non ha votato" nelle tre situazioni che il
+    // dato Camera tiene distinte e che non sono la stessa cosa per il lettore:
+    // "In missione" (assente per incarico, non è un'assenza), "Presidente di
+    // turno" (in Aula, presiede) e "Non ha partecipato" (l'assenza vera).
+    // Senza questa scomposizione Meloni risulta con 19.409 voti non espressi su
+    // 19.426, mentre 18.998 di quelli sono missioni. È OPTIONAL perché la porta
+    // solo il "Non ha votato": i voti espressi non hanno dc:description.
     const query = `${OCD_PREFIXES}
-SELECT ?type (COUNT(DISTINCT ?v) AS ?n) WHERE {
+SELECT ?type ?descr (COUNT(DISTINCT ?v) AS ?n) WHERE {
   ?v a ocd:voto ; ocd:rif_deputato <${uri}> ; dc:type ?type .
-} GROUP BY ?type`;
+  OPTIONAL { ?v dc:description ?descr }
+} GROUP BY ?type ?descr`;
 
     const labelQuery = `${OCD_PREFIXES}
 SELECT ?label WHERE { <${uri}> rdfs:label ?label } LIMIT 1`;
@@ -86,11 +101,20 @@ SELECT ?label WHERE { <${uri}> rdfs:label ?label } LIMIT 1`;
       "Non ha votato": "non_ha_votato",
       "Ha votato": "ha_votato",
     };
+    // Sottocategorie di "Non ha votato", dal dc:description.
+    const SUB: Record<string, string> = {
+      "In missione": "in_missione",
+      "Presidente di turno": "presidente_di_turno",
+      "Non ha partecipato": "assenze",
+    };
     const counts: Record<string, number> = {
       favorevole: 0,
       contrario: 0,
       astensione: 0,
       non_ha_votato: 0,
+      in_missione: 0,
+      presidente_di_turno: 0,
+      assenze: 0,
       ha_votato: 0,
       altro: 0,
     };
@@ -100,9 +124,33 @@ SELECT ?label WHERE { <${uri}> rdfs:label ?label } LIMIT 1`;
       const key = KNOWN[r.type ?? ""] ?? "altro";
       counts[key] += n;
       totale += n;
+      if (key === "non_ha_votato") {
+        // Una descrizione non prevista NON va nelle assenze: attribuire a
+        // qualcuno un'assenza che il dato non afferma è esattamente l'errore
+        // che questa scomposizione serve a togliere. Finisce in `altro`, dove
+        // sta già tutto ciò che non è classificabile, e la somma delle tre
+        // sottocolonne smette di ricomporre non_ha_votato: è il segnale che
+        // la fonte ha cambiato schema, e il test di ricomposizione lo rileva.
+        counts[SUB[r.descr ?? ""] ?? "altro"] += n;
+      }
     }
 
     const label = flattenBindings(labelResults)[0]?.label ?? "";
+    // Presenze con la stessa formula usata per il Senato: chi ha espresso un
+    // voto, chi ha partecipato a scrutinio segreto e chi presiedeva. Le
+    // missioni restano una categoria a sé, non sono assenze. Il denominatore è
+    // `totale`, che alla Camera è già delimitato al mandato del deputato
+    // (verificato sui subentrati: chi entra a legislatura iniziata ha solo le
+    // votazioni successive al suo ingresso), quindi qui non serve la query di
+    // periodo che al Senato è necessaria.
+    const presenze =
+      counts.favorevole +
+      counts.contrario +
+      counts.astensione +
+      counts.ha_votato +
+      counts.presidente_di_turno;
+    const pct = (n: number): string =>
+      totale > 0 ? ((n / totale) * 100).toFixed(2) : "";
     const rows = [
       {
         deputy_uri: uri,
@@ -112,9 +160,16 @@ SELECT ?label WHERE { <${uri}> rdfs:label ?label } LIMIT 1`;
         contrario: String(counts.contrario),
         astensione: String(counts.astensione),
         non_ha_votato: String(counts.non_ha_votato),
+        in_missione: String(counts.in_missione),
+        presidente_di_turno: String(counts.presidente_di_turno),
+        assenze: String(counts.assenze),
         ha_votato: String(counts.ha_votato),
         altro: String(counts.altro),
         totale: String(totale),
+        presenze: String(presenze),
+        presenze_pct: pct(presenze),
+        missioni_pct: pct(counts.in_missione),
+        assenze_pct: pct(counts.assenze),
       },
     ];
     return { rows, columns };

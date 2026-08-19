@@ -7,6 +7,8 @@ tags: [senato, osr, firmatari, iniziativa, trappole]
 timestamp: 2026-07-05
 ---
 
+> Questa pagina riguarda i **DDL**. Per gli atti di **sindacato ispettivo** il flag `osr:primoFirmatario` non esiste affatto e l'ordine di firma sta nel suffisso del nodo iniziativa: vedi [sindacato-ispettivo-primo-firmatario](sindacato-ispettivo-primo-firmatario.md).
+
 I firmatari di un DDL al Senato si leggono da `osr:iniziativa`: ogni `?ddl osr:iniziativa ?init` è un nodo con `osr:presentatore` (etichetta testuale), `osr:senatore` (URI del senatore, per le iniziative parlamentari) e il flag `osr:primoFirmatario`.
 
 # La trappola: `osr:primoFirmatario` NON è mutuamente esclusivo

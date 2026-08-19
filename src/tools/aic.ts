@@ -250,6 +250,36 @@ WHERE {
       };
     });
     if (rows.length === 0) {
+      // Il question time del Senato non è distinguibile nel dato, e il vuoto
+      // che ne esce si legge come "quel giorno non ci fu question time".
+      // Verificato su entrambe le fonti: nel dataset AIC gli atti del Senato
+      // sono etichettati "INTERROGAZIONE A RISPOSTA ORALE" (mentre il ramo
+      // Camera ha "A RISPOSTA IMMEDIATA IN ASSEMBLEA", ed è per questo che lì
+      // il filtro funziona), e nel LOD del Senato osr:tipo ha sei soli valori,
+      // nessuno dei quali marca l'art. 151-bis. Non esiste nemmeno una data di
+      // svolgimento o un link alla seduta da cui derivare la sede: si dice al
+      // chiamante come aggirarlo, senza inventare una categoria che il dato
+      // non ha.
+      if (
+        input.chamber === "senato" &&
+        /immediat/i.test(input.type ?? "")
+      ) {
+        return {
+          rows,
+          columns,
+          hint:
+            "Sul ramo SENATO il question time non è marcato in nessuna delle due fonti: " +
+            "gli atti risultano come 'INTERROGAZIONE A RISPOSTA ORALE', quindi --type immediata " +
+            "dà sempre zero anche per giorni in cui il question time si è tenuto. " +
+            "Rilancia senza --type sul giorno della seduta: --date-from/--date-to combaciano " +
+            "sia sulla data di presentazione sia sull'ultima modifica, e per gli atti trattati " +
+            "in Aula la modifica cade di norma il giorno della trattazione (le interrogazioni " +
+            "del question time del 22/4/2020 risultano presentate il 21 e modificate il 22). " +
+            "Il risultato mescola quindi atti trattati quel giorno e atti solo presentati quel " +
+            "giorno, da distinguere leggendo l'atto: la sede non è nel dato e non è deducibile. " +
+            "Il filtro --type immediata resta valido sul ramo Camera.",
+        };
+      }
       // Il vuoto su una finestra di date è ambiguo: può essere latenza di
       // pubblicazione. L'hint lo qualifica con l'ultimo lotto caricato.
       const hint = await cameraFreshnessHint({

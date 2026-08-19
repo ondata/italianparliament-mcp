@@ -101,9 +101,11 @@ Interventi in aula, Camera **e** Senato (`chamber`).
 - Colonna `date` (YYYY-MM-DD) in output per entrambe le camere.
 
 ### `attendance`
-Conteggio aggregato dei voti di un deputato su tutte le votazioni della sua legislatura (misura di attivismo/assenteismo). L'URI del deputato è già specifico di una legislatura (`.../deputato.rdf/d<ID>_<LEG>`), quindi il conteggio è già delimitato senza filtro separato.
+Presenze e assenze di un deputato nelle votazioni d'Assemblea della sua legislatura. L'URI del deputato è già specifico di una legislatura (`.../deputato.rdf/d<ID>_<LEG>`), quindi il conteggio è già delimitato al suo mandato senza filtro separato: chi subentra a legislatura iniziata non risulta assente per il periodo in cui non sedeva.
 - `uri` oppure `id`+`legislature`
-- Colonne: `favorevole`, `contrario`, `astensione`, `non_ha_votato`, `ha_votato` (scrutinio segreto), `altro`, `totale`
+- Colonne, nell'ordine dell'output: `deputy_uri`, `deputy_name`, `html_url`, `favorevole`, `contrario`, `astensione`, `non_ha_votato`, `in_missione`, `presidente_di_turno`, `assenze`, `ha_votato` (scrutinio segreto), `altro`, `totale`, `presenze`, `presenze_pct`, `missioni_pct`, `assenze_pct`
+- **`non_ha_votato` NON è il numero di assenze**: è la somma di tre situazioni diverse, esposte come colonne a sé — `in_missione` (assente per incarico, non è un'assenza), `presidente_di_turno` (in Aula, presiede e quindi non vota) e `assenze` (l'assenza vera). La colonna da citare per l'assenteismo è `assenze`. Mulè, vicepresidente della Camera in leg. 19: `non_ha_votato` 18.844, di cui 12.869 missioni, 5.429 turni di presidenza e **546 assenze reali (2,81%)**. Le tre sottocolonne ricompongono `non_ha_votato`; una descrizione non prevista dalla fonte finisce in `altro` e non fra le assenze, quindi uno scarto nella ricomposizione segnala un cambio di schema a monte, non un assente in più.
+- `presenze` somma voti espressi, scrutini segreti e turni di presidenza; le missioni restano categoria a sé, come fa Openpolis. Percentuali confrontabili con Openpolis e con i tabulati dei giornali **entro circa un punto**, non identiche. Contare `presidente_di_turno` fra le presenze è una scelta nostra (chi presiede è in Aula): la colonna resta separata per chi volesse calcolare diversamente.
 
 ## Attività legislativa — Senato
 
