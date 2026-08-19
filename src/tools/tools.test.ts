@@ -768,6 +768,9 @@ describe("Camera tools", () => {
     const r = result.rows[0];
     const somma =
       Number(r.in_missione) + Number(r.presidente_di_turno) + Number(r.assenze);
+    // Se questa asserzione salta, la Camera ha introdotto una dc:description
+    // nuova: finisce in `altro` invece che fra le assenze, ed è da mappare —
+    // non è un deputato diventato assente.
     expect(String(somma)).toBe(r.non_ha_votato);
     // La carica di governo si vede: le missioni superano di molto le assenze.
     expect(Number(r.in_missione)).toBeGreaterThan(Number(r.assenze));

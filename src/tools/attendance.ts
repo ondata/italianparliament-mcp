@@ -44,7 +44,7 @@ export const attendanceTool: Tool<typeof inputSchema> = {
   name: "attendance",
   title: "Partecipazione al voto di un deputato",
   description:
-    "[CAMERA] Presenze e assenze di un deputato nelle votazioni d'Assemblea della sua legislatura. Conteggi per esito (favorevole/contrario/astensione/ha votato in scrutinio segreto) e, dentro il non ha votato, le tre situazioni che il dato Camera tiene distinte: in_missione, presidente_di_turno e assenze (l'assenza vera). ATTENZIONE: non_ha_votato NON è il numero di assenze, è la loro somma — la colonna da citare per l'assenteismo è assenze. Un ministro o un presidente di Camera risulta con decine di migliaia di non_ha_votato che sono quasi tutte missioni. presenze somma voti espressi, scrutini segreti e turni di presidenza; le missioni restano categoria a sé e non sono assenze, come fa Openpolis. Il denominatore delle percentuali (presenze_pct/missioni_pct/assenze_pct) è totale, cioè le votazioni in cui il deputato risulta registrato: alla Camera è già delimitato al mandato, quindi chi subentra a legislatura iniziata non risulta assente per il periodo in cui non sedeva. Le percentuali sono confrontabili con quelle di Openpolis e dei tabulati giornalistici entro circa un punto, perché Openpolis scarta alcune votazioni (segrete, per alzata di mano) e fotografa i dati in un altro momento: non presentarle come cifre identiche. Contare presidente_di_turno fra le presenze è una scelta nostra, non una verifica contro Openpolis: chi presiede è in Aula, e l'impatto è di circa un voto per votazione; la colonna resta separata per chi volesse calcolare diversamente. L'URI del deputato è già specifico di una legislatura (es. .../deputato.rdf/d306921_17). Input per URI o per id+legislature.",
+    "[CAMERA] Presenze e assenze di un deputato nelle votazioni d'Assemblea della sua legislatura. Conteggi per esito (favorevole/contrario/astensione/ha votato in scrutinio segreto) e, dentro il non ha votato, le tre situazioni che il dato Camera tiene distinte: in_missione, presidente_di_turno e assenze (l'assenza vera). Le tre ricompongono non_ha_votato; se non lo fanno, la differenza è in altro ed è una descrizione nuova alla fonte, non un'assenza. ATTENZIONE: non_ha_votato NON è il numero di assenze, è la loro somma — la colonna da citare per l'assenteismo è assenze. Un ministro o un presidente di Camera risulta con decine di migliaia di non_ha_votato che sono quasi tutte missioni. presenze somma voti espressi, scrutini segreti e turni di presidenza; le missioni restano categoria a sé e non sono assenze, come fa Openpolis. Il denominatore delle percentuali (presenze_pct/missioni_pct/assenze_pct) è totale, cioè le votazioni in cui il deputato risulta registrato: alla Camera è già delimitato al mandato, quindi chi subentra a legislatura iniziata non risulta assente per il periodo in cui non sedeva. Le percentuali sono confrontabili con quelle di Openpolis e dei tabulati giornalistici entro circa un punto, perché Openpolis scarta alcune votazioni (segrete, per alzata di mano) e fotografa i dati in un altro momento: non presentarle come cifre identiche. Contare presidente_di_turno fra le presenze è una scelta nostra, non una verifica contro Openpolis: chi presiede è in Aula, e l'impatto è di circa un voto per votazione; la colonna resta separata per chi volesse calcolare diversamente. L'URI del deputato è già specifico di una legislatura (es. .../deputato.rdf/d306921_17). Input per URI o per id+legislature.",
   inputSchema,
   examples: [
     "italianparliament attendance show --uri http://dati.camera.it/ocd/deputato.rdf/d302103_19",
@@ -125,10 +125,13 @@ SELECT ?label WHERE { <${uri}> rdfs:label ?label } LIMIT 1`;
       counts[key] += n;
       totale += n;
       if (key === "non_ha_votato") {
-        // Una descrizione non prevista finisce fra le assenze, che è la
-        // lettura prudente: meglio contare un'assenza in più che una missione
-        // inventata. Se succede, la somma delle tre resta pari a non_ha_votato.
-        counts[SUB[r.descr ?? ""] ?? "assenze"] += n;
+        // Una descrizione non prevista NON va nelle assenze: attribuire a
+        // qualcuno un'assenza che il dato non afferma è esattamente l'errore
+        // che questa scomposizione serve a togliere. Finisce in `altro`, dove
+        // sta già tutto ciò che non è classificabile, e la somma delle tre
+        // sottocolonne smette di ricomporre non_ha_votato: è il segnale che
+        // la fonte ha cambiato schema, e il test di ricomposizione lo rileva.
+        counts[SUB[r.descr ?? ""] ?? "altro"] += n;
       }
     }
 

@@ -271,9 +271,13 @@ WHERE {
             "Sul ramo SENATO il question time non è marcato in nessuna delle due fonti: " +
             "gli atti risultano come 'INTERROGAZIONE A RISPOSTA ORALE', quindi --type immediata " +
             "dà sempre zero anche per giorni in cui il question time si è tenuto. " +
-            "Rilancia senza --type, filtrando per la data di trattazione in Aula: " +
-            "il risultato conterrà anche interrogazioni orali non trattate quel giorno, " +
-            "da distinguere leggendo l'atto. Il filtro --type immediata resta valido sul ramo Camera.",
+            "Rilancia senza --type sul giorno della seduta: --date-from/--date-to combaciano " +
+            "sia sulla data di presentazione sia sull'ultima modifica, e per gli atti trattati " +
+            "in Aula la modifica cade di norma il giorno della trattazione (le interrogazioni " +
+            "del question time del 22/4/2020 risultano presentate il 21 e modificate il 22). " +
+            "Il risultato mescola quindi atti trattati quel giorno e atti solo presentati quel " +
+            "giorno, da distinguere leggendo l'atto: la sede non è nel dato e non è deducibile. " +
+            "Il filtro --type immediata resta valido sul ramo Camera.",
         };
       }
       // Il vuoto su una finestra di date è ambiguo: può essere latenza di
