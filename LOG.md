@@ -2,6 +2,13 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/`, `docs/news-agent/` e `tmp/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna, report dell'agente news-driven e materiale di analisi temporaneo, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-09-15 — release v0.36.1
+
+- **v0.36.1 rilasciata**, patch: `speeches` Camera conta gli interventi da membro del governo (Meloni XIX 1 → 123) e ha la colonna `gov_member_uri`. Nessun tool nuovo: restano **43**.
+- **Chi ha citato un conteggio di interventi di un parlamentare con incarichi di governo deve rifarlo.**
+- Il server MCP live e la CLI su npm sono rimasti alla 0.36.0 fino a questo rilascio.
+- Suite di release: 48 falliti su 383, **tutti 403 dell'endpoint Senato** (blocco per volume dopo una giornata di query). Nessuna asserzione sui dati fallita, Camera tutta verde. Vale la suite 379/379 della PR sullo stesso codice.
+
 ## 2026-09-15 — interventi da membro del governo (#108)
 
 - **`speeches` Camera perdeva gli interventi da membro del governo.** Filtrava solo su `ocd:rif_deputato`, mentre chi parla da premier o ministro è legato con `ocd:rif_membroGoverno`. Meloni XIX risultava con 1 intervento invece di 123, Pichetto Fratin con 1 invece di 135. **Chi ha citato un conteggio di interventi di un parlamentare con incarichi di governo deve rifarlo.**
