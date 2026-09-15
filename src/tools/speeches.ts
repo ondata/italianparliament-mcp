@@ -51,6 +51,7 @@ const cameraColumns = [
   "uri",
   "label",
   "deputy_uri",
+  "gov_member_uri",
   "date",
   "document_url",
   "modified",
@@ -69,7 +70,7 @@ export const speechesTool: Tool<typeof inputSchema> = {
   name: "speeches",
   title: "Interventi in aula",
   description:
-    "[CAMERA+SENATO] Interventi in aula con link al documento ufficiale e data (campo `date`, formato YYYY-MM-DD). Camera: stenografico/bollettino, Senato: seduta e argomento. Filtrabile per legislatura, parlamentare e intervallo di date (dateFrom/dateTo, CLI --date-from/--date-to, sulla data della seduta). Supporta conteggio rapido con countOnly (il filtro data vale anche per il conteggio). Per la Camera il filtro data richiede il parametro legislature (CLI: --legislature) come àncora dell'indice: senza, la query è molto più lenta.",
+    "[CAMERA+SENATO] Interventi in aula con link al documento ufficiale e data (campo `date`, formato YYYY-MM-DD). Camera: stenografico/bollettino, Senato: seduta e argomento. Camera: con deputyUri include anche gli interventi da membro del governo della stessa persona nella legislatura del deputyUri (colonna `gov_member_uri` valorizzata); i membri del governo NON parlamentari non hanno interventi nel LOD Camera (dato assente alla fonte: uno zero non significa che non abbiano parlato). Camera: gli interventi pronunciati come presidente di turno non sono inclusi: nel LOD non sono collegati al deputato e sono per lo più atti di conduzione della seduta. Filtrabile per legislatura, parlamentare e intervallo di date (dateFrom/dateTo, CLI --date-from/--date-to, sulla data della seduta). Supporta conteggio rapido con countOnly (il filtro data vale anche per il conteggio). Per la Camera il filtro data richiede il parametro legislature (CLI: --legislature) come àncora dell'indice: senza, la query è molto più lenta.",
   inputSchema,
   examples: [
     "italianparliament speeches list --legislature 19 --limit 10",
@@ -111,13 +112,35 @@ async function executeCamera(input: z.infer<typeof inputSchema>) {
   // lunghezza costante per legislatura), proxy della cronologia reale e index-friendly
   // (ods:modified è il timestamp di modifica del record, non la data dell'intervento).
   const filters: string[] = [];
+  const rangeFilter = (leg: number | string) => {
+    const base = `http://dati.camera.it/ocd/intervento.rdf/in${leg}_`;
+    return `FILTER(?s >= <${base}> && ?s < <${base}z>)`;
+  };
   if (input.legislature) {
-    const base = `http://dati.camera.it/ocd/intervento.rdf/in${input.legislature}_`;
-    filters.push(`FILTER(?s >= <${base}> && ?s < <${base}z>)`);
+    filters.push(rangeFilter(input.legislature));
   }
   if (input.deputyUri) {
-    filters.push(`?s ocd:rif_deputato <${input.deputyUri}> .`);
+    // Da membro del governo l'intervento non ha ocd:rif_deputato ma
+    // ocd:rif_membroGoverno, verso un URI per incarico (mg{idPersona}_...): senza
+    // questo ramo un premier o un ministro deputato risulta quasi muto (Meloni
+    // XIX: 1 da deputata vs 122 da presidente del Consiglio, issue #108).
+    // Forma `?o IN (...)`: su Virtuoso Camera COUNT su UNION restituisce valori
+    // errati (6 invece di 123) e VALUES (?p ?o) restituisce 0. Gli URI mg non
+    // sono per legislatura: la legislatura del deputyUri diventa range su ?s,
+    // SEMPRE, anche con `legislature` esplicita. I due range si intersecano:
+    // se discordano il risultato è vuoto, come per rif_deputato da solo, invece
+    // di far passare gli interventi da governo di un altro mandato.
+    const m = input.deputyUri.match(/\/deputato\.rdf\/d(\d+)_(\d+)$/);
+    if (m) {
+      const govUris = await cameraGovMemberUris(m[1]);
+      const objects = [input.deputyUri, ...govUris].map((u) => `<${u}>`).join(", ");
+      filters.push(`?s ?rifP ?rifO . FILTER(?rifO IN (${objects}))`);
+      filters.push(rangeFilter(m[2]));
+    } else {
+      filters.push(`?s ocd:rif_deputato <${input.deputyUri}> .`);
+    }
   }
+  const isDeputyUri = !input.deputyUri || /\/deputato\.rdf\/d\d+_\d+$/.test(input.deputyUri);
   // La data reale dell'intervento non è sull'intervento (ods:modified è il
   // timestamp di modifica del record). Vive sulla ocd:discussione che lo
   // raggruppa: `?disc ocd:rif_intervento ?s ; dc:date ?date`, con dc:date plain
@@ -156,7 +179,7 @@ WHERE {
   // duplicata alla fonte (presente 2× per ogni intervento), quindi senza dedup
   // il LIMIT conterebbe doppioni; GROUP BY collassa ed è ~2× più veloce di DISTINCT.
   const query = `${OCD_PREFIXES}
-SELECT ?s ?label ?rif_deputato ?relation ?modified ?date
+SELECT ?s ?label ?rif_deputato ?rif_membro_governo ?relation ?modified ?date
 WHERE {
   {
     SELECT ?s WHERE {
@@ -171,6 +194,7 @@ WHERE {
   }
   ?s rdfs:label ?label .
   OPTIONAL { ?s ocd:rif_deputato ?rif_deputato }
+  OPTIONAL { ?s ocd:rif_membroGoverno ?rif_membro_governo }
   OPTIONAL { ?s dc:relation ?relation }
   OPTIONAL { ?s ods:modified ?modified }
   OPTIONAL { ?discD ocd:rif_intervento ?s ; dc:date ?date }
@@ -190,10 +214,21 @@ ORDER BY DESC(?s)`;
       uri,
       label: r.label ?? "",
       deputy_uri: r.rif_deputato ?? "",
+      gov_member_uri: r.rif_membro_governo ?? "",
       date: d.length === 8 ? `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}` : d,
       document_url: r.relation ?? "",
       modified: r.modified ?? "",
     });
+  }
+  if (rows.length === 0 && !isDeputyUri) {
+    // Verificato (issue #108): nel LOD Camera mancano gli interventi dei membri
+    // del governo non parlamentari (seduta 672 del 10/6/2026: presenti domanda e
+    // replica delle interrogazioni a Piantedosi, assente la sua risposta).
+    return {
+      rows,
+      columns: cameraColumns,
+      hint: "Nessun intervento. deputyUri non è un URI deputato (deputato.rdf/d{id}_{leg}): gli interventi sono legati al deputato o al suo incarico di governo. I membri del governo non parlamentari (es. ministri tecnici) non hanno interventi nel LOD Camera, anche se hanno parlato in Aula: lo zero non significa che non siano intervenuti.",
+    };
   }
   if (rows.length === 0) {
     // L'area dei lavori d'Aula è la più indietro del LOD Camera (a fine luglio
@@ -209,6 +244,18 @@ ORDER BY DESC(?s)`;
     if (hint) return { rows, columns: cameraColumns, hint };
   }
   return { rows, columns: cameraColumns };
+}
+
+// Incarichi di governo di una persona: gli URI membroGoverno portano l'id
+// persona come prefisso (mg302103_1_202_1_20221021). `a ocd:membroGoverno`
+// esclude le risorse che condividono il prefisso senza essere incarichi.
+async function cameraGovMemberUris(personId: string): Promise<string[]> {
+  const results = await cdQuery(`${OCD_PREFIXES}
+SELECT DISTINCT ?mg WHERE {
+  ?mg a ocd:membroGoverno .
+  FILTER(STRSTARTS(STR(?mg), "http://dati.camera.it/ocd/membroGoverno.rdf/mg${personId}_"))
+}`);
+  return flattenBindings(results).map((r) => r.mg ?? "").filter(Boolean);
 }
 
 /* ── Senato ─────────────────────────────────────────────────────────── */

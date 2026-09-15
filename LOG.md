@@ -2,6 +2,14 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/`, `docs/news-agent/` e `tmp/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna, report dell'agente news-driven e materiale di analisi temporaneo, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-09-15 — interventi da membro del governo (#108)
+
+- **`speeches` Camera perdeva gli interventi da membro del governo.** Filtrava solo su `ocd:rif_deputato`, mentre chi parla da premier o ministro è legato con `ocd:rif_membroGoverno`. Meloni XIX risultava con 1 intervento invece di 123, Pichetto Fratin con 1 invece di 135. **Chi ha citato un conteggio di interventi di un parlamentare con incarichi di governo deve rifarlo.**
+- Con `--deputy-uri` ora il tool include gli incarichi di governo della stessa persona nella legislatura dell'URI; nuova colonna `gov_member_uri`. Deputati senza incarichi invariati (verificato contro la query precedente).
+- **Limite alla fonte**: i membri del governo non parlamentari (Piantedosi, Crosetto) non hanno interventi nel LOD Camera. Avviso nel tool e nella description; segnalazione ai gestori in `docs/note-gestori-lod/`.
+- Interventi da presidente di turno esclusi e dichiarati (description e wiki): non collegati al deputato, per lo più conduzione della seduta.
+- `rank rankBy=speeches` non ancora aggiornato.
+
 ## 2026-08-19 — release v0.36.0
 
 - **v0.36.0 rilasciata**, minor: sette colonne nuove su `attendance` (`in_missione`, `presidente_di_turno`, `assenze`, `presenze` e le tre percentuali) e il fix del primo firmatario al Senato. Nessun tool nuovo: restano **43**.

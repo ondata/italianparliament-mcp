@@ -142,6 +142,8 @@ italianparliament speeches list --chamber senato --legislature 19 --date-from 20
 ```
 `--date-from`/`--date-to` filtrano per la **data della seduta**. Camera: la data non è sull'intervento (`ods:modified` è il timestamp del record) ma sulla `ocd:discussione` che lo raggruppa — il tool la ricava. Per la Camera il filtro data richiede `--legislature` (àncora l'indice; senza è molto più lento).
 
+Camera, **membri del governo**: con `--deputy-uri` il comando include anche gli interventi pronunciati come presidente del Consiglio, ministro o sottosegretario nella legislatura di quell'URI (colonna `gov_member_uri` valorizzata). Meloni XIX: 123, di cui 122 da presidente del Consiglio. I membri del governo **non parlamentari** (es. Piantedosi, Crosetto) non hanno interventi nel LOD Camera: uno zero non significa che non abbiano parlato, il dato manca alla fonte.
+
 ### `attendance show`
 Presenze e assenze di un deputato nelle votazioni d'Assemblea della sua legislatura, con le percentuali di presenza, missione e assenza. Il denominatore è già delimitato al mandato: chi subentra a legislatura iniziata non risulta assente per il periodo in cui non sedeva.
 ```bash

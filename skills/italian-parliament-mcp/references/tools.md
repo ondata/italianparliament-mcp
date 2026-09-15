@@ -99,6 +99,8 @@ Interventi in aula, Camera **e** Senato (`chamber`).
 - `deputyUri`: filtra per parlamentare
 - `dateFrom` / `dateTo` (YYYY-MM-DD): filtra per **data della seduta** dell'intervento. Camera: la data non è sull'intervento (`ods:modified` è il timestamp del record) ma sulla `ocd:discussione` che lo raggruppa — il tool la ricava per te. Per la Camera il filtro data richiede `legislature` (àncora l'indice; senza è molto più lento).
 - Colonna `date` (YYYY-MM-DD) in output per entrambe le camere.
+- Camera, **membri del governo**: con un `deputyUri` il tool include anche gli interventi pronunciati come presidente del Consiglio, ministro o sottosegretario nella legislatura di quell'URI; la colonna `gov_member_uri` è valorizzata su quelle righe. Meloni XIX: 123 interventi, di cui 122 da presidente del Consiglio.
+- Camera, **membri del governo non parlamentari** (es. Piantedosi, Crosetto): i loro interventi **non sono nel LOD Camera**, anche se hanno parlato in Aula. Non esiste un `deputyUri` da passare e il tool non può restituirli: **non** dire che non sono intervenuti, dì che il dato manca alla fonte e rimanda al resoconto stenografico su camera.it.
 
 ### `attendance`
 Presenze e assenze di un deputato nelle votazioni d'Assemblea della sua legislatura. L'URI del deputato è già specifico di una legislatura (`.../deputato.rdf/d<ID>_<LEG>`), quindi il conteggio è già delimitato al suo mandato senza filtro separato: chi subentra a legislatura iniziata non risulta assente per il periodo in cui non sedeva.
