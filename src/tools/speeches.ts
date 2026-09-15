@@ -70,7 +70,7 @@ export const speechesTool: Tool<typeof inputSchema> = {
   name: "speeches",
   title: "Interventi in aula",
   description:
-    "[CAMERA+SENATO] Interventi in aula con link al documento ufficiale e data (campo `date`, formato YYYY-MM-DD). Camera: stenografico/bollettino, Senato: seduta e argomento. Camera: con deputyUri include anche gli interventi da membro del governo della stessa persona nella legislatura del deputyUri (colonna `gov_member_uri` valorizzata); i membri del governo NON parlamentari non hanno interventi nel LOD Camera (dato assente alla fonte: uno zero non significa che non abbiano parlato). Filtrabile per legislatura, parlamentare e intervallo di date (dateFrom/dateTo, CLI --date-from/--date-to, sulla data della seduta). Supporta conteggio rapido con countOnly (il filtro data vale anche per il conteggio). Per la Camera il filtro data richiede il parametro legislature (CLI: --legislature) come àncora dell'indice: senza, la query è molto più lenta.",
+    "[CAMERA+SENATO] Interventi in aula con link al documento ufficiale e data (campo `date`, formato YYYY-MM-DD). Camera: stenografico/bollettino, Senato: seduta e argomento. Camera: con deputyUri include anche gli interventi da membro del governo della stessa persona nella legislatura del deputyUri (colonna `gov_member_uri` valorizzata); i membri del governo NON parlamentari non hanno interventi nel LOD Camera (dato assente alla fonte: uno zero non significa che non abbiano parlato). Camera: gli interventi pronunciati come presidente di turno non sono inclusi: nel LOD non sono collegati al deputato e sono per lo più atti di conduzione della seduta. Filtrabile per legislatura, parlamentare e intervallo di date (dateFrom/dateTo, CLI --date-from/--date-to, sulla data della seduta). Supporta conteggio rapido con countOnly (il filtro data vale anche per il conteggio). Per la Camera il filtro data richiede il parametro legislature (CLI: --legislature) come àncora dell'indice: senza, la query è molto più lenta.",
   inputSchema,
   examples: [
     "italianparliament speeches list --legislature 19 --limit 10",
@@ -126,13 +126,16 @@ async function executeCamera(input: z.infer<typeof inputSchema>) {
     // XIX: 1 da deputata vs 122 da presidente del Consiglio, issue #108).
     // Forma `?o IN (...)`: su Virtuoso Camera COUNT su UNION restituisce valori
     // errati (6 invece di 123) e VALUES (?p ?o) restituisce 0. Gli URI mg non
-    // sono per legislatura: la legislatura del deputyUri diventa range su ?s.
+    // sono per legislatura: la legislatura del deputyUri diventa range su ?s,
+    // SEMPRE, anche con `legislature` esplicita. I due range si intersecano:
+    // se discordano il risultato è vuoto, come per rif_deputato da solo, invece
+    // di far passare gli interventi da governo di un altro mandato.
     const m = input.deputyUri.match(/\/deputato\.rdf\/d(\d+)_(\d+)$/);
     if (m) {
       const govUris = await cameraGovMemberUris(m[1]);
       const objects = [input.deputyUri, ...govUris].map((u) => `<${u}>`).join(", ");
       filters.push(`?s ?rifP ?rifO . FILTER(?rifO IN (${objects}))`);
-      if (!input.legislature) filters.push(rangeFilter(m[2]));
+      filters.push(rangeFilter(m[2]));
     } else {
       filters.push(`?s ocd:rif_deputato <${input.deputyUri}> .`);
     }

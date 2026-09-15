@@ -45,3 +45,5 @@ Ordine di grandezza da una fonte esterna (dataset `emeierkeio/parliamentrag-came
 ## Presidenza di turno
 
 Gli interventi di chi presiede la seduta non hanno né `rif_deputato` né `rif_membroGoverno`: solo l'etichetta (`intervento di Sergio COSTA`). In leg. 19 Sergio Costa ha 6.011 interventi per etichetta, 108 dei quali con `rif_deputato`. Il tool `speeches` non li restituisce.
+
+Gli interventi pronunciati come presidente di turno non sono inclusi: nel LOD non sono collegati al deputato e sono per lo più atti di conduzione della seduta (dare la parola, annunciare le votazioni). Quando un vicepresidente parla da deputato l'intervento ha `rif_deputato` ed è contato. Inserirli nei conteggi li travolgerebbe (Costa passerebbe da 108 a 6.119) senza aggiungere informazione politica; anche il corpus Hugging Face costruito sugli stenografici li esclude (Costa 18).

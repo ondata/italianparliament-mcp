@@ -7,6 +7,7 @@
 - **`speeches` Camera perdeva gli interventi da membro del governo.** Filtrava solo su `ocd:rif_deputato`, mentre chi parla da premier o ministro è legato con `ocd:rif_membroGoverno`. Meloni XIX risultava con 1 intervento invece di 123, Pichetto Fratin con 1 invece di 135. **Chi ha citato un conteggio di interventi di un parlamentare con incarichi di governo deve rifarlo.**
 - Con `--deputy-uri` ora il tool include gli incarichi di governo della stessa persona nella legislatura dell'URI; nuova colonna `gov_member_uri`. Deputati senza incarichi invariati (verificato contro la query precedente).
 - **Limite alla fonte**: i membri del governo non parlamentari (Piantedosi, Crosetto) non hanno interventi nel LOD Camera. Avviso nel tool e nella description; segnalazione ai gestori in `docs/note-gestori-lod/`.
+- Interventi da presidente di turno esclusi e dichiarati (description e wiki): non collegati al deputato, per lo più conduzione della seduta.
 - `rank rankBy=speeches` non ancora aggiornato.
 
 ## 2026-08-19 — release v0.36.0

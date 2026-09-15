@@ -486,6 +486,53 @@ describe("Camera tools", () => {
     ).rejects.toThrow(/legislature/i);
   }, 10000);
 
+  // Interventi da membro del governo (issue #108). Legislature chiuse, quindi
+  // valori fermi: Meloni in leg. 16 ha 9 interventi da deputata e 38 da
+  // ministra (rif_membroGoverno), 47 in tutto.
+  const meloni16 = "http://dati.camera.it/ocd/deputato.rdf/d302103_16";
+
+  it("speeches: Camera deputyUri includes government-member speeches (count = list)", async () => {
+    const count = await speechesTool.execute({ chamber: "camera", deputyUri: meloni16, countOnly: true, limit: 100, offset: 0 });
+    expect(Number(count.rows[0].count)).toBe(47);
+    const list = await speechesTool.execute({ chamber: "camera", deputyUri: meloni16, countOnly: false, limit: 200, offset: 0 });
+    expect(list.rows.length).toBe(47);
+    const gov = list.rows.filter((r) => r.gov_member_uri);
+    expect(gov.length).toBe(38);
+    for (const r of gov) {
+      expect(r.gov_member_uri).toMatch(/\/membroGoverno\.rdf\/mg302103_/);
+      expect(r.deputy_uri).toBe("");
+    }
+  }, 60000);
+
+  it("speeches: Camera deputyUri without government roles is unchanged", async () => {
+    const count = await speechesTool.execute({
+      chamber: "camera",
+      deputyUri: "http://dati.camera.it/ocd/deputato.rdf/d306921_17",
+      countOnly: true,
+      limit: 100,
+      offset: 0,
+    });
+    expect(Number(count.rows[0].count)).toBe(51);
+  }, 60000);
+
+  it("speeches: legislature conflicting with deputyUri returns nothing", async () => {
+    const count = await speechesTool.execute({ chamber: "camera", deputyUri: meloni16, legislature: 19, countOnly: true, limit: 100, offset: 0 });
+    expect(Number(count.rows[0].count)).toBe(0);
+  }, 60000);
+
+  it("speeches: non-deputy Camera URI gives an explicit hint on empty result", async () => {
+    const result = await speechesTool.execute({
+      chamber: "camera",
+      deputyUri: "http://dati.camera.it/ocd/persona.rdf/p309042",
+      countOnly: false,
+      limit: 5,
+      offset: 0,
+    });
+    expect(result.rows.length).toBe(0);
+    expect(result.columns).toContain("gov_member_uri");
+    expect(result.hint).toMatch(/non parlamentari/);
+  }, 60000);
+
   it("speeches: --date-from/--date-to filters Senato to the session date", async () => {
     // Sedute del Senato di marzo 2025: tutte le date restituite devono cadere
     // nell'intervallo (filtro STR su osr:dataSeduta xsd:date).
