@@ -1294,16 +1294,21 @@ describe("Senato tools", () => {
     // Verificato il 2026-11-04 via SPARQL: iniziativa INIZ-DDL-50952-32703 con
     // osr:dataRitiroFirma "2023-01-13 00:00:00.0". Il gruppo è quello alla
     // data della firma (dataAggiuntaFirma o presentazione del DDL).
+    // DDL presentato il 2022-10-13, primo giorno della leg. 19; i gruppi sono
+    // costituiti dal 2022-10-18 (prima osr:inizio della legislatura): chi ha
+    // firmato al deposito non aveva ancora un gruppo, e il tool lo lascia
+    // vuoto invece di indovinare. Crisanti (36387) ha aggiunto la firma il
+    // 2022-11-30 (osr:dataAggiuntaFirma), quando era nel gruppo 49 (PD-IDP).
     const result = await billSignatoriesTool.execute({ billUri: "http://dati.senato.it/ddl/55267", limit: 200 });
-    const withdrawn = result.rows.find((r) => r.person_uri.endsWith("/senatore/32703"));
-    expect(withdrawn).toBeDefined();
-    expect(withdrawn?.withdrawn_date).toBe("2023-01-13");
-    expect(withdrawn?.signed_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(result.notice).toBeUndefined();
-    for (const r of result.rows.filter((x) => /firmatario$/.test(x.role))) {
-      expect(r.signed_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      expect(r.group_label).not.toBe("");
-    }
+    const later = result.rows.find((r) => r.person_uri.endsWith("/senatore/36387"));
+    expect(later).toMatchObject({ signed_date: "2022-11-30", withdrawn_date: "" });
+    expect(later?.group_uri).toMatch(/\/gruppo\/49$/);
+    expect(later?.group_label).toMatch(/Partito Democratico/);
+    const withdrawn = result.rows.find((r) => r.person_uri.endsWith("/senatore/32703"));
+    expect(withdrawn).toMatchObject({ signed_date: "2022-10-13", withdrawn_date: "2023-01-13", group_uri: "", group_label: "" });
+    const primary = result.rows.find((r) => r.is_primary === "true");
+    expect(primary).toMatchObject({ signed_date: "2022-10-13", group_uri: "" });
   }, 60000);
 
   it("bill-signatories: deputies signing a Senato DDL get their Camera group (ddl/59070, Foti)", async () => {

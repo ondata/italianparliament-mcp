@@ -6,7 +6,7 @@
 
 - `bill-signatories` ha quattro colonne nuove: `signed_date`, `withdrawn_date`, `group_uri`, `group_label`. Il gruppo è risolto in TypeScript sulle adesioni (`ocd:aderisce` su entrambi i grafi, `core/group-lookup.ts` + `core/membership-at.ts`), alla data della firma: Capelli su C.958 (2013) è MISTO, su C.3171 (2015) è «PER L'ITALIA», che è il nome al tempo del gruppo oggi chiamato DES-CD.
 - Senato: `osr:dataAggiuntaFirma` (4.438 firme su 13.327 in leg. 19) e `osr:dataRitiroFirma` (13); formato `2023-01-13 00:00:00.0`, tagliato a data. Camera: nessuna data per firma, vale la presentazione.
-- **Verifica Senato non eseguita**: secondo 403 per volume della giornata (suite di release + sonde). Test live scritti, da girare prima del merge.
+- Verifica Senato eseguita a fine serata (endpoint tornato a 200): `ddl/55267` firma aggiunta 2022-11-30 → gruppo 49 PD-IDP; firma del deposito 2022-10-13 senza gruppo perché i gruppi della leg. 19 partono dal 2022-10-18 (il tool non indovina, documentato); ritiro 2023-01-13. `ddl/59070`: deputati su DDL Senato con gruppo dal grafo Camera.
 
 ## 2026-11-04 — release v0.37.0
 
