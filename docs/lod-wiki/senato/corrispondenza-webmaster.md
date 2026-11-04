@@ -13,7 +13,7 @@ Il dettaglio tecnico estratto da ogni scambio è documentato nella pagina wiki p
 
 # Thread 1 — Sedute di commissione: manca resoconto/OdG nello SPARQL
 
-**Stato: risposto, richiesta whitelist in attesa di riscontro.**
+**Stato al 2026-11-04: whitelist concessa in linea di principio, azione nostra pendente.** Solleciti il 24/7 e l'1/9; il 9/9 il Webmaster chiede l'IP da inserire in white list. Mai risposto: resta da decidere quale IP dichiarare (macchina locale senza IP stabile, Worker su IP Cloudflare condivisi). Nel frattempo il 403 per volume ha colpito di nuovo il 4/11.
 
 | Data | Da → A | Oggetto |
 |------|--------|---------|
@@ -28,7 +28,7 @@ Il dettaglio tecnico estratto da ogni scambio è documentato nella pagina wiki p
 
 # Thread 2 — Emendamenti (`osr:Emendamento`) fermi da agosto 2024
 
-**Stato: inviata oggi, in attesa di riscontro.**
+**Stato al 2026-11-04: risolto alla fonte.** Il Webmaster l'8/7 inoltra al servizio di popolamento; nostri follow-up il 24/7; il 27/7 risponde «ci risulta che il problema sia stato risolto». Verifica del 4/11: `ddl/60233` (Piano Casa, 2026) ha 799 `osr:Emendamento` collegati.
 
 | Data | Da → A | Oggetto |
 |------|--------|---------|
@@ -38,7 +38,7 @@ Il dettaglio tecnico estratto da ogni scambio è documentato nella pagina wiki p
 
 # Thread 3 — Votazioni d'Assemblea assenti nella finestra COVID 2020 (leg.18)
 
-**Stato: bozza pronta, non ancora inviata.**
+**Stato al 2026-11-04: bozza mai inviata.** Faceva parte del pacchetto del 25/7 rimasto fermo. Il 4/11 le votazioni leg. 18 per mese risultano: feb 79, mar 70, apr 12, mag 32, giu 63 (via `osr:seduta`/`osr:dataSeduta`): il vuoto di marzo-aprile resta.
 
 | Data | Da → A | Oggetto |
 |------|--------|---------|
@@ -65,3 +65,27 @@ Il dettaglio tecnico estratto da ogni scambio è documentato nella pagina wiki p
 | — | Borruso → Webmaster | Segnala che nel grafo esiste `http://dati.senato.it/intervento/null`, di tipo `osr:Intervento`: pare l'esito della serializzazione quando l'id dell'intervento manca a monte (viene scritta la stringa `null` nell'URI invece di omettere il record), quindi tutti gli interventi senza id collassano in un'unica risorsa. Misure al 30/7/2026: **36.853** triple `osr:seduta` (sedute dal 9/5/1996 al 29/7/2026), **47.571** `osr:oggetto`, nessun `osr:interviene`, su una classe di 302.845 interventi. Effetto: il join oggetto→intervento→seduta attraversa quel nodo e restituisce il prodotto delle due liste — **righe non vere**, non un vuoto. Esempio allegato: 18.945 sedute (comprese sedute d'Assemblea del 1996) per l'Atto del Governo n. 418 sull'IA nell'attività di polizia, presentato il 24/6/2026. Due domande: (1) conferma che sia un effetto della pipeline e non una risorsa con significato proprio; (2) possibilità di **omettere il record** quando l'id manca, o almeno di documentare l'URI come sentinella. Segnalata nella stessa nota l'assenza della **commissione assegnataria** sui documenti "Atto del Governo sottoposto a parere parlamentare". **Contenuto tecnico integrale → [trappole Senato](trappole.md).** |
 
 *Prossimo passo: inviare la bozza in [note-gestori-lod/senato-webmaster-intervento-null.md](../../note-gestori-lod/senato-webmaster-intervento-null.md).*
+
+# Thread 6 — Audizioni di commissione: assenti dagli open data
+
+**Stato al 2026-11-04: risposto, confermata l'assenza.**
+
+| Data | Da → A | Oggetto |
+|------|--------|---------|
+| 2026-07-25 08:00 | Borruso → Webmaster | Chiede se le audizioni (oggetto e auditi) siano esposte da qualche parte negli open data, non trovandole nel grafo. |
+| 2026-09-01 08:06 | Borruso → Webmaster | Sollecito. |
+| 2026-09-09 13:09 | Webmaster → Borruso | «le informazioni sulle audizioni non sono attualmente pubblicate negli open data del Senato». |
+
+Verifica del 4/11: nessuna classe con «audizion» fra le classi istanziate del grafo. Proposta di advocacy in `docs/proposta-audizioni-auditi/`.
+
+# Thread 7 — `osr:dataPresentazione` dei DDL tipizzata `xsd:string`, non `xsd:date`
+
+**Stato al 2026-11-04: inoltrata al servizio tecnico, nessun riscontro; condizione invariata.**
+
+| Data | Da → A | Oggetto |
+|------|--------|---------|
+| 2026-09-01 08:17 | Borruso → Webmaster | Segnala che `osr:dataPresentazione` è `xsd:string` sui `Ddl` (58.677 valori) e `xsd:date` su `SindacatoIspettivo` e `Documento`: un filtro tipizzato su `osr:Atto` esclude tutti i DDL senza errore. |
+| 2026-09-09 13:32 | Webmaster → Borruso | «abbiamo inoltrato al servizio tecnico». |
+| 2026-10-10 13:14 | Borruso → Webmaster | Rieseguita la query: grafo aggiornato, tipizzazione identica. Chiede se un allineamento a `xsd:date` sia previsto. |
+
+Verifica del 4/11: `Ddl` 58.745 valori, tutti `xsd:string`. Nel frattempo è emerso un secondo difetto, sullo stesso servizio: il confronto col literal `^^xsd:date` è rotto anche sui valori `xsd:date` (vedi [trappole](trappole.md), issue #116). Da proporre come follow-up in questo thread, non come mail nuova.

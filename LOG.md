@@ -2,6 +2,12 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/`, `docs/news-agent/` e `tmp/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna, report dell'agente news-driven e materiale di analisi temporaneo, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-11-04 — Senato: date con STR(), il literal ^^xsd:date è rotto alla fonte (#116)
+
+- I tre test live rossi dal 15/9 (`sindacato-ispettivo` ×2, `senato-votes --ddl-uri`) avevano una causa sola: sull'endpoint Senato il confronto col literal `^^xsd:date` non trova più il giorno del limite inferiore (`>=` 6328 contro 6335 con STR) e l'uguaglianza (`=`, `IN`) non trova nulla. Dati presenti, filtro rotto alla fonte. Fix: `STR()` in `sindacato-ispettivo` e `senato-votes`, come già `speeches`; i tre test passano senza modifiche. Tempi invariati.
+- Regola ribaltata in `docs/lod-wiki/senato/trappole.md` e nelle note collegate: sul Senato le date si confrontano sempre con `STR()`.
+- Posta con il Webmaster verificata e stati aggiornati in `docs/lod-wiki/senato/corrispondenza-webmaster.md`: emendamenti risolti alla fonte, audizioni confermate assenti, `dataPresentazione` ancora `xsd:string` senza riscontro dal 10/10, whitelist concessa ma mai risposto con l'IP.
+
 ## 2026-11-04 — test: suite completa solo alla release, contatore di richieste
 
 - La suite completa (133 test live, 74 sul Senato) è un passaggio della release, non della PR: in sviluppo `npm run test:unit` (zero rete) e `npm run test:tool -- "<tool>|<tool>"` (i live dei soli tool toccati). Due suite complete in un giorno hanno fatto scattare il 403 per volume del Senato.

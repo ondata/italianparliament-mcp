@@ -156,8 +156,8 @@ async function probeSenatoDates(
   dateTo?: string,
 ): Promise<SenatoVotesProbe> {
   const bounds: string[] = [];
-  if (dateFrom) bounds.push(`?d >= "${dateFrom}"^^xsd:date`);
-  if (dateTo) bounds.push(`?d <= "${dateTo}"^^xsd:date`);
+  if (dateFrom) bounds.push(`STR(?d) >= "${dateFrom}"`);
+  if (dateTo) bounds.push(`STR(?d) <= "${dateTo}"`);
   const filter = bounds.length ? `FILTER(${bounds.join(" && ")})` : "";
   const q = `${OSR_PREFIXES}
 SELECT (COUNT(DISTINCT ?s) AS ?sedute) (COUNT(DISTINCT ?v) AS ?votazioni) WHERE {
@@ -184,8 +184,8 @@ async function legislaturesInDateRange(
   dateTo?: string,
 ): Promise<number[]> {
   const bounds: string[] = [];
-  if (dateFrom) bounds.push(`?d >= "${dateFrom}"^^xsd:date`);
-  if (dateTo) bounds.push(`?d <= "${dateTo}"^^xsd:date`);
+  if (dateFrom) bounds.push(`STR(?d) >= "${dateFrom}"`);
+  if (dateTo) bounds.push(`STR(?d) <= "${dateTo}"`);
   const q = `${OSR_PREFIXES}
 SELECT DISTINCT ?leg WHERE {
   ?s a osr:SedutaAssemblea ; osr:legislatura ?leg ; osr:dataSeduta ?d .
@@ -335,11 +335,14 @@ export const senatoVotesTool: Tool<typeof inputSchema> = {
       ? "OPTIONAL { ?v osr:oggetto ?kwOggetto . OPTIONAL { ?kwOggetto osr:relativoA ?kwDdl . OPTIONAL { ?kwDdl osr:titolo ?ddlTitolo } OPTIONAL { ?kwDdl osr:titoloBreve ?ddlTitoloBreve } } }"
       : "";
 
+    // Date sempre via STR(), mai ^^xsd:date: dal 2026-11 sul Senato il
+    // confronto tipizzato salta il giorno del limite inferiore e l'uguaglianza
+    // (anche IN) non trova mai nulla (vedi lod-wiki senato/trappole).
     const dateFromFilter = input.dateFrom
-      ? `FILTER(?date >= "${input.dateFrom}"^^xsd:date)`
+      ? `FILTER(STR(?date) >= "${input.dateFrom}")`
       : "";
     const dateToFilter = input.dateTo
-      ? `FILTER(?date <= "${input.dateTo}"^^xsd:date)`
+      ? `FILTER(STR(?date) <= "${input.dateTo}")`
       : "";
 
     // --ddl-uri identifica univocamente il provvedimento e quindi la sua
@@ -550,8 +553,8 @@ SELECT DISTINCT ?date ?label WHERE {
               hint: buildSenatoVotesEmptyHint(input, effectiveLeg),
             };
       }
-      ddlDateFilter = `FILTER(?date IN (${[...ddlDates]
-        .map((d) => `"${d}"^^xsd:date`)
+      ddlDateFilter = `FILTER(STR(?date) IN (${[...ddlDates]
+        .map((d) => `"${d}"`)
         .join(", ")}))`;
     }
 

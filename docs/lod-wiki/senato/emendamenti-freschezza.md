@@ -35,7 +35,7 @@ SELECT (COUNT(*) as ?c) WHERE {
   ?e a <http://dati.senato.it/osr/Emendamento> ; <http://dati.senato.it/osr/oggetto> ?o .
   ?o <http://dati.senato.it/osr/relativoA> ?ddl .
   ?ddl <http://dati.senato.it/osr/dataPresentazione> ?data .
-  FILTER(?data > "2024-08-09"^^xsd:date)
+  FILTER(STR(?data) > "2024-08-09")  # STR(): regge xsd:string e xsd:date; il literal tipizzato è rotto dal 2026-11 (trappole.md)
 }
 ```
 
