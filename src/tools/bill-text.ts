@@ -23,9 +23,10 @@ async function senatoRows(uri: string): Promise<Row[]> {
   if (!m) throw new Error(`URI DDL Senato non valido: ${uri}`);
   const n = m[1];
   const query = `PREFIX osr: <http://dati.senato.it/osr/>
-SELECT ?legislatura ?testo WHERE {
+SELECT ?legislatura ?testo ?approvato WHERE {
   <${uri}> osr:legislatura ?legislatura .
   OPTIONAL { <${uri}> osr:testoPresentato ?testo }
+  OPTIONAL { <${uri}> osr:testoApprovato ?approvato }
 } LIMIT 1`;
   const r = flattenBindings(await snQuery(query))[0];
   if (!r) throw new Error(`Nessun DDL Senato trovato per URI: ${uri}`);
@@ -66,6 +67,17 @@ SELECT ?legislatura ?testo WHERE {
       auth: "none",
       url: r.testo,
       description: "URN NIR del testo presentato (identificatore, non un documento scaricabile).",
+    });
+  }
+  if (r.approvato) {
+    rows.push({
+      chamber: "senato",
+      kind: "urn-approvato",
+      format: "urn",
+      auth: "none",
+      url: r.approvato,
+      description:
+        "URN NIR del testo approvato da questo ramo (identificatore, non un documento scaricabile). Per numero e data della legge usare bill-progress (law_number, law_date, law_url).",
     });
   }
   rows.push({

@@ -9,6 +9,7 @@ Endpoint SPARQL: `https://dati.senato.it/sparql`. Ontologia OSR (namespace `http
 
 # Query template
 
+* [Dal DDL alla legge — numeroLegge, dataLegge e URN Normattiva](ddl-legge-normattiva.md) - numero e data della legge stanno sul repertorio Senato, anche sulle fasi Camera (la Camera non li ha). URN Normattiva dal tipo in `osr:natura`, mai per default: `legge:2020-10-19;1` apre il DL 1/2020, non la legge costituzionale. Sulle costituzionali una seconda coppia segnaposto (`687`, `2100-01-01`) non accoppiabile. Esposto da `bill-progress` (`law_number`, `law_date`, `law_url`).
 * [Il numero non si conserva tra i rami — le fasi si legano con osr:idDdl](ddl-fasi-idDdl.md) - `C.2669` alla Camera diventa `S.1924` al Senato: cercare il numero di un ramo sull'altro dà un vuoto ("il Senato non ha l'atto") o, peggio, l'atto sbagliato (`S.1511` ≠ fase Senato di `C.1511`). Il repertorio `osr:Ddl` contiene anche le fasi Camera (`osr:ramo="C"`) e `osr:idDdl` lega tutte le fasi dello stesso provvedimento: due query piccole ricostruiscono una navetta a più letture.
 * [Collegare una Votazione al suo DDL](votazione-ddl-link.md) - link parziale; fallback dal numero nel label via `osr:fase="S.<num>"`.
 * [Tipo semantico di una votazione (finale/fiducia)](votazione-tipo-semantico.md) - `osr:tipoVotazione` è la **modalità** (elettronica/nominale/segreta), non il tipo semantico; "Votazione finale" e "questione di fiducia" vivono solo nel `rdfs:label`. Filtri label-based di `senato-votes`.

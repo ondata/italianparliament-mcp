@@ -2,6 +2,12 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/`, `docs/news-agent/` e `tmp/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna, report dell'agente news-driven e materiale di analisi temporaneo, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-11-04 — dal DDL alla legge in bill-progress (#111)
+
+- `bill-progress` ha le colonne `law_number`, `law_date`, `law_url` (Normattiva): numero e data della legge da `osr:numeroLegge`/`osr:dataLegge` del repertorio Senato, che li porta anche sulle fasi Camera (il grafo OCD non li ha). Alla Camera compaiono sulla riga dell'ultimo stato quando è un'approvazione definitiva. `bill-text` Senato aggiunge `kind=urn-approvato` (`osr:testoApprovato`).
+- Due trappole, in `docs/lod-wiki/senato/ddl-legge-normattiva.md`: l'URN Normattiva col tipo sbagliato apre un altro atto (quindi tipo da `osr:natura`, mai per default), e sulle leggi costituzionali il LOD porta una seconda coppia segnaposto (`687`, `2100-01-01`) che il tool non accoppia: valori grezzi con `;` e nessun link.
+- Virtuoso Senato non accetta `VALUES`; `FILTER(?s IN (ddl:N, …))` sì. Query sulle leggi separata dall'elenco per non moltiplicare le righe.
+
 ## 2026-11-04 — versioni del testo Camera in bill-text (#110)
 
 - `bill-text` Camera restituisce una riga `kind=versione` per ogni versione del testo (`ocd:rif_versioneTestoAtto`): presentato, testo della commissione, lettura successiva sull'atto variante. Nuova colonna `date` (ISO), vuota sulle altre righe.
