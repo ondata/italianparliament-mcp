@@ -2,6 +2,12 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/`, `docs/news-agent/` e `tmp/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna, report dell'agente news-driven e materiale di analisi temporaneo, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-11-04 — release v0.38.0
+
+- **v0.38.0 rilasciata**: `bill-signatories` con `signed_date`, `withdrawn_date`, `group_uri`, `group_label` (#67, #112). Nessun tool nuovo: restano **43**.
+- Suite di release **420/420**, 118 richieste Camera e 162 Senato, 6,4 minuti; nessun 403 (il blocco della serata si era sciolto da solo dopo circa 40 minuti, caso diverso da quello di settembre).
+- Il caso di studio «voto fuori sede» resta fuori anche da questa release.
+
 ## 2026-11-04 — bill-signatories: data della firma e gruppo alla data (#67, #112)
 
 - `bill-signatories` ha quattro colonne nuove: `signed_date`, `withdrawn_date`, `group_uri`, `group_label`. Il gruppo è risolto in TypeScript sulle adesioni (`ocd:aderisce` su entrambi i grafi, `core/group-lookup.ts` + `core/membership-at.ts`), alla data della firma: Capelli su C.958 (2013) è MISTO, su C.3171 (2015) è «PER L'ITALIA», che è il nome al tempo del gruppo oggi chiamato DES-CD.
