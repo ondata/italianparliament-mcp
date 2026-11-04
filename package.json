@@ -23,6 +23,9 @@
     "dev": "npm run build && node dist/index.js",
     "deploy": "npm run build:worker && wrangler deploy",
     "test": "vitest",
+    "test:unit": "vitest run --exclude src/tools/tools.test.ts --exclude src/tools/sparql.test.ts",
+    "test:tool": "vitest run src/tools/tools.test.ts src/tools/sparql.test.ts -t",
+    "test:requests": "cat tmp/sparql-requests.json",
     "test:watch": "vitest --watch",
     "prepublishOnly": "npm run build",
     "test:fails": "jq -r 'if [.testResults[].assertionResults[] | select(.status==\"failed\")] | length == 0 then \"tutti verdi (\" + ([.testResults[].assertionResults[]] | length | tostring) + \" test)\" else .testResults[].assertionResults[] | select(.status==\"failed\") | \"ROSSO: \" + .fullName + \"\\n  \" + ((.failureMessages // []) | join(\"\\n  \") | split(\"\\n\")[0:3] | join(\"\\n  \")) end' tmp/test-report.json"

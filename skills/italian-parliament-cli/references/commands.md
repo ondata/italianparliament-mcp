@@ -157,7 +157,7 @@ italianparliament attendance show --uri http://dati.camera.it/ocd/deputato.rdf/d
 ## Attività legislativa — Senato
 
 ### `bill-progress list`
-Iter di un disegno di legge. **Senato** (`--branch S`, default): lista DDL con **stato corrente**, filtrabile per legislatura, `--keyword`, `--number <n>` (es. `--number 1809` → S.1809), `--date-from`/`--date-to`, o per singolo DDL con `--ddl-uri`. **Camera**: **timeline completa** di tutti gli stati attraversati, in ordine cronologico, in due modi — con `--uri <atto Camera>`, oppure con `--number <n> --branch C` (risolve l'atto Camera `ac<leg>_<n>`). Stesse colonne in entrambi i casi.
+Iter di un disegno di legge. **Senato** (`--branch S`, default): lista DDL con **stato corrente**, filtrabile per legislatura, `--keyword`, `--number <n>` (es. `--number 1809` → S.1809), `--date-from`/`--date-to`, o per singolo DDL con `--ddl-uri`. **Camera**: **timeline completa** di tutti gli stati attraversati, in ordine cronologico, in due modi — con `--uri <atto Camera>`, oppure con `--number <n> --branch C` (risolve l'atto Camera `ac<leg>_<n>`). Stesse colonne in entrambi i casi. Colonne `law_number`, `law_date`, `law_url`: la legge nata dal DDL, con link al testo vigente su Normattiva (al Senato su ogni riga, alla Camera sulla riga dell'ultimo stato se `Approvato definitivamente…`). Vuote = non (ancora) legge, salvo `NOTA` su stderr che dica che la verifica non è riuscita. Sulle leggi costituzionali possono comparire due valori separati da `;` e nessun link: il LOD porta una seconda coppia segnaposto (`2100-01-01`) che non si può accoppiare.
 ```bash
 italianparliament bill-progress list --legislature 19
 italianparliament bill-progress list --number 1809 --branch S --legislature 19

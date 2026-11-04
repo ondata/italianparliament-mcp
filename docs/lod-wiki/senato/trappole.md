@@ -15,6 +15,7 @@ Quirk noti dell'endpoint Senato (`dati.senato.it/sparql`, triplestore Virtuoso) 
 |----------|-----------|
 | `curl` diretto → comportamento **non stabile** | In precedenza l'endpoint poteva rispondere 403 a richieste grezze; alla verifica del 2026-07-01 `curl` semplice restituisce invece 200 (XML o JSON a seconda del `format`). Non assumere più il 403 come proprietà stabile dell'endpoint. |
 | **`BIND` non supportato** | Virtuoso Senato rifiuta `BIND(...)`. Portare la logica nel `SELECT`/`FILTER` o usare triple dirette. |
+| **`VALUES` non supportato** | «syntax error at 'VALUES'». Per un insieme di URI usare `FILTER(?s IN (ddl:1, ddl:2, …))` con i nomi abbreviati, a blocchi sotto il limite di request-URI (verificato 2026-11-04, vedi [ddl-legge-normattiva](ddl-legge-normattiva.md)). |
 | **`CONCAT` dentro `FILTER` invece funziona** | Verificato 2026-07-01: `FILTER(CONTAINS(LCASE(CONCAT(?fn," ",?ln)), q))` è valido ed è il modo per matchare nome+cognome insieme. |
 | **Legislatura come integer nudo** | Filtrare con `FILTER(?leg = 19)` (integer), non stringa né URI. |
 | **Subquery aggregate fragili** | Alcune subquery con `COUNT` funzionano, altre no o danno risultati vuoti/inaffidabili a seconda della forma. Non fare affidamento su subquery aggregate complesse: preferire `GROUP BY` + `MIN`/`MAX`/`COUNT` al livello esterno quando possibile. |

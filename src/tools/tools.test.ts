@@ -1010,6 +1010,33 @@ describe("Senato tools", () => {
     ).rejects.toThrow(/legislatura 14/i);
   }, 30000);
 
+  it("bill-progress: legge nata dal DDL su Senato (S.1055 → L. 177/2025) e Camera (C.703-B, riga finale)", async () => {
+    const s = await billProgressTool.execute({ ddlUri: "http://dati.senato.it/ddl/58034", limit: 10, offset: 0 });
+    expect(s.rows[0]).toMatchObject({
+      law_number: "177",
+      law_date: "2025-11-13",
+      law_url: "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2025-11-13;177",
+    });
+    const c = await billProgressTool.execute({ uri: "http://dati.camera.it/ocd/attocamera.rdf/ac19_703-B", limit: 100, offset: 0 });
+    const last = c.rows[c.rows.length - 1];
+    expect(last.status).toMatch(/^Approvato definitivamente/);
+    expect(last).toMatchObject({ law_number: "177", law_date: "2025-11-13" });
+    // Solo l'ultima riga porta la legge: gli stati precedenti restano vuoti.
+    expect(c.rows.slice(0, -1).every((r) => r.law_number === "")).toBe(true);
+  }, 60000);
+
+  it("bill-progress: legge costituzionale → urn legge.costituzionale; coppia ambigua → valori grezzi senza link", async () => {
+    const ok = await billProgressTool.execute({ ddlUri: "http://dati.senato.it/ddl/59612", limit: 10, offset: 0 });
+    expect(ok.rows[0].law_url).toBe(
+      "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge.costituzionale:2026-05-18;2",
+    );
+    const amb = await billProgressTool.execute({ ddlUri: "http://dati.senato.it/ddl/49285", limit: 10, offset: 0 });
+    expect(amb.rows[0]).toMatchObject({ law_number: "1;687", law_date: "2020-10-19;2100-01-01", law_url: "" });
+    const inCorso = await billProgressTool.execute({ ddlUri: "http://dati.senato.it/ddl/55479", limit: 10, offset: 0 });
+    expect(inCorso.rows[0]).toMatchObject({ law_number: "", law_url: "" });
+    expect(inCorso.notice).toBeUndefined();
+  }, 60000);
+
   it("bill-progress: countOnly coincide con le righe elencate (Senato)", async () => {
     const filter = { legislature: 19, keyword: "autonomia" };
     const count = await billProgressTool.execute({ ...filter, countOnly: true, limit: 100, offset: 0 });

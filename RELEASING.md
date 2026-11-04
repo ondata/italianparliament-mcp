@@ -29,6 +29,21 @@ più server MCP HTTP su Cloudflare Worker, skill e pacchetto `.dxt`.
    report in `tmp/test-report.json` (non versionato, sovrascritto a ogni run) e
    `npm run test:fails` ne estrae i falliti con le prime righe di errore.
 
+   **La suite completa è un passaggio della release, non della PR.** Durante
+   lo sviluppo si lanciano solo i test del codice toccato:
+
+   ```bash
+   npm run test:unit                              # deterministici, zero rete (gli stessi della CI)
+   npm run test:tool -- "bill-progress|bill-text" # i test live dei soli tool toccati (regex sul nome)
+   npm run test:requests                          # quante richieste ha mandato l'ultima run, per endpoint
+   ```
+
+   Il contatore (`tmp/sparql-requests.json`, scritto a fine run) conta le
+   richieste HTTP **viste dagli endpoint**, tentativi compresi: è il numero da
+   tenere d'occhio sul Senato, che blocca per volume totale e non per
+   frequenza. Annotare qui sotto il costo della suite completa a ogni release,
+   così si vede se cresce.
+
 3. **Aggiorna la documentazione**: `LOG.md` (voce in cima, data `YYYY-MM-DD`),
    `README.md`, e le skill in `skills/` se sono cambiati comandi/tool.
 

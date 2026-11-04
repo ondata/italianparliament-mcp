@@ -33,6 +33,9 @@ export default defineConfig({
   test: {
     poolOptions: { forks: { singleFork: true } },
     isolate: false,
+    // Scrive a fine run quante richieste SPARQL ha mandato la suite, per
+    // endpoint, in tmp/sparql-requests.json (vedi src/test-setup.ts).
+    setupFiles: ["src/test-setup.ts"],
     reporters: [
       "default",
       ["json", { outputFile: "tmp/test-report.json" }],
