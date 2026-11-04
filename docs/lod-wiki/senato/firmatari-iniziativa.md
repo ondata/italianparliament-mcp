@@ -11,6 +11,10 @@ timestamp: 2026-07-05
 
 I firmatari di un DDL al Senato si leggono da `osr:iniziativa`: ogni `?ddl osr:iniziativa ?init` è un nodo con `osr:presentatore` (etichetta testuale), `osr:senatore` (URI del senatore, per le iniziative parlamentari) e il flag `osr:primoFirmatario`.
 
+# Le date della firma: `osr:dataAggiuntaFirma` e `osr:dataRitiroFirma`
+
+Sul nodo `osr:iniziativa` stanno anche due date (misurate il 2026-11-04 sulla leg. 19, 13.327 iniziative con `osr:senatore`): `osr:dataAggiuntaFirma` su 4.438 (le firme aggiunte dopo il deposito; le firme del deposito non ce l'hanno, e vale `osr:dataPresentazione` del DDL) e `osr:dataRitiroFirma` su 13. Il valore è una stringa datetime, `2023-01-13 00:00:00.0`, da tagliare a `YYYY-MM-DD`. Esposte da `bill-signatories` come `signed_date`/`withdrawn_date`; il gruppo del firmatario (`group_label`) è risolto a `signed_date` sulle adesioni `ocd:aderisce` del senatore (`osr:gruppo`, `osr:inizio`, `osr:fine`) e sulle `osr:denominazione` del gruppo, con validità propria. Alla Camera non esiste nulla di simile: ogni firma vale dal deposito. Trappola: le adesioni di una legislatura partono con la costituzione dei gruppi (leg. 19: prima `osr:inizio` 2022-10-18, 357 adesioni), mentre i DDL si depositano dal primo giorno (2022-10-13): per quelle firme nessuna adesione copre la data e il gruppo resta vuoto.
+
 # La trappola: `osr:primoFirmatario` NON è mutuamente esclusivo
 
 `osr:primoFirmatario` è un flag per-iniziativa con valore `1`, ma **più iniziative dello stesso DDL possono averlo a `1` contemporaneamente**. Non è un booleano che identifica un singolo primo firmatario. Verificato il 2026-07-05:
