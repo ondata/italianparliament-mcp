@@ -24,7 +24,7 @@ Il dettaglio tecnico estratto da ogni scambio è documentato nella pagina wiki p
 | 2026-07-06 11:26 | Webmaster → Borruso | `listasommcomm` non è documentato (introdotto di recente). Per ragioni di sicurezza non comunicano soglie/limiti né User-Agent. In caso di superamento limiti, si può richiedere l'inserimento in whitelist, motivando la richiesta. |
 | 2026-07-06 12:25 | Borruso → Webmaster | Osservazione costruttiva: senza nessuna soglia minima indicata (anche solo "N secondi tra una richiesta e l'altra") è impossibile usare la risorsa senza rischiare blocchi in buona fede. Formalizza la richiesta di whitelist: si presenta come presidente di onData APS, spiega lo strumento (MCP/CLI open source per dati aperti del Parlamento, uso di ricerca/data journalism non commerciale) e chiede le modalità concrete (User-Agent dedicato? token?). |
 
-*Prossimo passo: in attesa di risposta del Webmaster sulla whitelist.*
+*Prossimo passo: nostro. Rispondere al Webmaster con l'IP da inserire in white list, una volta deciso quale dichiarare.*
 
 # Thread 2 — Emendamenti (`osr:Emendamento`) fermi da agosto 2024
 
@@ -34,7 +34,7 @@ Il dettaglio tecnico estratto da ogni scambio è documentato nella pagina wiki p
 |------|--------|---------|
 | 2026-07-08 08:00 | Borruso → Webmaster | Segnala che gli emendamenti collegati a DDL recenti risultano sempre assenti (DL Sicurezza 2025, Piano Casa 2026: 0 emendamenti) mentre sono regolarmente presenti su provvedimenti anche vecchi (Cura Italia 2020: 3.827; DL dic. 2022: 119). Query di verifica allegata: nessun DDL collegato a un emendamento ha `osr:dataPresentazione` successiva al 9/8/2024. Chiede se è un aggiornamento sospeso temporaneamente o se gli emendamenti recenti sono pubblicati altrove. **Contenuto tecnico integrale → [Emendamenti — dataset fermo da agosto 2024](emendamenti-freschezza.md).** Issue collegata: [#38](https://github.com/ondata/italianparliament-mcp/issues/38). |
 
-*Prossimo passo: in attesa di risposta del Webmaster.*
+*Prossimo passo: nessuno, thread chiuso (risolto alla fonte, verificato il 4/11).*
 
 # Thread 3 — Votazioni d'Assemblea assenti nella finestra COVID 2020 (leg.18)
 
