@@ -349,15 +349,17 @@ OFFSET ${opts.offset ?? 0}`;
  * Aggiunge law_number/law_date/law_url alle righe del repertorio Senato.
  * Se la query sulle leggi fallisce, le righe restano (vuote sulle law_*) e
  * torna un `notice` che lo dice all'utente: un vuoto muto si leggerebbe come
- * "non è legge".
+ * "non è legge". `lookup` è iniettabile solo per il test deterministico del
+ * fallback (niente vi.mock: con isolate=false trapelerebbe nei file successivi).
  */
-async function withSenatoLaw(
+export async function withSenatoLaw(
   rows: (Row & { ddl_uri: string; nature: string })[],
+  lookup: typeof senatoLawByUri = senatoLawByUri,
 ): Promise<{ rows: Row[]; notice?: string }> {
   if (rows.length === 0) return { rows: [] };
   let byUri: Awaited<ReturnType<typeof senatoLawByUri>>;
   try {
-    byUri = await senatoLawByUri(rows.map((r) => r.ddl_uri));
+    byUri = await lookup(rows.map((r) => r.ddl_uri));
   } catch {
     return { rows: rows.map((r) => ({ ...r, ...EMPTY_LAW })), notice: LAW_UNVERIFIED };
   }
