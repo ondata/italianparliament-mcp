@@ -4,6 +4,9 @@ import { OCD_PREFIXES, OSR_PREFIXES } from "../core/prefixes.js";
 import { flattenBindings } from "../core/flatten.js";
 import { personHtmlUrl } from "../core/html-url.js";
 import { richerDisplayName, personDisplayName } from "../core/person-name.js";
+import { isoDate, pickDenominationAt, pickMembershipAt, type Membership } from "../core/membership-at.js";
+import { cameraMemberships, senatoMembershipsRaw, type MembershipLookup } from "../core/group-lookup.js";
+import type { Row } from "../core/types.js";
 import type { Tool } from "./types.js";
 
 const inputSchema = z.object({
@@ -16,7 +19,20 @@ const inputSchema = z.object({
   limit: z.number().int().min(1).max(1000).default(200),
 });
 
-const columns = ["name", "role", "is_primary", "person_uri", "html_url"];
+const columns = [
+  "name",
+  "role",
+  "is_primary",
+  "person_uri",
+  "html_url",
+  "signed_date",
+  "withdrawn_date",
+  "group_uri",
+  "group_label",
+];
+
+const GROUP_UNVERIFIED =
+  "NOTA: gruppo dei firmatari non verificato, la query sulle adesioni ai gruppi non è riuscita (endpoint non raggiungibile o in 403): group_uri/group_label sono vuoti per questo, non perché il firmatario fosse senza gruppo.";
 
 const RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
 
@@ -28,9 +44,10 @@ const RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
 // seguirli, il nome torna vuoto (bug: 5 righe con name="" sui decreti governativi).
 function cameraQuery(billUri: string, limit: number): string {
   return `${OCD_PREFIXES}
-SELECT DISTINCT ?ruolo ?dep ?firstName ?surname ?label
+SELECT DISTINCT ?ruolo ?dep ?firstName ?surname ?label ?pres
        ?persona ?govRole ?pFirstName ?pSurname ?pLabel ?pAliasSurname
 WHERE {
+  OPTIONAL { <${billUri}> dc:date ?pres }
   { <${billUri}> ocd:primo_firmatario ?dep . BIND("primo" AS ?ruolo) }
   UNION
   { <${billUri}> ocd:altro_firmatario ?dep . BIND("co" AS ?ruolo) }
@@ -59,9 +76,12 @@ LIMIT ${limit}`;
 // senza osr:senatore ma con ocd:rif_deputato (URI nel grafo Camera).
 function senatoQuery(billUri: string, limit: number): string {
   return `${OSR_PREFIXES}
-SELECT ?presentatore ?senatore ?deputato ?primoFirmatario ?tipoIniziativa
+SELECT ?presentatore ?senatore ?deputato ?primoFirmatario ?tipoIniziativa ?agg ?rit ?pres
 WHERE {
   <${billUri}> osr:iniziativa ?init .
+  OPTIONAL { <${billUri}> osr:dataPresentazione ?pres }
+  OPTIONAL { ?init osr:dataAggiuntaFirma ?agg }
+  OPTIONAL { ?init osr:dataRitiroFirma ?rit }
   OPTIONAL { ?init osr:presentatore ?presentatore }
   OPTIONAL { ?init osr:senatore ?senatore }
   OPTIONAL { ?init ocd:rif_deputato ?deputato }
@@ -175,7 +195,7 @@ export const billSignatoriesTool: Tool<typeof inputSchema> = {
   name: "bill-signatories",
   title: "Firmatari di un DDL",
   description:
-    "[CAMERA/SENATO] Firmatari di un DDL: primo firmatario e cofirmatari con nome e link al profilo. Per gli atti di iniziativa governativa (decreti-legge e DDL del Governo) i proponenti sono i ministri: il ruolo è 'Governo — <dicastero>' (Camera, es. 'Governo — Ministro dell'Interno') o 'Governo (proponente)' (Senato) invece di 'primo firmatario', con is_primary=false (i proponenti sono più d'uno, non un singolo parlamentare). Sui DDL Senato di iniziativa parlamentare arrivati dalla Camera i firmatari sono deputati (person_uri nel grafo Camera); altre iniziative (Popolare, Regionale, CNEL) hanno ruolo '<tipo> (proponente)' senza link persona. Il ramo è rilevato automaticamente dall'URI del DDL (ottenibile da bill-progress).",
+    "[CAMERA/SENATO] Firmatari di un DDL: primo firmatario e cofirmatari con nome, link al profilo, data della firma e gruppo parlamentare ALLA DATA DELLA FIRMA (group_uri/group_label). Senato: signed_date è osr:dataAggiuntaFirma per le firme aggiunte dopo il deposito, altrimenti la data di presentazione; withdrawn_date è la data di ritiro della firma (osr:dataRitiroFirma), rara. Camera: il LOD non data le singole firme, signed_date è la data di presentazione dell'atto per tutti e withdrawn_date è sempre vuota. Il gruppo è quello in cui il firmatario stava a quella data (adesioni con inizio/fine; alla Camera la label è il nome del gruppo al tempo, es. 'PER L'ITALIA' per un gruppo poi rinominato; al Senato la denominazione in vigore a quella data); due gruppi separati da ';' = cambio di gruppo il giorno stesso. Gruppo vuoto per proponenti di governo e iniziative non parlamentari, oppure con una NOTA se la query sulle adesioni non è riuscita. Per gli atti di iniziativa governativa (decreti-legge e DDL del Governo) i proponenti sono i ministri: il ruolo è 'Governo — <dicastero>' (Camera, es. 'Governo — Ministro dell'Interno') o 'Governo (proponente)' (Senato) invece di 'primo firmatario', con is_primary=false (i proponenti sono più d'uno, non un singolo parlamentare). Sui DDL Senato di iniziativa parlamentare arrivati dalla Camera i firmatari sono deputati (person_uri nel grafo Camera); altre iniziative (Popolare, Regionale, CNEL) hanno ruolo '<tipo> (proponente)' senza link persona. Il ramo è rilevato automaticamente dall'URI del DDL (ottenibile da bill-progress).",
   inputSchema,
   examples: [
     "italianparliament bill-signatories show --bill-uri http://dati.camera.it/ocd/attocamera.rdf/ac19_2696",
@@ -197,6 +217,10 @@ export const billSignatoriesTool: Tool<typeof inputSchema> = {
             is_primary: r.primoFirmatario === "1" ? "true" : "false",
             person_uri: personUri,
             html_url: personHtmlUrl(personUri),
+            // Firma aggiunta dopo il deposito: la sua data; altrimenti la firma
+            // è del deposito e vale la data di presentazione del DDL.
+            signed_date: isoDate(r.agg) || isoDate(r.pres),
+            withdrawn_date: isoDate(r.rit),
           };
         }
         // Nessuna entità persona nel grafo: il presentatore vive solo come
@@ -215,9 +239,11 @@ export const billSignatoriesTool: Tool<typeof inputSchema> = {
               : "false",
           person_uri: "",
           html_url: "",
+          signed_date: isoDate(r.pres),
+          withdrawn_date: isoDate(r.rit),
         };
       });
-      return { rows, columns };
+      return withGroups(rows, columns);
     }
 
     const raw = flattenBindings(await cdQuery(cameraQuery(input.billUri, input.limit)));
@@ -253,14 +279,20 @@ export const billSignatoriesTool: Tool<typeof inputSchema> = {
             is_primary: "false",
             person_uri: r.persona,
             html_url: personHtmlUrl(r.persona),
+            signed_date: isoDate(r.pres),
+            withdrawn_date: "",
           };
         }
+        // Camera: nessuna data per firma nel LOD, tutte le firme valgono dal
+        // deposito (dc:date dell'atto) e non c'è ritiro registrato.
         return {
           name: cleanCameraName(r.firstName ?? "", r.surname ?? "", r.label ?? ""),
           role: r.ruolo === "primo" ? "primo firmatario" : "cofirmatario",
           is_primary: r.ruolo === "primo" ? "true" : "false",
           person_uri: r.dep ?? "",
           html_url: personHtmlUrl(r.dep),
+          signed_date: isoDate(r.pres),
+          withdrawn_date: "",
         };
       }),
     );
@@ -280,6 +312,61 @@ export const billSignatoriesTool: Tool<typeof inputSchema> = {
           hint: `Nessun firmatario sull'atto Camera: è la lettura Camera di un DDL presentato al SENATO come ${origine.phase}, e i firmatari stanno sul DDL di origine. Rilancia con --bill-uri ${origine.uri}. La numerazione non si conserva tra i rami, quindi il numero dell'atto Camera non aiuta a cercarli al Senato.`,
         };
     }
-    return { rows, columns };
+    return withGroups(rows, columns);
   },
 };
+
+type SignatoryRow = Row & { role: string; person_uri: string; signed_date: string };
+
+/**
+ * Gruppo di ogni firmatario alla data della firma. Solo righe con persona e
+ * ruolo parlamentare (primo firmatario/cofirmatario): proponenti di governo,
+ * popolari, regionali, CNEL restano con gruppo vuoto. Le adesioni vengono dal
+ * grafo della persona (deputati → Camera anche su un DDL Senato). Se un lookup
+ * fallisce, le righe restano e un `notice` lo dice: un vuoto muto si
+ * leggerebbe come "senza gruppo". Lookup iniettabili per i test deterministici.
+ */
+export async function withGroups(
+  rows: SignatoryRow[],
+  cols: string[],
+  lookups: { camera: MembershipLookup; senato: typeof senatoMembershipsRaw } = {
+    camera: cameraMemberships,
+    senato: senatoMembershipsRaw,
+  },
+): Promise<{ rows: Row[]; columns: string[]; notice?: string }> {
+  const parl = rows.filter((r) => r.person_uri && /firmatario$/.test(r.role));
+  const camUris = parl.map((r) => r.person_uri).filter((u) => u.includes("dati.camera.it"));
+  const senUris = parl.map((r) => r.person_uri).filter((u) => u.includes("dati.senato.it"));
+  const byPerson = new Map<string, Membership[]>();
+  let failed = false;
+  if (camUris.length > 0) {
+    try {
+      for (const [k, v] of await lookups.camera(camUris)) byPerson.set(k, v);
+    } catch {
+      failed = true;
+    }
+  }
+  if (senUris.length > 0) {
+    try {
+      const { memberships, denominations } = await lookups.senato(senUris);
+      for (const [uri, list] of memberships) {
+        const row = parl.find((r) => r.person_uri === uri);
+        const date = row?.signed_date ?? "";
+        byPerson.set(
+          uri,
+          list.map((m) => ({
+            ...m,
+            group_label: pickDenominationAt(denominations.get(m.group_uri) ?? [], date),
+          })),
+        );
+      }
+    } catch {
+      failed = true;
+    }
+  }
+  const out = rows.map((r) => {
+    const g = pickMembershipAt(byPerson.get(r.person_uri) ?? [], r.signed_date);
+    return { ...r, group_uri: g.group_uri, group_label: g.group_label };
+  });
+  return failed ? { rows: out, columns: cols, notice: GROUP_UNVERIFIED } : { rows: out, columns: cols };
+}
