@@ -15,7 +15,7 @@ Le sedute di commissione del Senato sono modellate come `osr:SedutaCommissione` 
 
 | Proprietà | Tipo | Note |
 |-----------|------|------|
-| `osr:dataSeduta` | `xsd:date` | data della seduta; `FILTER` con `"AAAA-MM-GG"^^xsd:date` |
+| `osr:dataSeduta` | `xsd:date` | data della seduta; `FILTER` con `STR(?date) >= "AAAA-MM-GG"` (il literal tipizzato è rotto dal 2026-11, vedi [trappole](trappole.md)) |
 | `osr:tipoSeduta` | stringa | `antimeridiana` / `pomeridiana` |
 | `osr:commissione` | URI → `osr:Commissione` | commissione presso cui si tiene la seduta |
 | `osr:legislatura` | integer | es. `19` (nudo, non stringa) |
@@ -55,7 +55,7 @@ ORDER BY DESC(?date)
 Filtri opzionali (intervallo date):
 
 ```sparql
-FILTER( ?date >= "2026-05-01"^^xsd:date && ?date <= "2026-05-31"^^xsd:date )
+FILTER( STR(?date) >= "2026-05-01" && STR(?date) <= "2026-05-31" )
 ```
 
 # Trappole
@@ -63,7 +63,7 @@ FILTER( ?date >= "2026-05-01"^^xsd:date && ?date <= "2026-05-31"^^xsd:date )
 | Trappola | Dettaglio |
 |----------|-----------|
 | **Nome proprietà `dataSeduta`, non `data`** | `osr:data` non esiste; usare `osr:dataSeduta`. |
-| **`osr:dataSeduta` è `xsd:date` tipizzato** | `FILTER` con `"AAAA-MM-GG"^^xsd:date`. |
+| **`osr:dataSeduta` è `xsd:date` tipizzato, ma si confronta con `STR()`** | `FILTER(STR(?date) >= "AAAA-MM-GG")`: il literal `^^xsd:date` dal 2026-11 salta il giorno del limite inferiore e `=` non trova nulla ([trappole](trappole.md)). |
 | **Doppia etichetta della commissione** | Una `Commissione` può avere **più `osr:titoloBreve`** (es. `commissione/0-2` → "Giustizia" **e** "Giustizia e autorizzazioni a procedere"). Non mettere `?comm`/`?tb` nel `SELECT` senza aggregazione, altrimenti ogni seduta si duplica. Usare `MIN(?tb)` + `GROUP BY` senza `?comm`. |
 | **`SAMPLE` non supportato** | Virtuoso Senato rifiuta `SAMPLE` (400). `MIN`/`MAX`/`COUNT` funzionano. |
 | **Niente `BIND`** | Come da [[trappole]] generali del Senato. |

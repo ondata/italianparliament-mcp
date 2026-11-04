@@ -120,11 +120,15 @@ export const sindacatoIspettivoTool: Tool<typeof inputSchema> = {
           `CONTAINS(LCASE(COALESCE(STR(?numero_), "")), LCASE("${kw}")))`,
       );
     }
+    // Confronto via STR(), mai col literal tipizzato ^^xsd:date: dal 2026-11
+    // sul Senato il confronto tipizzato non trova il giorno del limite
+    // inferiore e l'uguaglianza non trova mai (vedi lod-wiki senato/trappole).
+    // ISO YYYY-MM-DD: lessicografico = cronologico, e regge anche xsd:string.
     if (input.dateFrom) {
-      filters.push(`FILTER(?data_ >= "${input.dateFrom}"^^xsd:date)`);
+      filters.push(`FILTER(STR(?data_) >= "${input.dateFrom}")`);
     }
     if (input.dateTo) {
-      filters.push(`FILTER(?data_ <= "${input.dateTo}"^^xsd:date)`);
+      filters.push(`FILTER(STR(?data_) <= "${input.dateTo}")`);
     }
 
     const mapRow = (r: Record<string, string>) => ({
