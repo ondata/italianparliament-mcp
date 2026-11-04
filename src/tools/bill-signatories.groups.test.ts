@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { withGroups } from "./bill-signatories.js";
+import { senatoSignatoryRow, withGroups } from "./bill-signatories.js";
 
 // Deterministico, zero rete: i lookup sono iniettati. Protegge la distinzione
 // fra "senza gruppo" (vuoto, nessuna nota) e "non ho potuto verificare"
@@ -59,5 +59,31 @@ describe("withGroups", () => {
     });
     expect(called).toBe(0);
     expect(out.rows[0]).toMatchObject({ group_uri: "", group_label: "" });
+  });
+});
+
+describe("senatoSignatoryRow: la data della firma", () => {
+  const base = { presentatore: "Sen. Rossi", senatore: "http://dati.senato.it/senatore/1", primoFirmatario: "0", tipoIniziativa: "Parlamentare", pres: "2022-11-10" };
+
+  it("firma aggiunta dopo il deposito → osr:dataAggiuntaFirma, non la presentazione", () => {
+    const row = senatoSignatoryRow({ ...base, agg: "2023-01-13 00:00:00.0", rit: "" });
+    expect(row.signed_date).toBe("2023-01-13");
+    expect(row.withdrawn_date).toBe("");
+  });
+
+  it("firma del deposito (nessuna dataAggiuntaFirma) → data di presentazione del DDL", () => {
+    const row = senatoSignatoryRow({ ...base, agg: "", rit: "" });
+    expect(row.signed_date).toBe("2022-11-10");
+  });
+
+  it("ritiro → withdrawn_date dalla datetime stringa", () => {
+    const row = senatoSignatoryRow({ ...base, agg: "", rit: "2023-01-13 00:00:00.0" });
+    expect(row.withdrawn_date).toBe("2023-01-13");
+    expect(row.role).toBe("cofirmatario");
+  });
+
+  it("proponente di governo: nessuna persona, data del deposito", () => {
+    const row = senatoSignatoryRow({ presentatore: "Pres. Consiglio Meloni", senatore: "", deputato: "", primoFirmatario: "1", tipoIniziativa: "Governativa", pres: "2026-05-07", agg: "", rit: "" });
+    expect(row).toMatchObject({ role: "Governo (proponente)", is_primary: "false", person_uri: "", signed_date: "2026-05-07" });
   });
 });

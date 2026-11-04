@@ -206,44 +206,7 @@ export const billSignatoriesTool: Tool<typeof inputSchema> = {
 
     if (isSenato) {
       const raw = flattenBindings(await snQuery(senatoQuery(input.billUri, input.limit)));
-      const rows = raw.map((r) => {
-        // flattenBindings rende "" i binding assenti: servono || (non ??).
-        const personUri = r.senatore || r.deputato || "";
-        const tipo = r.tipoIniziativa || "";
-        if (personUri || tipo === "Parlamentare") {
-          return {
-            name: r.presentatore ?? "",
-            role: r.primoFirmatario === "1" ? "primo firmatario" : "cofirmatario",
-            is_primary: r.primoFirmatario === "1" ? "true" : "false",
-            person_uri: personUri,
-            html_url: personHtmlUrl(personUri),
-            // Firma aggiunta dopo il deposito: la sua data; altrimenti la firma
-            // è del deposito e vale la data di presentazione del DDL.
-            signed_date: isoDate(r.agg) || isoDate(r.pres),
-            withdrawn_date: isoDate(r.rit),
-          };
-        }
-        // Nessuna entità persona nel grafo: il presentatore vive solo come
-        // stringa (es. "Pres. Consiglio  Giorgia Meloni (Gov. Meloni-I)",
-        // oppure il proponente di un'iniziativa Popolare/Regionale/CNEL)
-        // → niente person_uri/html_url. Senza tipoIniziativa si assume
-        // governativo (comportamento storico).
-        const isGov = !tipo || tipo === "Governativa";
-        return {
-          name: r.presentatore ?? "",
-          role: isGov ? "Governo (proponente)" : `${tipo} (proponente)`,
-          is_primary: isGov
-            ? "false"
-            : r.primoFirmatario === "1"
-              ? "true"
-              : "false",
-          person_uri: "",
-          html_url: "",
-          signed_date: isoDate(r.pres),
-          withdrawn_date: isoDate(r.rit),
-        };
-      });
-      return withGroups(rows, columns);
+      return withGroups(raw.map(senatoSignatoryRow), columns);
     }
 
     const raw = flattenBindings(await cdQuery(cameraQuery(input.billUri, input.limit)));
@@ -317,6 +280,44 @@ export const billSignatoriesTool: Tool<typeof inputSchema> = {
 };
 
 type SignatoryRow = Row & { role: string; person_uri: string; signed_date: string };
+
+/**
+ * Riga di un firmatario Senato da un binding di `senatoQuery`. Pura, esportata
+ * per i test: la data della firma è `dataAggiuntaFirma` (firma aggiunta dopo
+ * il deposito) e, se manca, la presentazione del DDL; se la scelta fosse
+ * sbagliata anche il gruppo verrebbe letto al giorno sbagliato.
+ */
+export function senatoSignatoryRow(r: Record<string, string>): SignatoryRow {
+  // flattenBindings rende "" i binding assenti: servono || (non ??).
+  const personUri = r.senatore || r.deputato || "";
+  const tipo = r.tipoIniziativa || "";
+  if (personUri || tipo === "Parlamentare") {
+    return {
+      name: r.presentatore ?? "",
+      role: r.primoFirmatario === "1" ? "primo firmatario" : "cofirmatario",
+      is_primary: r.primoFirmatario === "1" ? "true" : "false",
+      person_uri: personUri,
+      html_url: personHtmlUrl(personUri),
+      signed_date: isoDate(r.agg) || isoDate(r.pres),
+      withdrawn_date: isoDate(r.rit),
+    };
+  }
+  // Nessuna entità persona nel grafo: il presentatore vive solo come
+  // stringa (es. "Pres. Consiglio  Giorgia Meloni (Gov. Meloni-I)",
+  // oppure il proponente di un'iniziativa Popolare/Regionale/CNEL)
+  // → niente person_uri/html_url. Senza tipoIniziativa si assume
+  // governativo (comportamento storico).
+  const isGov = !tipo || tipo === "Governativa";
+  return {
+    name: r.presentatore ?? "",
+    role: isGov ? "Governo (proponente)" : `${tipo} (proponente)`,
+    is_primary: isGov ? "false" : r.primoFirmatario === "1" ? "true" : "false",
+    person_uri: "",
+    html_url: "",
+    signed_date: isoDate(r.pres),
+    withdrawn_date: isoDate(r.rit),
+  };
+}
 
 /**
  * Gruppo di ogni firmatario alla data della firma. Solo righe con persona e
