@@ -2,6 +2,11 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/`, `docs/news-agent/` e `tmp/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna, report dell'agente news-driven e materiale di analisi temporaneo, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-11-04 — test: suite completa solo alla release, contatore di richieste
+
+- La suite completa (133 test live, 74 sul Senato) è un passaggio della release, non della PR: in sviluppo `npm run test:unit` (zero rete) e `npm run test:tool -- "<tool>|<tool>"` (i live dei soli tool toccati). Due suite complete in un giorno hanno fatto scattare il 403 per volume del Senato.
+- `src/core/client.ts` conta le richieste HTTP per endpoint (tentativi compresi, cioè ciò che l'endpoint vede); la suite le scrive in `tmp/sparql-requests.json` (`npm run test:requests`). Il costo della suite completa si annota in RELEASING.md a ogni release: il primo numero arriva alla prossima.
+
 ## 2026-11-04 — dal DDL alla legge in bill-progress (#111)
 
 - `bill-progress` ha le colonne `law_number`, `law_date`, `law_url` (Normattiva): numero e data della legge da `osr:numeroLegge`/`osr:dataLegge` del repertorio Senato, che li porta anche sulle fasi Camera (il grafo OCD non li ha). Alla Camera compaiono sulla riga dell'ultimo stato quando è un'approvazione definitiva. `bill-text` Senato aggiunge `kind=urn-approvato` (`osr:testoApprovato`).

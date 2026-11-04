@@ -43,6 +43,15 @@ function throttleSenato(): Promise<void> {
   return next;
 }
 
+/**
+ * Richieste HTTP inviate per endpoint nel processo corrente, tentativi
+ * compresi: è ciò che l'endpoint vede, ed è su quel volume totale che il
+ * Senato blocca l'IP (non decade aspettando, serve un IP nuovo). La suite di
+ * test lo scrive a fine run in `tmp/sparql-requests.json` (`src/test-setup.ts`)
+ * per sapere quanto costa ogni run e quali test sono voraci.
+ */
+export const requestCounts = { camera: 0, senato: 0 };
+
 async function sparqlRequest(
   endpoint: string,
   query: string,
@@ -52,6 +61,8 @@ async function sparqlRequest(
   let lastErr: unknown;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
+      if (endpoint === SENATO_ENDPOINT) requestCounts.senato++;
+      else if (endpoint === CAMERA_ENDPOINT) requestCounts.camera++;
       const params = new URLSearchParams({
         query,
         format: "application/json",
