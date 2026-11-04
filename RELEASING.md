@@ -44,6 +44,10 @@ più server MCP HTTP su Cloudflare Worker, skill e pacchetto `.dxt`.
    frequenza. Annotare qui sotto il costo della suite completa a ogni release,
    così si vede se cresce.
 
+   | Release | Test | Camera | Senato | Durata |
+   |---|---|---|---|---|
+   | v0.37.0 (2026-11-04) | 397/397 | 110 | 156 | 6 min |
+
 3. **Aggiorna la documentazione**: `LOG.md` (voce in cima, data `YYYY-MM-DD`),
    `README.md`, e le skill in `skills/` se sono cambiati comandi/tool.
 
