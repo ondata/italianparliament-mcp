@@ -205,6 +205,7 @@ Link diretti al testo di un DDL, con tipo risorsa (`format`: html/pdf/urn) e se 
 - `uri` (required): URI dell'atto (`http://dati.senato.it/ddl/<N>` o atto Camera)
 - Senato (`auth=browser`): `www.senato.it` è dietro AWS WAF → un fetch diretto torna HTTP 202. Per scaricare e convertire in markdown usare la CLI locale `italianparliament bill-text fetch --did <N>` (apre un browser reale, supera il WAF, converte il PDF con `lit`). Opzioni: `--which "<etichetta>"`, `--all`, `--fascicolo`.
 - Camera (`auth=none`): pagina fetchabile direttamente.
+- Camera, righe `kind=versione`: una per ogni versione del testo (presentato, testo della commissione `_A`, ...) con `date` (ISO), in ordine cronologico. Pagina HTML senza WAF: relazione sotto l'ancora `#RL`, articolato sotto `#PD`, dalla leg. 18 anche `#art.N` per articolo. Presenti dalla leg. 16; le leg. 14-15 non le hanno nel LOD. La lettura successiva della navetta (`-B`) sta sull'URI dell'atto variante, non sull'originale.
 - `bill-text fetch` è solo CLI/locale (richiede `agent-browser` e `lit`), non è un tool MCP.
 
 ## Organizzazione parlamentare

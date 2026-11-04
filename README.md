@@ -126,7 +126,7 @@ Il testo integrale di un DDL non è nei dati aperti SPARQL (solo metadati). Ques
 
 | Comando | Cosa fa |
 |---|---|
-| `bill-text links` | Link diretti al testo di un DDL (Camera o Senato), con tipo risorsa (`format`: html/pdf/urn) e se serve un browser (`auth`: none/browser) |
+| `bill-text links` | Link diretti al testo di un DDL (Camera o Senato), con tipo risorsa (`format`: html/pdf/urn) e se serve un browser (`auth`: none/browser). Per la Camera include le versioni del testo con data (presentato, testo della commissione), dalla leg. 16 |
 | `bill-text fetch` | Scarica un testo del DDL Senato e lo converte in markdown. `www.senato.it` è dietro AWS WAF: apre un browser reale (`agent-browser`) per superarlo, scarica il PDF e lo converte con `lit`. Opzioni `--which`, `--all`, `--fascicolo`, `--out`. Richiede `agent-browser` e `lit` installati |
 
 ### Organizzazione parlamentare

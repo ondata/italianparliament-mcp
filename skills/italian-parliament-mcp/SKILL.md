@@ -144,7 +144,7 @@ Alcune analisi ricorrenti (es. i **dissidenti/ribelli** che votano contro la lin
 
 The full text is **not** in the SPARQL data — only metadata. `bill-text` returns the direct links to the text, each with a `format` (html/pdf/urn) and an `auth` field:
 1. `bill-text` with the bill URI (`http://dati.senato.it/ddl/<N>` or a Camera atto URI) → list of resources.
-2. `auth=none` (Camera): the orchestrator can fetch the page directly.
+2. `auth=none` (Camera): the orchestrator can fetch the page directly. For a Camera bill, the `kind=versione` rows are the successive versions of the text (introduced, committee text `_A`, ...) with a `date`: HTML pages without WAF, the explanatory report under the `#RL` anchor and the articles under `#PD`. Available from legislature 16.
 3. `auth=browser` (Senato): `www.senato.it` is behind AWS WAF, so a plain fetch returns HTTP 202. Either let a browser-capable orchestrator open the URL, or use the local CLI `italianparliament bill-text fetch --did <N>` which drives a real browser to clear the WAF, downloads the PDF, and converts it to markdown with `lit`. Use `--which "Relazione"` to pick a specific text, `--all` for every text, `--fascicolo` for the full iter dossier.
 
 The `did` is the number `<N>` in the Senato DDL URI (`dati.senato.it/ddl/<N>`), same as `?did=` in the scheda URL.

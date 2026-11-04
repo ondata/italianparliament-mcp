@@ -16,7 +16,7 @@ const inputSchema = z.object({
     ),
 });
 
-const columns = ["chamber", "kind", "format", "auth", "url", "description"];
+const columns = ["chamber", "kind", "format", "auth", "url", "date", "description"];
 
 async function senatoRows(uri: string): Promise<Row[]> {
   const m = uri.match(/\/ddl\/(\d+)$/);
@@ -80,6 +80,35 @@ SELECT ?legislatura ?testo WHERE {
   return rows;
 }
 
+// Versioni del testo di un atto Camera (presentato, testo della commissione
+// `_A`, ...). Il link getDocumento.ashx porta a una pagina HTML senza WAF, con
+// la relazione sotto `#RL` e l'articolato sotto `#PD`. La lettura successiva
+// della navetta (`-B`) sta sull'atto variante, non qui. DISTINCT: i nodi
+// versione compaiono in più named graph.
+async function cameraVersionRows(uri: string): Promise<Row[]> {
+  const query = `${OCD_PREFIXES}
+SELECT DISTINCT ?date ?title ?url WHERE {
+  <${uri}> ocd:rif_versioneTestoAtto ?v .
+  ?v dcterms:isReferencedBy ?url .
+  OPTIONAL { ?v dc:date ?date }
+  OPTIONAL { ?v dc:title ?title }
+}
+ORDER BY ?date`;
+  return flattenBindings(await cdQuery(query)).map((v) => ({
+    chamber: "camera",
+    kind: "versione",
+    format: "html",
+    auth: "none",
+    url: v.url,
+    date: isoDate(v.date ?? ""),
+    description: `${v.title || "Versione del testo"}. Pagina HTML fetchabile direttamente: relazione sotto l'ancora #RL, articolato sotto #PD.`,
+  }));
+}
+
+function isoDate(d: string): string {
+  return /^\d{8}$/.test(d) ? `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}` : d;
+}
+
 async function cameraRows(uri: string): Promise<Row[]> {
   const query = `${OCD_PREFIXES}
 SELECT ?ref WHERE {
@@ -114,6 +143,7 @@ SELECT ?ref WHERE {
       description: "Risorsa collegata (es. scheda d'archivio storico).",
     });
   }
+  rows.push(...(await cameraVersionRows(uri)));
   if (rows.length === 0) {
     throw new Error(`Impossibile costruire link per l'atto Camera: ${uri}`);
   }
@@ -124,7 +154,7 @@ export const billTextTool: Tool<typeof inputSchema> = {
   name: "bill-text",
   title: "Link al testo di un DDL",
   description:
-    "[CAMERA+SENATO] Link diretti al testo di un DDL, con tipo di risorsa (html/pdf/urn) e se serve un browser per scaricarli (campo auth). Pensato per dare a un orchestratore le risorse da leggere. NB: il testo integrale non è nei dati SPARQL, sta in queste pagine/PDF: se non lo recuperi e leggi davvero, NON descrivere il contenuto della legge (articoli, soglie, importi, sanzioni) — non è un dato disponibile qui. Per scaricare e convertire i PDF del Senato (protetti da AWS WAF) usare la CLI 'bill-text fetch'.",
+    "[CAMERA+SENATO] Link diretti al testo di un DDL, con tipo di risorsa (html/pdf/urn) e se serve un browser per scaricarli (campo auth). Pensato per dare a un orchestratore le risorse da leggere. Camera: una riga kind=versione per ogni versione del testo (presentato, testo della commissione, ...) con data (dalla leg. 16; le leg. 14-15 non le hanno nel LOD), pagina HTML senza WAF con relazione sotto #RL e articolato sotto #PD; la lettura successiva della navetta (C.703-B) sta sull'URI dell'atto variante. NB: il testo integrale non è nei dati SPARQL, sta in queste pagine/PDF: se non lo recuperi e leggi davvero, NON descrivere il contenuto della legge (articoli, soglie, importi, sanzioni) — non è un dato disponibile qui. Per scaricare e convertire i PDF del Senato (protetti da AWS WAF) usare la CLI 'bill-text fetch'.",
   inputSchema,
   examples: [
     "italianparliament bill-text links --uri http://dati.senato.it/ddl/55479",
@@ -139,7 +169,9 @@ export const billTextTool: Tool<typeof inputSchema> = {
         `URI non riconosciuto: ${input.uri}. Atteso un URI di dati.senato.it/ddl/ o dati.camera.it/.`,
       );
     }
-    const rows = isSenato ? await senatoRows(input.uri) : await cameraRows(input.uri);
+    const raw = isSenato ? await senatoRows(input.uri) : await cameraRows(input.uri);
+    // Stesse chiavi su tutte le righe: in JSONL `date` c'è anche dove è vuota.
+    const rows = raw.map((r) => Object.fromEntries(columns.map((c) => [c, r[c] ?? ""])));
     return { rows, columns };
   },
 };
