@@ -97,7 +97,13 @@ più server MCP HTTP su Cloudflare Worker, skill e pacchetto `.dxt`.
    curl -s "https://registry.npmjs.org/@aborruso%2Fitalianparliament-mcp" | jq '{latest: .["dist-tags"].latest, has: (.versions | has("X.Y.Z")), modified: .time.modified}'
    ```
 
-   Se la versione c'è, proseguire. Se non c'è e `npm stage list` la mostra,
+   Se la versione c'è, proseguire. Anche `npm install -g …@X.Y.Z --force` può
+   rispondere `ETARGET No matching version` per un minuto dopo il publish
+   (metadati in cache, visto in v0.38.0): `--prefer-online` lo risolve.
+
+   **Il link 2FA va visto per intero**: lanciare `npm publish --access public`
+   senza pipe. Con `2>&1 | tail` l'output non va a un terminale e npm
+   maschera l'URL di autenticazione con `***` (visto in v0.38.0). Se non c'è e `npm stage list` la mostra,
    `npm stage approve <stage-id>` (chiede la 2FA).
 
    `prepublishOnly` (in `package.json`) ricostruisce `dist/` prima della
@@ -112,7 +118,7 @@ più server MCP HTTP su Cloudflare Worker, skill e pacchetto `.dxt`.
    0.19.0 → 0.20.0).
 
    ```bash
-   npm install -g @aborruso/italianparliament-mcp@X.Y.Z --force   # pin versione + bypass cache
+   npm install -g @aborruso/italianparliament-mcp@X.Y.Z --force --prefer-online   # pin versione + bypass cache
    hash -r; italianparliament --version 2>/dev/null   # verifica (deve stampare X.Y.Z)
    ```
 
