@@ -8,6 +8,7 @@
 - **Chi ha citato un conteggio per data al Senato fatto tra metà settembre e oggi dovrebbe rifarlo**: il filtro tipizzato perdeva il giorno di confine.
 - Suite di release **397/397**, la prima tutta verde dal 15/9. Costo misurato col contatore nuovo: 110 richieste alla Camera, 156 al Senato, 6 minuti.
 - Il caso di studio «voto fuori sede» resta fuori dalla release (da rileggere prima di pubblicarlo).
+- Publish npm: il `409 Cannot publish over previously staged version` era un ritardo del registry, la versione era passata (nota in RELEASING.md); il publish ora va lanciato dal terminale dell'utente per la 2FA.
 
 ## 2026-11-04 — Senato: date con STR(), il literal ^^xsd:date è rotto alla fonte (#116)
 

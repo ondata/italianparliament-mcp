@@ -79,6 +79,26 @@ più server MCP HTTP su Cloudflare Worker, skill e pacchetto `.dxt`.
    npm publish --access public     # scoped package → serve --access public
    ```
 
+   **Il publish va lanciato dal terminale dell'utente, non dall'agente.** Dal
+   2026 npm chiede la 2FA (chiave di sicurezza nel browser) a ogni `npm publish`:
+   il CLI stampa un link da aprire e lo mostra solo nel terminale in cui gira. Se
+   `npm whoami` dà `401`, prima `npm login` (anch'esso interattivo).
+
+   **Un `409 Cannot publish over previously staged version "X.Y.Z"` non è un
+   fallimento.** Visto in v0.37.0 (2026-11-04): un primo tentativo fermo
+   all'`EOTP`, poi il publish dal terminale dell'utente ha risposto 409, e un
+   minuto dopo il registry aveva la versione (`time.modified` successivo al
+   409), con la scheda **Staged Packages** su npmjs.com vuota. È un ritardo di
+   lettura dopo scrittura del registry, non una versione staged da approvare.
+   Prima di rilanciare o di bumpare la versione, controllare senza cache:
+
+   ```bash
+   curl -s "https://registry.npmjs.org/@aborruso%2Fitalianparliament-mcp" | jq '{latest: .["dist-tags"].latest, has: (.versions | has("X.Y.Z")), modified: .time.modified}'
+   ```
+
+   Se la versione c'è, proseguire. Se non c'è e `npm stage list` la mostra,
+   `npm stage approve <stage-id>` (chiede la 2FA).
+
    `prepublishOnly` (in `package.json`) ricostruisce `dist/` prima della
    pubblicazione. Il campo `files` include `dist`, `README.md`, `LICENSE`
    (così `dist/`, pur gitignored, finisce nel tarball). Verifica del contenuto
