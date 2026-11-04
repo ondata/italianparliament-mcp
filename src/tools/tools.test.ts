@@ -27,6 +27,7 @@ import { billSignatoriesTool } from "./bill-signatories.js";
 import { amendmentsTool, enrichProponents, checkAknTruncation, aknEmptyHint } from "./amendments.js";
 import { senatoVotesTool } from "./senato-votes.js";
 import { cameraAmendmentsTool } from "./camera-amendments.js";
+import { billTextTool } from "./bill-text.js";
 import { documentsTool } from "./documents.js";
 import { attendanceTool } from "./attendance.js";
 import { senatoAttendanceTool } from "./senato-attendance.js";
@@ -1666,6 +1667,27 @@ describe("Senato tools", () => {
     expect(result.rows).toHaveLength(50);
     expect(new Set(result.rows.map((r) => r.uri)).size).toBe(50);
   }, 90000);
+
+  it("bill-text: Camera lists the text versions in date order (AC 2696: presentato + testo commissione)", async () => {
+    const result = await billTextTool.execute({
+      uri: "http://dati.camera.it/ocd/attocamera.rdf/ac19_2696",
+    });
+    const versions = result.rows.filter((r) => r.kind === "versione");
+    expect(versions.map((r) => r.date)).toEqual(["2025-11-12", "2026-05-20"]);
+    expect(versions[1].url).toMatch(/getDocumento\.ashx\?.*camera\.2696_A\./);
+    for (const r of versions) expect(r.auth).toBe("none");
+    // Stesse chiavi su tutte le righe, anche dove date è vuota.
+    for (const r of result.rows) expect(Object.keys(r).sort()).toEqual([...result.columns].sort());
+  }, 30000);
+
+  it("bill-text: Camera next reading of the shuttle lives on the variant act (AC 703-B)", async () => {
+    const result = await billTextTool.execute({
+      uri: "http://dati.camera.it/ocd/attocamera.rdf/ac19_703-B",
+    });
+    const versions = result.rows.filter((r) => r.kind === "versione");
+    expect(versions).toHaveLength(1);
+    expect(versions[0].description).toMatch(/trasmesso dal Senato/);
+  }, 30000);
 
   it("camera-amendments: scrapes counts per sede (sentinel: AC 2696 ref=37/ass=25)", async () => {
     const result = await cameraAmendmentsTool.execute({

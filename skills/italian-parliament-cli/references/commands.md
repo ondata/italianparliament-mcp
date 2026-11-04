@@ -307,7 +307,7 @@ italianparliament audizioni list --legislature 19 --committee-name femminicidio 
 > **`--keyword` non è "chi è stato audito"**: una corrispondenza dice solo che la parola compare nel titolo, non che quel soggetto sia stato audito (può essere l'oggetto dell'indagine o un ente citato nel contesto). Verificare sempre il titolo completo.
 
 ### `bill-text links` (Camera + Senato)
-Link diretti al testo di un DDL, con tipo risorsa (`format`) e se serve un browser (`auth`).
+Link diretti al testo di un DDL, con tipo risorsa (`format`) e se serve un browser (`auth`). Per la Camera le righe `kind=versione` sono le versioni del testo (presentato, testo della commissione `_A`, ...) con `date` ISO, in ordine cronologico: pagine HTML senza WAF, relazione sotto `#RL` e articolato sotto `#PD` (dalla leg. 18 anche `#art.N`). Presenti dalla leg. 16. La lettura successiva della navetta sta sull'atto variante (`ac19_703-B`).
 ```bash
 italianparliament bill-text links --uri http://dati.senato.it/ddl/56784 --format jsonl
 italianparliament bill-text links --uri http://dati.camera.it/ocd/attocamera.rdf/ac19_1234

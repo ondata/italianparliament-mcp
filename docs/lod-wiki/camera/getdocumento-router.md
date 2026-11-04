@@ -15,6 +15,8 @@ Nota trasversale: il **casing dei parametri non è uniforme** tra le facce (`idL
 
 `getDocumento.ashx?sezione=lavori&tipoDoc=pdl&idLegislatura=19&idDocumento={N}` → **PDF del testo del ddl** (risponde `302` verso il file). Con `&old=old` la versione precedente/storica della scheda. È il pulsante "Scheda" / "Vecchia Scheda" nell'indice dell'app emendamenti. Coperto in parte dal tool `bill-text` (Camera); qui è la fonte PDF diretta.
 
+Variante `tipoDoc=testo_pdl&codice=...`: è il link che il LOD pubblica per ogni versione del testo (`ocd:rif_versioneTestoAtto` → `dcterms:isReferencedBy`), esposto da `bill-text` come righe `kind=versione` (2026-11-04). Redirige a una pagina **HTML** (non PDF) con la relazione sotto l'ancora `#RL` e l'articolato sotto `#PD`; dalla leg. 18 anche un'ancora per articolo (`#art.N`), nelle leg. 16-17 no. Copertura nel LOD: atti con almeno una versione 4.850 in leg. 17 e 3.693 in leg. 18, presenti in leg. 16, nessuno in leg. 14-15. Il testo della commissione (`_A`) sta sull'atto di partenza, la lettura successiva della navetta (`-B`) sull'atto variante.
+
 # Faccia 2 — Scheda-attività di un deputato (`sezione=deputati&tipoDoc=schedaAttivita`)
 
 `getDocumento.ashx?sezione=deputati&tipoDoc=schedaAttivita&idlegislatura=19&idpersona={N}&tipoAttivita={T}&tipoVisAtt=1&tipopersona=C` → rende la scheda-attività su `www.camera.it/leg19/1431` (HTML). È l'**aggregato ufficiale dell'attività di un parlamentare**, diviso in 7 "tab" (`tipoAttivita`):

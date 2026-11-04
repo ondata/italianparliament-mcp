@@ -2,6 +2,11 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/`, `docs/news-agent/` e `tmp/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna, report dell'agente news-driven e materiale di analisi temporaneo, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-11-04 — versioni del testo Camera in bill-text (#110)
+
+- `bill-text` Camera restituisce una riga `kind=versione` per ogni versione del testo (`ocd:rif_versioneTestoAtto`): presentato, testo della commissione, lettura successiva sull'atto variante. Nuova colonna `date` (ISO), vuota sulle altre righe.
+- Pagine HTML senza WAF, relazione sotto `#RL` e articolato sotto `#PD`: si separano senza leggere un PDF. Dalla leg. 16; leg. 14-15 assenti dal LOD.
+
 ## 2026-09-15 — release v0.36.1
 
 - **v0.36.1 rilasciata**, patch: `speeches` Camera conta gli interventi da membro del governo (Meloni XIX 1 → 123) e ha la colonna `gov_member_uri`. Nessun tool nuovo: restano **43**.
