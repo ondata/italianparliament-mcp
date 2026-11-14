@@ -4,10 +4,12 @@
  *
  *   node scripts/fixtures.mjs start   prima di una registrazione completa: cancella
  *                                     le fixture e scrive la nuova data nel manifest
- *   node scripts/fixtures.mjs reset   prima di un replay completo: azzera l'elenco
- *                                     delle fixture usate (tmp/fixtures-used.txt)
- *   node scripts/fixtures.mjs check   dopo un replay completo: fallisce se ci sono
- *                                     fixture che nessun test ha usato
+ *   node scripts/fixtures.mjs reset   prima di un replay completo: azzera gli elenchi
+ *                                     delle fixture usate e mancanti (tmp/fixtures-*.txt)
+ *   node scripts/fixtures.mjs check   dopo un replay completo: fallisce se una richiesta
+ *                                     non ha trovato la sua fixture (anche se il
+ *                                     chiamante ha intercettato l'errore e il test è
+ *                                     passato) o se ci sono fixture che nessun test ha usato
  *   node scripts/fixtures.mjs check --prune
  *                                     dopo un record completo: le cancella invece di
  *                                     fallire. Sono le query dei test che in replay si
@@ -24,6 +26,7 @@ import { gunzipSync } from "node:zlib";
 const DIR = resolve(process.cwd(), "test/fixtures/sparql");
 const MANIFEST = resolve(DIR, "manifest.json");
 const USED = resolve(process.cwd(), "tmp/fixtures-used.txt");
+const MISSING = resolve(process.cwd(), "tmp/fixtures-missing.txt");
 const ENDPOINTS = ["camera", "senato"];
 
 const cmd = process.argv[2];
@@ -34,7 +37,17 @@ if (cmd === "start") {
   console.log(`fixture cancellate, nuova data di registrazione in ${MANIFEST}`);
 } else if (cmd === "reset") {
   rmSync(USED, { force: true });
+  rmSync(MISSING, { force: true });
 } else if (cmd === "check") {
+  const missing = existsSync(MISSING) ? readFileSync(MISSING, "utf8").split("\n").filter(Boolean) : [];
+  if (missing.length > 0) {
+    console.error(`${missing.length} richieste senza fixture (registrarle con SPARQL_FIXTURES=record):`);
+    for (const line of [...new Set(missing)]) {
+      const [endpoint, , query] = line.split("\t");
+      console.error(`  ${endpoint}  «${query.replace(/PREFIX\s+\S*\s*<[^>]*>/gi, "").trim().slice(0, 100)}»`);
+    }
+    process.exit(1);
+  }
   const used = new Set(existsSync(USED) ? readFileSync(USED, "utf8").split("\n").filter(Boolean) : []);
   const unused = [];
   for (const e of ENDPOINTS) {

@@ -31,6 +31,13 @@ export type FixtureMode = "record" | "replay";
 export const FIXTURES_DIR = resolve(process.cwd(), "test/fixtures/sparql");
 export const MANIFEST_PATH = resolve(FIXTURES_DIR, "manifest.json");
 export const USED_PATH = resolve(process.cwd(), "tmp/fixtures-used.txt");
+/**
+ * Richieste rigiocate senza fixture. L'errore lanciato non basta: alcuni
+ * chiamanti intercettano gli errori della fonte e proseguono (per esempio
+ * `withGroups` lascia i gruppi vuoti), e il test può passare lo stesso.
+ * `scripts/fixtures.mjs check` fallisce se questo file non è vuoto.
+ */
+export const MISSING_PATH = resolve(process.cwd(), "tmp/fixtures-missing.txt");
 
 export function fixtureMode(): FixtureMode | undefined {
   const v = process.env.SPARQL_FIXTURES;
@@ -70,7 +77,11 @@ function urlOf(input: Parameters<typeof fetch>[0]): string {
  * `vi.stubGlobal`: così un test che fa il proprio stub e poi
  * `vi.unstubAllGlobals()` ritrova questo, non quello di rete.
  */
-export function fixtureFetch(mode: FixtureMode, realFetch: typeof fetch): typeof fetch {
+export function fixtureFetch(
+  mode: FixtureMode,
+  realFetch: typeof fetch,
+  logs: { used: string; missing: string } = { used: USED_PATH, missing: MISSING_PATH },
+): typeof fetch {
   let senatoBlocked = false;
   return async (input, init) => {
     const url = urlOf(input);
@@ -88,11 +99,12 @@ export function fixtureFetch(mode: FixtureMode, realFetch: typeof fetch): typeof
 
     if (mode === "replay") {
       if (!existsSync(path)) {
+        writeFileSync(logs.missing, `${endpoint}\t${path}\t${query.replace(/\s+/g, " ").trim()}\n`, { flag: "a" });
         throw new Error(
           `SPARQL_FIXTURES=replay: manca la fixture ${endpoint} per la query che inizia con «${query.replace(/PREFIX\s+\S*\s*<[^>]*>/gi, "").replace(/\s+/g, " ").trim().slice(0, 160)}». Registrarla con SPARQL_FIXTURES=record.`,
         );
       }
-      writeFileSync(USED_PATH, `${path}\n`, { flag: "a" });
+      writeFileSync(logs.used, `${path}\n`, { flag: "a" });
       const { body } = JSON.parse(gunzipSync(readFileSync(path)).toString("utf8")) as { body: unknown };
       return new Response(JSON.stringify(body), {
         status: 200,

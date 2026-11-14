@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fixtureFetch } from "./test-fixtures.js";
 import { CAMERA_ENDPOINT, SENATO_ENDPOINT } from "./core/endpoints.js";
 
@@ -21,5 +24,27 @@ describe("fixtureFetch in record: stop dopo un 403 del Senato", () => {
     expect((await f(senato)).status).toBe(403);
     expect((await f(camera)).status).toBe(403);
     expect(seen).toEqual(["senato", "camera"]);
+  });
+});
+
+// Una fixture mancante va registrata anche quando il chiamante intercetta
+// l'errore e prosegue (es. withGroups che lascia i gruppi vuoti): è da qui che
+// `scripts/fixtures.mjs check` fa fallire la replay (#120, rilievo Greptile).
+describe("fixtureFetch in replay: la fixture mancante resta registrata", () => {
+  it("anche se l'errore viene intercettato, la richiesta finisce nell'elenco delle mancanti", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "fixtures-"));
+    const logs = { used: join(dir, "used.txt"), missing: join(dir, "missing.txt") };
+    const noNet = (async () => {
+      throw new Error("la replay non deve andare in rete");
+    }) as typeof fetch;
+    const f = fixtureFetch("replay", noNet, logs);
+    const query = "SELECT ?mai_registrata WHERE { ?s ?p ?o } # test-fixtures.test.ts";
+    const swallowed = await f(`${SENATO_ENDPOINT}?query=${encodeURIComponent(query)}`).then(
+      () => "risolta",
+      () => "intercettata",
+    );
+    expect(swallowed).toBe("intercettata");
+    expect(readFileSync(logs.missing, "utf8")).toContain("?mai_registrata");
+    expect(existsSync(logs.used)).toBe(false);
   });
 });
