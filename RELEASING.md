@@ -136,6 +136,13 @@ più server MCP HTTP su Cloudflare Worker, skill e pacchetto `.dxt`.
    rispondere `ETARGET No matching version` per un minuto dopo il publish
    (metadati in cache, visto in v0.38.0): `--prefer-online` lo risolve.
 
+   **`PUT 202` con «Your package is being processed» è un publish riuscito**,
+   ma la versione compare sul registry solo dopo qualche minuto: in v0.38.1
+   (2026-11-14) circa due, e in quella finestra l'install rispondeva
+   `ETARGET` anche con `--prefer-online`. Non rilanciare il publish: l'esito
+   sta nell'ultimo log di npm con argv "publish" (`~/.npm/_logs/`), e il
+   controllo con `curl` qui sopra va ripetuto finché `has` è `true`.
+
    **Il link 2FA va visto per intero**: lanciare `npm publish --access public`
    senza pipe. Con `2>&1 | tail` l'output non va a un terminale e npm
    maschera l'URL di autenticazione con `***` (visto in v0.38.0). Se non c'è e `npm stage list` la mostra,
