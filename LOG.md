@@ -2,6 +2,12 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/`, `docs/news-agent/` e `tmp/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna, report dell'agente news-driven e materiale di analisi temporaneo, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-11-14 — release v0.38.1
+
+- **v0.38.1 rilasciata**: solo infrastruttura di test (#117, PR #120): fixture SPARQL, suite completa in CI, `test:record` alla release. Nessun tool nuovo né output diverso: restano **43**.
+- Test di release in replay (413 verdi, 9 saltati), sulle fixture registrate la mattina dal vivo (420/420, 117 Camera / 160 Senato): una seconda suite live nello stesso giorno avrebbe rischiato il 403 per volume del Senato.
+- Il caso di studio «voto fuori sede» resta fuori anche da questa release.
+
 ## 2026-11-14 — fixture SPARQL registrate e rigiocate (#117)
 
 - I test girano anche senza rete: `npm run test:replay` rigioca le risposte SPARQL salvate in `test/fixtures/sparql/` (239 file `.json.gz`, 0,5 MB; in chiaro sarebbero 22 MB, quasi tutto pagine di voti del Senato). Suite completa in ~2 s invece di ~7 minuti: 411 verdi, 9 saltati perché chiedono AKN su GitHub o HTML della Camera.

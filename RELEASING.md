@@ -80,6 +80,9 @@ più server MCP HTTP su Cloudflare Worker, skill e pacchetto `.dxt`.
    |---|---|---|---|---|
    | v0.37.0 (2026-11-04) | 397/397 | 110 | 156 | 6 min |
    | v0.38.0 (2026-11-04) | 420/420 | 118 | 162 | 6,4 min |
+   | v0.38.1 (2026-11-14) | 413/413 + 9 saltati, in replay | 0 | 0 | 1,3 s |
+
+   v0.38.1 è uscita in replay, sulle fixture registrate la mattina stessa (420/420 dal vivo, 117 / 160): una seconda suite live nello stesso giorno avrebbe rischiato il 403 per volume del Senato, e da allora non era cambiato il codice dei tool.
 
 3. **Aggiorna la documentazione**: `LOG.md` (voce in cima, data `YYYY-MM-DD`),
    `README.md`, e le skill in `skills/` se sono cambiati comandi/tool.
