@@ -9,7 +9,7 @@ Server MCP + CLI in TypeScript per interrogare i dati aperti del Parlamento ital
 - **Linguaggio**: TypeScript (ESM), Node. Schema input con `zod`, CLI con `citty`, server con `@modelcontextprotocol/sdk`.
 - **Build**: `npm run build` (esbuild bundle). Worker: `npm run deploy` (wrangler).
 - **Type check**: `NODE_OPTIONS="--max-old-space-size=4096" npx tsc --noEmit`. Il flag di heap è **obbligatorio**: senza, `tsc` va in OOM per la type inference dell'MCP SDK. Il type check deve restare pulito.
-- **Test**: `npm test -- --run`. Il flag `--run` è **obbligatorio**: senza, `vitest` resta in watch mode e blocca. I test sono di integrazione, colpiscono gli endpoint SPARQL reali (lenti, timeout 30s per test): una modifica a una query va sempre validata anche dal vivo, non solo compilata.
+- **Test**: `npm run test:replay` (suite completa sulle risposte SPARQL registrate in `test/fixtures/sparql`, zero rete, è ciò che gira in CI). Una query cambiata non ha fixture: va registrata dal vivo con `SPARQL_FIXTURES=record npm run test:tool -- "<tool>"`, e una modifica a una query va sempre validata anche dal vivo, non solo compilata. Con vitest diretto il flag `--run` è obbligatorio: senza, resta in watch mode e blocca.
 
 ## Architettura
 

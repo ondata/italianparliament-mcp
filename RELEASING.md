@@ -19,24 +19,56 @@ più server MCP HTTP su Cloudflare Worker, skill e pacchetto `.dxt`.
    NODE_OPTIONS="--max-old-space-size=4096" npx tsc --noEmit
    npm run build         # CLI + MCP stdio (dist/cli.js, dist/index.js)
    npm run build:worker  # Cloudflare Worker (dist/worker.js)
-   npm test -- --run     # vitest (senza --run resta in watch e blocca)
+   npm run test:record   # suite completa dal vivo + nuove fixture SPARQL (vedi sotto)
    npm run test:fails    # quali test sono rossi, dal report dell'ultima run
    ```
 
-   La suite interroga i due endpoint SPARQL reali e dura ~5 minuti: **non
-   rilanciarla per scoprire quale test è rosso**. Ogni run avvicina il `403`
-   per volume del Senato, che non decade aspettando. `npm test` scrive il
-   report in `tmp/test-report.json` (non versionato, sovrascritto a ogni run) e
-   `npm run test:fails` ne estrae i falliti con le prime righe di errore.
-
-   **La suite completa è un passaggio della release, non della PR.** Durante
-   lo sviluppo si lanciano solo i test del codice toccato:
+   `test:record` è la verifica live della release: interroga i due endpoint
+   SPARQL reali (~7 minuti) e intanto salva ogni risposta in
+   `test/fixtures/sparql/` (#117). Poi rigioca la suite sulle fixture appena
+   salvate e cancella quelle che nessun test legge. **Non rilanciarla per
+   scoprire quale test è rosso**: ogni run avvicina il `403` per volume del
+   Senato, che non decade aspettando. Il report sta in `tmp/test-report.json`
+   (non versionato) e `npm run test:fails` ne estrae i falliti. Se il Senato
+   risponde 403, la registrazione smette di mandargli richieste. In quel caso,
+   e ogni volta che la registrazione si ferma con test rossi (all'inizio
+   cancella tutte le fixture), si ripristinano quelle committate e si tolgono
+   le nuove rimaste a metà:
 
    ```bash
-   npm run test:unit                              # deterministici, zero rete (gli stessi della CI)
-   npm run test:tool -- "bill-progress|bill-text" # i test live dei soli tool toccati (regex sul nome)
+   git checkout -- test/fixtures/sparql && git clean -fq test/fixtures/sparql
+   ```
+
+   **Le fixture vanno committate con la release.** Il loro diff è il registro
+   di cosa è cambiato alla fonte da una release all'altra. Sono `.json.gz`: per
+   leggerne il diff in chiaro serve, una volta per clone,
+
+   ```bash
+   git config diff.gzip.textconv "gzip -dc"
+   ```
+
+   **Durante lo sviluppo si lavora sulle fixture, senza rete.** La CI fa lo
+   stesso a ogni push:
+
+   ```bash
+   npm run test:replay                            # suite completa sulle fixture, ~2 s, zero rete
+   npm run test:unit                              # solo i deterministici
+   npm run test:tool -- "bill-progress|bill-text" # test live dei soli tool toccati (regex sul nome)
    npm run test:requests                          # quante richieste ha mandato l'ultima run, per endpoint
    ```
+
+   Se si cambia la query di un tool, la replay fallisce dicendo quale fixture
+   manca: si registra solo quel tool, dal vivo, e si toglie la fixture vecchia
+   (`test:replay` nomina quelle che nessuno legge più):
+
+   ```bash
+   SPARQL_FIXTURES=record npm run test:tool -- "bill-progress"
+   npm run test:replay   # fallisce elencando le fixture orfane: cancellarle
+   ```
+
+   In replay si saltano i 9 test che chiedono altro oltre a SPARQL (AKN su
+   GitHub, HTML Camera, marcati `it.skipIf(NET_BLOCKED)`): girano solo dal
+   vivo, con `test:tool` o `test:record`.
 
    Il contatore (`tmp/sparql-requests.json`, scritto a fine run) conta le
    richieste HTTP **viste dagli endpoint**, tentativi compresi: è il numero da

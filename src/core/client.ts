@@ -29,13 +29,18 @@ export class SparqlError extends Error {
 // gira perciò in un processo unico con moduli condivisi (`vitest.config.ts`):
 // coi worker paralleli ogni file avrebbe la propria catena e il throttle non
 // proteggerebbe nulla.
-const SENATO_MIN_INTERVAL_MS = 2000;
+let senatoMinIntervalMs = 2000;
 let senatoThrottleChain: Promise<void> = Promise.resolve();
 let senatoLastCallAt = 0;
 
+/** Solo per i test: in replay delle fixture (#117) nessuna richiesta va in rete, l'attesa è inutile. */
+export function setSenatoMinIntervalForTests(ms: number): void {
+  senatoMinIntervalMs = ms;
+}
+
 function throttleSenato(): Promise<void> {
   const next = senatoThrottleChain.then(async () => {
-    const wait = senatoLastCallAt + SENATO_MIN_INTERVAL_MS - Date.now();
+    const wait = senatoLastCallAt + senatoMinIntervalMs - Date.now();
     if (wait > 0) await new Promise((r) => setTimeout(r, wait));
     senatoLastCallAt = Date.now();
   });

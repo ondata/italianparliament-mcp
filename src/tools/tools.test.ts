@@ -32,6 +32,9 @@ import { documentsTool } from "./documents.js";
 import { attendanceTool } from "./attendance.js";
 import { senatoAttendanceTool } from "./senato-attendance.js";
 import { sindacatoIspettivoTool } from "./sindacato-ispettivo.js";
+// Test con richieste fuori dalle fixture SPARQL (AKN su GitHub, HTML Camera):
+// in replay (SPARQL_FIXTURES=replay, #117) si saltano.
+import { NET_BLOCKED } from "../test-fixtures.js";
 
 // Integration tests — hit real SPARQL endpoints.
 // Run with: npx vitest run src/tools/tools.test.ts
@@ -1361,7 +1364,7 @@ describe("Senato tools", () => {
     expect(result.rows[0].legislature).toBe("19");
   }, 30000);
 
-  it("amendments: ogni riga espone akn_xml_url (testo raw senza WAF), da LOD o da fallback AKN", async () => {
+  it.skipIf(NET_BLOCKED)("amendments: ogni riga espone akn_xml_url (testo raw senza WAF), da LOD o da fallback AKN", async () => {
     // ddl/60233 (Piano Casa): la freschezza del LOD è intermittente (osservato
     // riallinearsi tra il 7 e il 10 lug 2026, wiki senato/emendamenti-freschezza.md).
     // Non si assume quale sorgente risponda in un dato momento: si accetta
@@ -1379,7 +1382,7 @@ describe("Senato tools", () => {
     expect(result.rows[0].ddl_uri).toBe("http://dati.senato.it/ddl/60233");
   }, 30000);
 
-  it("amendments: fallback AKN attivo su LOD vuoto, con hint quando anche il bulk è vuoto", async () => {
+  it.skipIf(NET_BLOCKED)("amendments: fallback AKN attivo su LOD vuoto, con hint quando anche il bulk è vuoto", async () => {
     // DDL inesistente: LOD vuoto → il fallback interroga il bulk AKN (404 →
     // listing vuoto) e il vuoto è qualificato dall'hint doppia-fonte.
     const result = await amendmentsTool.execute({
@@ -1405,7 +1408,7 @@ describe("Senato tools", () => {
     expect(Number(result.rows[0].count)).toBeGreaterThan(0);
   }, 30000);
 
-  it("amendments: countOnly su ddl reale conta da LOD o da fallback AKN", async () => {
+  it.skipIf(NET_BLOCKED)("amendments: countOnly su ddl reale conta da LOD o da fallback AKN", async () => {
     // Stessa intermittenza di freschezza LOD di ddl/60233 (vedi sopra): non si
     // assume la sorgente, solo che il totale sia positivo e la forma corretta.
     const result = await amendmentsTool.execute({
@@ -1420,7 +1423,7 @@ describe("Senato tools", () => {
     expect(Number(result.rows[0].count)).toBeGreaterThan(0);
   }, 30000);
 
-  it("amendments: countOnly con LOD vuoto passa al fallback AKN (deterministico: ddl inesistente)", async () => {
+  it.skipIf(NET_BLOCKED)("amendments: countOnly con LOD vuoto passa al fallback AKN (deterministico: ddl inesistente)", async () => {
     // DDL inesistente + legislatura esplicita: LOD 0 → listing AKN 404 →
     // conteggio 0 ma con source "akn", prova che il ramo di fallback è attivo.
     const result = await amendmentsTool.execute({
@@ -1445,7 +1448,7 @@ describe("Senato tools", () => {
     expect(pastEnd).toContain("900");
   });
 
-  it("amendments: withProponents estrae il primo firmatario dal testo AKN", async () => {
+  it.skipIf(NET_BLOCKED)("amendments: withProponents estrae il primo firmatario dal testo AKN", async () => {
     // Il bulk AKN contiene anche file stub vuoti (200 OK, zero contenuto —
     // wiki senato/emendamenti-firmatario.md, es. odg G1.17 su questo stesso
     // DDL): non si assume che la riga in posizione 0 sia per forza popolata,
@@ -1477,7 +1480,7 @@ describe("Senato tools", () => {
     ).rejects.toThrow(/limit<=100/);
   });
 
-  it("amendments: enrichProponents fallisce esplicito se TUTTI i fetch al bulk AKN falliscono", async () => {
+  it.skipIf(NET_BLOCKED)("amendments: enrichProponents fallisce esplicito se TUTTI i fetch al bulk AKN falliscono", async () => {
     // URL raw a percorsi inesistenti (404 reali): un outage/irraggiungibilità
     // di GitHub non deve tradursi in righe silenziosamente vuote,
     // indistinguibili dal caso legittimo "nessun proponente" (file stub).
@@ -1766,7 +1769,7 @@ describe("Senato tools", () => {
     expect(versions[0].description).toMatch(/trasmesso dal Senato/);
   }, 30000);
 
-  it("camera-amendments: scrapes counts per sede (sentinel: AC 2696 ref=37/ass=25)", async () => {
+  it.skipIf(NET_BLOCKED)("camera-amendments: scrapes counts per sede (sentinel: AC 2696 ref=37/ass=25)", async () => {
     const result = await cameraAmendmentsTool.execute({
       billUri: "http://dati.camera.it/ocd/attocamera.rdf/ac19_2696",
       countOnly: true,
@@ -1777,7 +1780,7 @@ describe("Senato tools", () => {
     expect(bySede["assemblea"]).toBe(25);
   }, 30000);
 
-  it("camera-amendments: lists amendments with number and signatory (AC 2696)", async () => {
+  it.skipIf(NET_BLOCKED)("camera-amendments: lists amendments with number and signatory (AC 2696)", async () => {
     const result = await cameraAmendmentsTool.execute({
       billUri: "http://dati.camera.it/ocd/attocamera.rdf/ac19_2696",
       countOnly: false,
@@ -1789,7 +1792,7 @@ describe("Senato tools", () => {
     expect(result.rows[0].text_url).toMatch(/getPropostaEmendativa\.aspx/);
   }, 30000);
 
-  it("camera-amendments: falls back to the ostr index on historical acts where the scheda has no direct link (AC 2402, leg.18)", async () => {
+  it.skipIf(NET_BLOCKED)("camera-amendments: falls back to the ostr index on historical acts where the scheda has no direct link (AC 2402, leg.18)", async () => {
     // La scheda-atto storica (leg.18) non incorpora più getProposteEmendative.aspx
     // (il bottone "Emendamenti" punta al motore di ricerca generico
     // ricerca-emendamenti): prima del fix il tool restituiva 0 righe senza

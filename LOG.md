@@ -2,6 +2,13 @@
 
 > I riferimenti a `docs/note-gestori-lod/`, `docs/campagna-parlamento-aperto/`, `docs/news-agent/` e `tmp/` rimandano a **cartelle di lavoro non versionate** (in `.gitignore`): bozze di segnalazione ai gestori dei dati, materiali di campagna, report dell'agente news-driven e materiale di analisi temporaneo, che restano locali. Su GitHub quei percorsi non esistono; sono citati per tracciare dove è stata portata ogni segnalazione o analisi.
 
+## 2026-11-14 — fixture SPARQL registrate e rigiocate (#117)
+
+- I test girano anche senza rete: `npm run test:replay` rigioca le risposte SPARQL salvate in `test/fixtures/sparql/` (239 file `.json.gz`, 0,5 MB; in chiaro sarebbero 22 MB, quasi tutto pagine di voti del Senato). Suite completa in ~2 s invece di ~7 minuti: 411 verdi, 9 saltati perché chiedono AKN su GitHub o HTML della Camera.
+- La CI ora fa girare tutta la suite in replay, test dei tool compresi: prima ne escludeva tutti i test live, perché gli endpoint rifiutano i runner GitHub.
+- Alla release `npm run test:record` sostituisce `npm test -- --run`: è la stessa verifica dal vivo (prima registrazione 420/420, 117 Camera / 160 Senato, nessun 403) e in più riscrive le fixture. Il diff delle fixture è il registro di cosa cambia alla fonte; per leggerlo in chiaro `git config diff.gzip.textconv "gzip -dc"`.
+- Data congelata alla data di registrazione durante i test, così le query costruite su "oggi" restano uguali; in replay niente attesa di 2 s tra le query al Senato. Accorgimenti suggeriti nella issue da un utente esterno.
+
 ## 2026-11-04 — release v0.38.0
 
 - **v0.38.0 rilasciata**: `bill-signatories` con `signed_date`, `withdrawn_date`, `group_uri`, `group_label` (#67, #112). Nessun tool nuovo: restano **43**.
