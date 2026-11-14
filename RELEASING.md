@@ -30,8 +30,14 @@ più server MCP HTTP su Cloudflare Worker, skill e pacchetto `.dxt`.
    scoprire quale test è rosso**: ogni run avvicina il `403` per volume del
    Senato, che non decade aspettando. Il report sta in `tmp/test-report.json`
    (non versionato) e `npm run test:fails` ne estrae i falliti. Se il Senato
-   risponde 403, la registrazione smette di mandargli richieste: in quel caso
-   `git checkout -- test/fixtures/sparql` e si riprova un altro giorno.
+   risponde 403, la registrazione smette di mandargli richieste. In quel caso,
+   e ogni volta che la registrazione si ferma con test rossi (all'inizio
+   cancella tutte le fixture), si ripristinano quelle committate e si tolgono
+   le nuove rimaste a metà:
+
+   ```bash
+   git checkout -- test/fixtures/sparql && git clean -fq test/fixtures/sparql
+   ```
 
    **Le fixture vanno committate con la release.** Il loro diff è il registro
    di cosa è cambiato alla fonte da una release all'altra. Sono `.json.gz`: per
