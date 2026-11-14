@@ -32,14 +32,11 @@ jobs:
       - name: Type check
         run: NODE_OPTIONS="--max-old-space-size=4096" npx tsc --noEmit
 
-      - name: Deterministic tests (no live SPARQL)
-        run: npm test -- --run --exclude src/tools/tools.test.ts --exclude src/tools/sparql.test.ts
-
-  # I test live (src/tools/tools.test.ts, src/tools/sparql.test.ts) interrogano
-  # gli endpoint LOD dati.camera.it / dati.senato.it, che rifiutano in modo
-  # sistematico le richieste dai runner GitHub Actions (anti-bot / IP CI): il
-  # job falliva SEMPRE con "SPARQL request failed after 5 attempts", senza mai
-  # distinguere una vera regressione dal blocco di rete. Rimosso perché rumore
-  # a zero segnale. La rete di sicurezza è il testing live in locale prima di
-  # ogni release (RELEASING.md impone `npm test -- --run`, dove gli endpoint
-  # rispondono).
+      # Suite completa, test dei tool compresi, sulle risposte SPARQL registrate
+      # in test/fixtures/sparql (#117): nessuna richiesta a dati.camera.it /
+      # dati.senato.it, che rifiutano i runner GitHub Actions. Fallisce anche se
+      # una fixture manca (query cambiata: va registrata) o non viene più letta.
+      # I test che chiedono altro (AKN su GitHub, HTML Camera) qui si saltano.
+      # Le fixture si rifanno dal vivo alla release (RELEASING.md, test:record).
+      - name: Tests (SPARQL replay from fixtures)
+        run: npm run test:replay
