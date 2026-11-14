@@ -8,12 +8,18 @@
  *                                     delle fixture usate (tmp/fixtures-used.txt)
  *   node scripts/fixtures.mjs check   dopo un replay completo: fallisce se ci sono
  *                                     fixture che nessun test ha usato
+ *   node scripts/fixtures.mjs check --prune
+ *                                     dopo un record completo: le cancella invece di
+ *                                     fallire. Sono le query dei test che in replay si
+ *                                     saltano (NET_BLOCKED): il record le salva, la
+ *                                     replay non le legge mai.
  *
  * Il controllo delle inutilizzate ha senso solo sulla suite intera: con
  * `test:tool` le fixture degli altri tool restano fuori per costruzione.
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { gunzipSync } from "node:zlib";
 
 const DIR = resolve(process.cwd(), "test/fixtures/sparql");
 const MANIFEST = resolve(DIR, "manifest.json");
@@ -39,15 +45,19 @@ if (cmd === "start") {
       if (!used.has(p)) unused.push(p);
     }
   }
-  if (unused.length > 0) {
+  if (unused.length > 0 && process.argv[3] === "--prune") {
+    for (const p of unused) rmSync(p);
+    console.log(`fixture: ${unused.length} mai lette in replay, cancellate; ${used.size} restano`);
+  } else if (unused.length > 0) {
     console.error(`${unused.length} fixture mai usate dalla suite (query cambiate o test tolti), da cancellare o riregistrare:`);
     for (const p of unused) {
-      const { query } = JSON.parse(readFileSync(p, "utf8"));
+      const { query } = JSON.parse(gunzipSync(readFileSync(p)).toString("utf8"));
       console.error(`  ${p.slice(DIR.length + 1)}  «${query.replace(/PREFIX\s+\S*\s*<[^>]*>/gi, "").replace(/\s+/g, " ").trim().slice(0, 100)}»`);
     }
     process.exit(1);
+  } else {
+    console.log(`fixture: tutte usate (${used.size})`);
   }
-  console.log(`fixture: tutte usate (${used.size})`);
 } else {
   console.error("uso: node scripts/fixtures.mjs start|reset|check");
   process.exit(2);

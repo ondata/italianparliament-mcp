@@ -1,0 +1,3 @@
+# Fixture SPARQL compresse (#117): git diff le mostra in chiaro dopo
+#   git config diff.gzip.textconv "gzip -dc"
+test/fixtures/sparql/**/*.json.gz diff=gzip

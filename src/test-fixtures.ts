@@ -4,7 +4,10 @@
  * importano, quindi niente `node:fs` fuori dai test.
  *
  * `SPARQL_FIXTURES=record`: le richieste ai due endpoint SPARQL vanno in rete e
- * ogni risposta 200 si salva in `test/fixtures/sparql/<camera|senato>/<sha256(query)>.json`.
+ * ogni risposta 200 si salva in `test/fixtures/sparql/<camera|senato>/<sha256(query)>.json.gz`.
+ * Compresse perché in chiaro pesano ~22 MB (quasi tutto pagine di voti del
+ * Senato) contro ~0,5 MB; il diff leggibile si recupera con `.gitattributes`
+ * (vedi RELEASING.md).
  * `SPARQL_FIXTURES=replay`: le risposte si leggono da lì; una fixture mancante
  * è un errore, mai un ripiego sulla rete. Anche le altre richieste (HTML
  * Camera, AKN su GitHub) sono rifiutate: i test che ne hanno bisogno si
@@ -20,6 +23,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { gunzipSync, gzipSync } from "node:zlib";
 import { CAMERA_ENDPOINT, SENATO_ENDPOINT } from "./core/endpoints.js";
 
 export type FixtureMode = "record" | "replay";
@@ -46,7 +50,7 @@ export function recordedAt(): string {
 
 export function fixturePath(endpoint: "camera" | "senato", query: string): string {
   const hash = createHash("sha256").update(query).digest("hex");
-  return resolve(FIXTURES_DIR, endpoint, `${hash}.json`);
+  return resolve(FIXTURES_DIR, endpoint, `${hash}.json.gz`);
 }
 
 function endpointOf(url: string): "camera" | "senato" | undefined {
@@ -89,7 +93,7 @@ export function fixtureFetch(mode: FixtureMode, realFetch: typeof fetch): typeof
         );
       }
       writeFileSync(USED_PATH, `${path}\n`, { flag: "a" });
-      const { body } = JSON.parse(readFileSync(path, "utf8")) as { body: unknown };
+      const { body } = JSON.parse(gunzipSync(readFileSync(path)).toString("utf8")) as { body: unknown };
       return new Response(JSON.stringify(body), {
         status: 200,
         headers: { "Content-Type": "application/sparql-results+json" },
@@ -106,7 +110,7 @@ export function fixtureFetch(mode: FixtureMode, realFetch: typeof fetch): typeof
     if (res.status !== 200) return res;
     const body = await res.json();
     mkdirSync(resolve(FIXTURES_DIR, endpoint), { recursive: true });
-    writeFileSync(path, JSON.stringify({ query, body }, null, 1) + "\n");
+    writeFileSync(path, gzipSync(JSON.stringify({ query, body }, null, 1) + "\n", { level: 9 }));
     return new Response(JSON.stringify(body), {
       status: 200,
       headers: { "Content-Type": "application/sparql-results+json" },
